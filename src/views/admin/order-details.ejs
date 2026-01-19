@@ -1,0 +1,153 @@
+<%
+const layout = '../layouts/layout.ejs';
+
+let statusClass = 'secondary';
+let statusText = order.status;
+switch (order.status) {
+    case 'pending': statusClass = 'warning'; statusText = 'Kutilmoqda'; break;
+    case 'confirmed': statusClass = 'info'; statusText = 'Tasdiqlangan'; break;
+    case 'delivered': statusClass = 'success'; statusText = 'Yetkazilgan'; break;
+    case 'cancelled': statusClass = 'danger'; statusText = 'Bekor qilingan'; break;
+}
+
+const body = `
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-receipt me-2"></i>Buyurtma #${order.orderNumber}
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="/admin/orders" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Orqaga
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Buyurtma ma'lumotlari</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Klient:</strong> ${order.client?.firstName} ${order.client?.lastName}</p>
+                        <p><strong>Telefon:</strong> <a href="tel:${order.client?.phone}">${order.client?.phone}</a></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Status:</strong> <span class="badge bg-${statusClass}">${statusText}</span></p>
+                        <p><strong>Yaratilgan:</strong> ${moment(order.createdAt).format('DD/MM/YYYY HH:mm')}</p>
+                    </div>
+                </div>
+
+                <h6 class="mt-4 mb-3">Buyurtma elementlari:</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Mahsulot</th>
+                                <th>Miqdor</th>
+                                <th>Narx</th>
+                                <th>Jami</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${order.items.map(item => `
+                            <tr>
+                                <td>${item.product?.name}</td>
+                                <td>${item.quantity}</td>
+                                <td>${new Intl.NumberFormat('uz-UZ').format(item.price)} so'm</td>
+                                <td>${new Intl.NumberFormat('uz-UZ').format(item.quantity * item.price)} so'm</td>
+                            </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5>To'lov ma'lumotlari</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Jami summa:</strong> ${new Intl.NumberFormat('uz-UZ').format(order.totalSum)} so'm</p>
+                <p><strong>To'landi:</strong> ${new Intl.NumberFormat('uz-UZ').format(order.paid)} so'm</p>
+                <p><strong>Qarzdorlik:</strong> ${new Intl.NumberFormat('uz-UZ').format(order.debt)} so'm</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Harakatlar</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#statusModal">
+                        <i class="fas fa-edit me-2"></i>Statusni o'zgartirish
+                    </button>
+                    <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#paymentModal">
+                        <i class="fas fa-money-bill me-2"></i>To'lov qayd qilish
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Status Modal -->
+<div class="modal fade" id="statusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Statusni o'zgartirish</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="/admin/orders/${order._id}/status" method="POST">
+                <div class="modal-body">
+                    <label for="status" class="form-label">Yangi status</label>
+                    <select class="form-control" id="status" name="status" required>
+                        <option value="pending" ${order.status === 'pending' ? 'selected' : ''}>Kutilmoqda</option>
+                        <option value="confirmed" ${order.status === 'confirmed' ? 'selected' : ''}>Tasdiqlangan</option>
+                        <option value="delivered" ${order.status === 'delivered' ? 'selected' : ''}>Yetkazilgan</option>
+                        <option value="cancelled" ${order.status === 'cancelled' ? 'selected' : ''}>Bekor qilingan</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor qilish</button>
+                    <button type="submit" class="btn btn-primary">Saqlash</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">To'lov qayd qilish</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="/admin/orders/${order._id}/payment" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">To'lov miqdori (so'm)</label>
+                        <input type="number" class="form-control" id="amount" name="amount" 
+                               value="${order.debt}" placeholder="0" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor qilish</button>
+                    <button type="submit" class="btn btn-primary">Qo'shish</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+`;
+-%>
+<%- include(layout, { body, title }) %>

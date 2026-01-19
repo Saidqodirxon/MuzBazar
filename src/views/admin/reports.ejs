@@ -1,0 +1,126 @@
+<%
+const layout = '../layouts/layout.ejs';
+
+// Format numbers helper
+const formatNumber = (num) => new Intl.NumberFormat('uz-UZ').format(num || 0);
+
+const body = `
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-chart-bar me-2"></i>Hisobotlar
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="/admin/reports/export?format=json" class="btn btn-primary">
+            <i class="fas fa-download me-2"></i>Eksport qilish (JSON)
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-money-bill-wave fa-2x mb-2"></i>
+                <h4>${formatNumber(stats.totalRevenue)} so'm</h4>
+                <p class="mb-0">Umumiy daromad</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-shopping-cart fa-2x mb-2"></i>
+                <h4>${stats.totalOrders || 0}</h4>
+                <p class="mb-0">Jami buyurtmalar</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-calculator fa-2x mb-2"></i>
+                <h4>${formatNumber(stats.averageOrder)} so'm</h4>
+                <p class="mb-0">O'rtacha buyurtma</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card bg-secondary text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-users fa-2x mb-2"></i>
+                <h4>${stats.totalCustomers || 0}</h4>
+                <p class="mb-0">Foydalanuvchilar</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-calendar-day fa-2x mb-2 text-warning"></i>
+                <h4>${stats.todayOrders || 0}</h4>
+                <p class="text-muted mb-0">Bugungi buyurtmalar</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-coins fa-2x mb-2 text-success"></i>
+                <h4>${formatNumber(stats.todayRevenue)} so'm</h4>
+                <p class="text-muted mb-0">Bugungi daromad</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-calendar-alt fa-2x mb-2 text-primary"></i>
+                <h4>${stats.monthlyOrders || 0}</h4>
+                <p class="text-muted mb-0">Oylik buyurtmalar</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-chart-line fa-2x mb-2 text-info"></i>
+                <h4>${formatNumber(stats.monthlyRevenue)} so'm</h4>
+                <p class="text-muted mb-0">Oylik daromad</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Qarzdorlik</h5>
+            </div>
+            <div class="card-body text-center">
+                <h2 class="text-danger">${formatNumber(stats.totalDebt)} so'm</h2>
+                <p class="text-muted">Umumiy yig'ilmagan summa</p>
+                <a href="/admin/debts" class="btn btn-outline-danger">
+                    <i class="fas fa-eye me-2"></i>Batafsil ko'rish
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <div class="card border-success">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Foyda</h5>
+            </div>
+            <div class="card-body text-center">
+                <h2 class="text-success">${formatNumber(stats.totalProfit)} so'm</h2>
+                <p class="text-muted">Umumiy foyda (sotilish - tannarx)</p>
+            </div>
+        </div>
+    </div>
+</div>
+`;
+-%>
+<%- include(layout, { body, title }) %>

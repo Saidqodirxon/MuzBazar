@@ -1,0 +1,69 @@
+<%
+const layout = '../layouts/layout.ejs';
+
+let usersHtml = '';
+if (users.length === 0) {
+    usersHtml = `
+    <div class="text-center py-5">
+        <i class="fas fa-users fa-5x text-muted mb-3"></i>
+        <h3 class="text-muted">Hali foydalanuvchilar yo'q</h3>
+    </div>`;
+} else {
+    usersHtml = `
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Ism</th>
+                            <th>Telefon</th>
+                            <th>Buyurtmalar</th>
+                            <th>Umumiy summa</th>
+                            <th>Qayd qilingan</th>
+                            <th>Amallar</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${users.map(user => `
+                        <tr>
+                            <td><strong>${user.firstName} ${user.lastName}</strong></td>
+                            <td><a href="tel:${user.phone}">${user.phone}</a></td>
+                            <td>${user.orderCount || 0}</td>
+                            <td>${new Intl.NumberFormat('uz-UZ').format(user.totalSpent || 0)} so'm</td>
+                            <td>${moment(user.createdAt).format('DD/MM/YYYY')}</td>
+                            <td>
+                                <a href="/admin/users/${user._id}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>`;
+}
+
+const body = `
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-users me-2"></i>Foydalanuvchilar
+    </h1>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-6">
+        <form action="/admin/users" method="GET" class="d-flex">
+            <input type="text" name="search" class="form-control me-2" placeholder="Qidiruv..." value="${typeof search !== 'undefined' ? search : ''}">
+            <button class="btn btn-outline-secondary" type="submit">Qidirish</button>
+            ${typeof search !== 'undefined' && search ? '<a href="/admin/users" class="btn btn-outline-danger ms-2"><i class="fas fa-times"></i></a>' : ''}
+        </form>
+    </div>
+</div>
+
+${usersHtml}
+`;
+-%>
+<%- include(layout, { body, title }) %>

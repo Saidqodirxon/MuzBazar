@@ -1,0 +1,54 @@
+<%
+const layout = '../layouts/layout.ejs';
+
+const body = `
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-user-cog me-2"></i>Admin Profil
+    </h1>
+</div>
+
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-user me-2"></i>Profil ma'lumotlari</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Foydalanuvchi nomi:</strong> ${adminUser.username}</p>
+                <p><strong>Ism:</strong> ${adminUser.name}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-key me-2"></i>Parolni o'zgartirish</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/admin/profile/password">
+                    <div class="mb-3">
+                        <label for="currentPassword" class="form-label">Joriy parol</label>
+                        <input type="password" class="form-control" id="currentPassword" name="currentPassword" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="newPassword" class="form-label">Yangi parol</label>
+                        <input type="password" class="form-control" id="newPassword" name="newPassword" minlength="6" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmPassword" class="form-label">Parolni tasdiqlash</label>
+                        <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" minlength="6" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>O'zgartirish
+                    </button>
+                </form>
+        
+            </div>
+        </div>
+    </div>
+</div>
+`;
+-%>
+<%- include(layout, { body, title }) %>

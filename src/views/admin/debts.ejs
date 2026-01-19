@@ -1,0 +1,222 @@
+<%
+const layout = '../layouts/layout.ejs';
+
+// Format date helper
+const formatDate = (date) => {
+    if (!date) return '-';
+    try {
+        return moment(date).format('DD/MM/YYYY');
+    } catch (e) {
+        return '-';
+    }
+};
+
+// Format number helper
+const formatNumber = (num) => new Intl.NumberFormat('uz-UZ').format(num || 0);
+
+// Escape string for JS - HTML attribute safe
+const escapeJs = (str) => {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/'/g, '&#39;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+};
+
+// Build debts table HTML
+let debtsHtml = '';
+if (!debts || debts.length === 0) {
+    debtsHtml = `
+    <div class="text-center py-5">
+        <i class="fas fa-check-circle fa-5x text-success mb-3"></i>
+        <h3 class="text-success">Qarzdor yo'q</h3>
+        <p class="text-muted">Barcha klientlar to'lovlarini amalga oshirdilar</p>
+    </div>`;
+} else {
+    let tableRows = '';
+    // Use for loop instead of map to ensure string concatenation works reliably in EJS context
+    for (const debt of debts) {
+        if (!debt) continue;
+        
+        const clientId = debt.client?._id || '';
+        const firstName = escapeJs(debt.client?.firstName || '');
+        const lastName = escapeJs(debt.client?.lastName || '');
+        const phone = debt.client?.phone || '-';
+        const totalDebt = debt.totalDebt || 0;
+        const orderCount = debt.orderCount || 0;
+        const lastOrderDate = formatDate(debt.lastOrder);
+        
+        tableRows += `
+        <tr>
+            <td>
+                <strong>${firstName} ${lastName}</strong>
+            </td>
+            <td>
+                <a href="tel:${phone}">${phone}</a>
+            </td>
+            <td>
+                <span class="badge bg-danger">${formatNumber(totalDebt)} so'm</span>
+            </td>
+            <td>${orderCount}</td>
+            <td>${lastOrderDate}</td>
+            <td>
+                <a href="/admin/users/${clientId}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-eye"></i>
+                </a>
+                <button type="button" class="btn btn-sm btn-outline-warning" 
+                        onclick="sendSingleNotification('${clientId}', '${firstName} ${lastName}', ${totalDebt})">
+                    <i class="fas fa-bell"></i>
+                </button>
+            </td>
+        </tr>`;
+    }
+    
+    debtsHtml = `
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Klient</th>
+                            <th>Telefon</th>
+                            <th>Umumiy qarzdorlik</th>
+                            <th>Buyurtmalar</th>
+                            <th>Oxirgi buyurtma</th>
+                            <th>Amallar</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tableRows}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>`;
+}
+
+// Build client checkboxes for modal
+let clientCheckboxes = '';
+if (debts && debts.length > 0) {
+    for(const debt of debts) {
+        if (!debt || !debt.client) continue;
+        
+        const clientId = debt.client._id;
+        const firstName = debt.client.firstName || '';
+        const lastName = debt.client.lastName || '';
+        const phone = debt.client.phone || '';
+        const totalDebt = debt.totalDebt || 0;
+        
+        clientCheckboxes += `
+        <div class="form-check mb-2">
+            <input class="form-check-input client-checkbox" type="checkbox" name="clientIds" value="${clientId}" id="client_${clientId}">
+            <label class="form-check-label" for="client_${clientId}">
+                <strong>${firstName} ${lastName}</strong> - 
+                <span class="text-danger">${formatNumber(totalDebt)} so'm</span>
+                ${phone ? `<small class="text-muted">(${phone})</small>` : ''}
+            </label>
+        </div>`;
+    });
+}
+
+const body = `
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-money-bill-wave me-2"></i>Qarzdorlik boshqaruvi
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#notifyModal" ${!debts || debts.length === 0 ? 'disabled' : ''}>
+            <i class="fas fa-envelope me-2"></i>Xabar yuborish
+        </button>
+    </div>
+</div>
+
+${debtsHtml}
+
+<!-- Notification Modal -->
+<div class="modal fade" id="notifyModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-bell me-2"></i>Qarzdorlarga xabar yuborish</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="notifyForm" method="POST" action="/admin/debts/notify">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Klientlarni tanlang:</strong></label>
+                        <div class="mb-2">
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllClients()">
+                                <i class="fas fa-check-double me-1"></i>Barchasini tanlash
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAllClients()">
+                                <i class="fas fa-times me-1"></i>Bekor qilish
+                            </button>
+                        </div>
+                        <div id="clientList" style="max-height: 300px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 5px; padding: 10px;">
+                            ${clientCheckboxes || '<p class="text-muted mb-0">Qarzdor klientlar yoq</p>'}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="message" class="form-label"><strong>Xabar matni:</strong></label>
+                        <textarea class="form-control" id="message" name="message" rows="4" required>Hurmatli mijoz! Sizda {summa} so'm qarzdorlik mavjud. Iltimos, to'lovni amalga oshiring. MUZ BAZAR</textarea>
+                        <small class="form-text text-muted">
+                            <i class="fas fa-info-circle me-1"></i>{summa} - avtomatik ravishda qarzdorlik summasi bilan almashtiriladi
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Bekor qilish
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane me-1"></i>Yuborish
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function selectAllClients() {
+    document.querySelectorAll('.client-checkbox').forEach(cb => cb.checked = true);
+}
+
+function deselectAllClients() {
+    document.querySelectorAll('.client-checkbox').forEach(cb => cb.checked = false);
+}
+
+function sendSingleNotification(clientId, clientName, debtAmount) {
+    const formattedAmount = new Intl.NumberFormat('uz-UZ').format(debtAmount);
+    const defaultMessage = 'Hurmatli mijoz! Sizda ' + formattedAmount + " so'm qarzdorlik mavjud. Iltimos, to'lovni amalga oshiring. MUZ BAZAR";
+    
+    const message = prompt(clientName + " ga xabar yuboring (qarzdorlik: " + formattedAmount + " so'm):", defaultMessage);
+    
+    if (message) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/admin/debts/notify';
+        
+        const clientInput = document.createElement('input');
+        clientInput.type = 'hidden';
+        clientInput.name = 'clientIds';
+        clientInput.value = clientId;
+        form.appendChild(clientInput);
+        
+        const messageInput = document.createElement('input');
+        messageInput.type = 'hidden';
+        messageInput.name = 'message';
+        messageInput.value = message;
+        form.appendChild(messageInput);
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+`;
+-%>
+<%- include(layout, { body, title }) %>

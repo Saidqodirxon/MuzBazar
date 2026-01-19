@@ -1,0 +1,163 @@
+<%
+const layout = '../layouts/layout.ejs';
+
+// Format number helper
+const formatNumber = (num) => new Intl.NumberFormat('uz-UZ').format(num || 0);
+
+// Build sellers table
+let sellersHtml = '';
+if (!sellers || sellers.length === 0) {
+    sellersHtml = `
+    <div class="text-center py-5">
+        <i class="fas fa-user-tie fa-5x text-muted mb-3"></i>
+        <h3 class="text-muted">Hali sotuvchilar yoq</h3>
+        <p class="text-muted">Yangi sotuvchi qoshish uchun yuqoridagi tugmani bosing</p>
+    </div>`;
+} else {
+    let tableRows = '';
+    sellers.forEach(seller => {
+        const statusClass = seller.isActive ? 'success' : 'danger';
+        const statusText = seller.isActive ? 'Aktiv' : 'Nofaol';
+        
+        tableRows += `
+        <tr>
+            <td>
+                <strong>${seller.firstName || ''} ${seller.lastName || ''}</strong>
+                ${seller.username ? '<br><small class="text-muted">@' + seller.username + '</small>' : ''}
+            </td>
+            <td>${seller.phone || '-'}</td>
+            <td><code>${seller.username}</code></td>
+            <td>
+                <span class="badge bg-${statusClass}">${statusText}</span>
+            </td>
+            <td>${moment(seller.createdAt).format('DD/MM/YYYY')}</td>
+            <td>
+                <form method="POST" action="/admin/sellers/${seller._id}/toggle" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-${seller.isActive ? 'warning' : 'success'}" title="${seller.isActive ? 'Bloklash' : 'Aktivlashtirish'}">
+                        <i class="fas fa-${seller.isActive ? 'ban' : 'check'}"></i>
+                    </button>
+                </form>
+                <form method="POST" action="/admin/sellers/${seller._id}/remove" class="d-inline" onsubmit="return confirm('Rostdan ham bu sotuvchini olib tashlamoqchimisiz?')">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" title="O'chirish">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </form>
+            </td>
+        </tr>`;
+    });
+
+    sellersHtml = `
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Ism</th>
+                            <th>Telefon</th>
+                            <th>Login</th>
+                            <th>Status</th>
+                            <th>Qoshilgan</th>
+                            <th>Amallar</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tableRows}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>`;
+}
+
+// Build clients list for modal (Not used anymore)
+let clientOptions = '';
+
+const body = `
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-user-tie me-2"></i>Sotuvchilar boshqaruvi
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSellerModal">
+            <i class="fas fa-plus me-2"></i>Sotuvchi qoshish
+        </button>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-users fa-2x mb-2"></i>
+                <h4>${sellers ? sellers.length : 0}</h4>
+                <p class="mb-0">Jami sotuvchilar</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-user-check fa-2x mb-2"></i>
+                <h4>${sellers ? sellers.filter(s => s.isActive).length : 0}</h4>
+                <p class="mb-0">Aktiv sotuvchilar</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-warning text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-user-times fa-2x mb-2"></i>
+                <h4>${sellers ? sellers.filter(s => !s.isActive).length : 0}</h4>
+                <p class="mb-0">Nofaol sotuvchilar</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+${sellersHtml}
+
+<!-- Add Seller Modal -->
+<div class="modal fade" id="addSellerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Yangi sotuvchi qoshish</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="/admin/sellers/add">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Ism</label>
+                        <input type="text" name="firstName" class="form-control" required placeholder="Masalan: Ali">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Familiya</label>
+                        <input type="text" name="lastName" class="form-control" placeholder="Masalan: Valiyev">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Login (username)</label>
+                        <input type="text" name="username" class="form-control" required placeholder="admin panelga kirish uchun">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Parol</label>
+                        <input type="password" name="password" class="form-control" required placeholder="******">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Telefon</label>
+                        <input type="text" name="phone" class="form-control" placeholder="+998...">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor qilish</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-user-plus me-1"></i>Saqlash
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+`;
+-%>
+<%- include(layout, { body, title }) %>

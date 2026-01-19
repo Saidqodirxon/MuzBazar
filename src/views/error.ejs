@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xatolik - MUZ BAZAR</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .error-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            padding: 3rem;
+            max-width: 500px;
+            text-align: center;
+        }
+        
+        .error-icon {
+            font-size: 5rem;
+            color: #dc3545;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-card">
+        <i class="fas fa-exclamation-triangle error-icon"></i>
+        <h1 class="mb-3">Xatolik</h1>
+        <p class="text-muted mb-4"><%= message || "Kutilmagan xatolik yuz berdi" %></p>
+        
+        <% if (typeof error !== 'undefined' && error) { %>
+        <div class="alert alert-danger text-start">
+            <small><%= error.stack %></small>
+        </div>
+        <% } %>
+        
+        <a href="/admin/dashboard" class="btn btn-primary">
+            <i class="fas fa-home me-2"></i>Dashboard ga qaytish
+        </a>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

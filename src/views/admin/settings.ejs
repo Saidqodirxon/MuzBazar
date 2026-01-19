@@ -1,0 +1,63 @@
+<%
+const layout = '../layouts/layout.ejs';
+
+const body = `
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-cogs me-2"></i>Sozlamalar
+    </h1>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-sliders-h me-2"></i>Asosiy sozlamalar</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/admin/settings">
+                    ${allSettings.map(setting => {
+                        const value = settings[setting.key] || setting.defaultValue || '';
+                        return `
+                        <div class="mb-3">
+                            <label for="${setting.key}" class="form-label">${setting.label || setting.key}</label>
+                            ${setting.type === 'textarea' ? `
+                            <textarea class="form-control" id="${setting.key}" name="${setting.key}" rows="4">${value}</textarea>
+                            ` : `
+                            <input type="${setting.type || 'text'}" class="form-control" id="${setting.key}" name="${setting.key}" value="${value}">
+                            `}
+                            ${setting.description ? `<small class="form-text text-muted">${setting.description}</small>` : ''}
+                        </div>`;
+                    }).join('')}
+                    
+                    <div class="d-flex justify-content-between">
+                        <button type="reset" class="btn btn-secondary">
+                            <i class="fas fa-redo me-2"></i>Qayta o'rnatish
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Saqlash
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-info-circle me-2"></i>Ma'lumot</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Bu sahifada asosiy bot sozlamalarini o'zgartirishingiz mumkin.</p>
+                <div class="alert alert-info">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    <strong>Maslahat:</strong> O'zgartirishlarni amalga oshirgandan keyin botni qayta ishga tushirish talab qilinishi mumkin.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+`;
+-%>
+<%- include(layout, { body, title }) %>

@@ -1,0 +1,115 @@
+<%
+const layout = '../layouts/layout.ejs';
+
+const body = `
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-user me-2"></i>${user.firstName} ${user.lastName}
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="/admin/users" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Orqaga
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5>Foydalanuvchi ma'lumotlari</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Ism:</strong> ${user.firstName} ${user.lastName}</p>
+                <p><strong>Username:</strong> ${user.username ? '@' + user.username : 'Yo\'q'}</p>
+                <p><strong>Telegram ID:</strong> ${user.telegramId}</p>
+                <p><strong>Telefon:</strong> ${user.phone || 'Kiritilmagan'}</p>
+                <p><strong>Qayd qilingan:</strong> ${moment(user.createdAt).format('DD/MM/YYYY HH:mm')}</p>
+                <p><strong>Buyurtmalar soni:</strong> ${user.orderCount || 0}</p>
+                <p><strong>Umumiy summa:</strong> ${new Intl.NumberFormat('uz-UZ').format(user.totalSpent || 0)} so'm</p>
+                <p><strong>Status:</strong> 
+                    <span class="badge bg-${user.isActive ? 'success' : 'danger'}">
+                        ${user.isActive ? 'Aktiv' : 'Nofaol'}
+                    </span>
+                </p>
+                <p><strong>Rol:</strong> 
+                    <span class="badge bg-${user.role === 'admin' ? 'danger' : user.role === 'seller' ? 'warning' : 'info'}">
+                        ${user.role === 'admin' ? 'Admin' : user.role === 'seller' ? 'Sotuvchi' : 'Klient'}
+                    </span>
+                </p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5>Boshqaruv</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/admin/users/${user._id}/role" class="mb-3">
+                    <label class="form-label"><strong>Rol o'zgartirish:</strong></label>
+                    <select name="role" class="form-select mb-2">
+                        <option value="client" ${user.role === 'client' ? 'selected' : ''}>Klient</option>
+                        <option value="seller" ${user.role === 'seller' ? 'selected' : ''}>Sotuvchi</option>
+                        <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
+                    </select>
+                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                        <i class="fas fa-save me-2"></i>Rolni o'zgartirish
+                    </button>
+                </form>
+
+                <form method="POST" action="/admin/users/${user._id}/toggle-status">
+                    <button type="submit" class="btn btn-${user.isActive ? 'warning' : 'success'} btn-sm w-100">
+                        <i class="fas fa-${user.isActive ? 'ban' : 'check'} me-2"></i>
+                        ${user.isActive ? 'Bloklash' : 'Aktivlashtirish'}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>Buyurtma tarixi</h5>
+            </div>
+            <div class="card-body">
+                ${user.orders && user.orders.length > 0 ? `
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Buyurtma №</th>
+                                <th>Summa</th>
+                                <th>Status</th>
+                                <th>Sana</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${user.orders.map(order => {
+                                let statusClass = 'secondary';
+                                let statusText = order.status;
+                                switch (order.status) {
+                                    case 'pending': statusClass = 'warning'; statusText = 'Kutilmoqda'; break;
+                                    case 'confirmed': statusClass = 'info'; statusText = 'Tasdiqlangan'; break;
+                                    case 'delivered': statusClass = 'success'; statusText = 'Yetkazilgan'; break;
+                                    case 'cancelled': statusClass = 'danger'; statusText = 'Bekor qilingan'; break;
+                                }
+                                return `
+                            <tr>
+                                <td><a href="/admin/orders/${order._id}">#${order.orderNumber}</a></td>
+                                <td>${new Intl.NumberFormat('uz-UZ').format(order.totalSum)} so'm</td>
+                                <td><span class="badge bg-${statusClass}">${statusText}</span></td>
+                                <td>${moment(order.createdAt).format('DD/MM/YYYY')}</td>
+                            </tr>`;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                ` : '<p class="text-muted">Buyurtmalar yo\'q</p>'}
+            </div>
+        </div>
+    </div>
+</div>
+`;
+-%>
+<%- include(layout, { body, title }) %>

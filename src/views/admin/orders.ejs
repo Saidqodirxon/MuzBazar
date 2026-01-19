@@ -1,0 +1,80 @@
+<%
+const layout = '../layouts/layout.ejs';
+
+let ordersHtml = '';
+if (orders.length === 0) {
+    ordersHtml = `
+    <div class="text-center py-5">
+        <i class="fas fa-shopping-cart fa-5x text-muted mb-3"></i>
+        <h3 class="text-muted">Hali buyurtmalar yo'q</h3>
+        <p class="text-muted">Klientlardan buyurtmalar kutilmoqda</p>
+    </div>`;
+} else {
+    ordersHtml = `
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Buyurtma №</th>
+                            <th>Klient</th>
+                            <th>Summa</th>
+                            <th>Status</th>
+                            <th>Sana</th>
+                            <th>Amallar</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${orders.map(order => {
+                            let statusClass = 'secondary';
+                            let statusText = order.status;
+                            switch (order.status) {
+                                case 'pending': statusClass = 'warning'; statusText = 'Kutilmoqda'; break;
+                                case 'confirmed': statusClass = 'info'; statusText = 'Tasdiqlangan'; break;
+                                case 'delivered': statusClass = 'success'; statusText = 'Yetkazilgan'; break;
+                                case 'cancelled': statusClass = 'danger'; statusText = 'Bekor qilingan'; break;
+                            }
+                            return `
+                        <tr>
+                            <td><strong>${order.orderNumber}</strong></td>
+                            <td>${order.client?.firstName} ${order.client?.lastName}</td>
+                            <td>${new Intl.NumberFormat('uz-UZ').format(order.totalSum)} so'm</td>
+                            <td><span class="badge bg-${statusClass}">${statusText}</span></td>
+                            <td>${moment(order.createdAt).format('DD/MM/YYYY HH:mm')}</td>
+                            <td>
+                                <a href="/admin/orders/${order._id}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>`;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>`;
+}
+
+const body = `
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-shopping-cart me-2"></i>Buyurtmalar
+    </h1>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-6">
+        <form action="/admin/orders" method="GET" class="d-flex">
+            <input type="text" name="search" class="form-control me-2" placeholder="Qidiruv..." value="${typeof search !== 'undefined' ? search : ''}">
+            ${typeof currentStatus !== 'undefined' && currentStatus ? `<input type="hidden" name="status" value="${currentStatus}">` : ''}
+            <button class="btn btn-outline-secondary" type="submit">Qidirish</button>
+            ${typeof search !== 'undefined' && search ? `<a href="/admin/orders${typeof currentStatus !== 'undefined' && currentStatus ? '?status='+currentStatus : ''}" class="btn btn-outline-danger ms-2"><i class="fas fa-times"></i></a>` : ''}
+        </form>
+    </div>
+</div>
+
+${ordersHtml}
+`;
+-%>
+<%- include(layout, { body, title }) %>

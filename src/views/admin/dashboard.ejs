@@ -1,0 +1,224 @@
+<%
+const layout = '../layouts/layout.ejs';
+
+// Generate low stock products HTML
+let lowStockHtml = '';
+if (lowStockProducts.length === 0) {
+    lowStockHtml = '<p class="text-muted">Barcha mahsulotlar yetarli miqdorda mavjud</p>';
+} else {
+    lowStockHtml = '<div class="list-group">';
+    lowStockProducts.forEach(product => {
+        lowStockHtml += `
+        <div class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+                <strong>${product.name}</strong><br>
+                <small class="text-muted">Minimal: ${product.minStock}</small>
+            </div>
+            <span class="badge bg-warning rounded-pill">
+                ${product.stock} qoldi
+            </span>
+        </div>`;
+    });
+    lowStockHtml += '</div>';
+}
+
+// Generate orders table HTML
+let ordersHtml = '';
+if (recentOrders.length === 0) {
+    ordersHtml = '<p class="text-muted">Hali buyurtmalar yo\'q</p>';
+} else {
+    ordersHtml = `<div class="table-responsive">
+        <table class="table table-hover">
+            <thead class="table-light">
+                <tr>
+                    <th>Buyurtma №</th>
+                    <th>Klient</th>
+                    <th>Summa</th>
+                    <th>Status</th>
+                    <th>Sana</th>
+                    <th>Amallar</th>
+                </tr>
+            </thead>
+            <tbody>`;
+    
+    recentOrders.forEach(order => {
+        let statusClass = 'secondary';
+        let statusText = order.status;
+        switch (order.status) {
+            case 'pending':
+                statusClass = 'warning';
+                statusText = 'Kutilmoqda';
+                break;
+            case 'confirmed':
+                statusClass = 'info';
+                statusText = 'Tasdiqlangan';
+                break;
+            case 'delivered':
+                statusClass = 'success';
+                statusText = 'Yetkazilgan';
+                break;
+            case 'cancelled':
+                statusClass = 'danger';
+                statusText = 'Bekor qilingan';
+                break;
+        }
+        
+        ordersHtml += `
+            <tr>
+                <td><strong>${order.orderNumber}</strong></td>
+                <td>${order.client.firstName} ${order.client.lastName}</td>
+                <td>${new Intl.NumberFormat('uz-UZ').format(order.totalSum)} so'm</td>
+                <td><span class="badge bg-${statusClass}">${statusText}</span></td>
+                <td>${moment(order.createdAt).format('DD/MM/YYYY HH:mm')}</td>
+                <td>
+                    <a href="/admin/orders/${order._id}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                </td>
+            </tr>`;
+    });
+    
+    ordersHtml += '</tbody></table></div>';
+}
+
+// Build complete HTML body
+const body = `
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-download me-1"></i>Export
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card">
+            <div class="card-body text-center">
+                <div class="row no-gutters align-items-center">
+                    <div class="col">
+                        <div class="h5 font-weight-bold mb-1">
+                            ${stats.totalProducts}
+                        </div>
+                        <div class="small">Mahsulotlar</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-box fa-2x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card">
+            <div class="card-body text-center">
+                <div class="row no-gutters align-items-center">
+                    <div class="col">
+                        <div class="h5 font-weight-bold mb-1">
+                            ${stats.totalOrders}
+                        </div>
+                        <div class="small">Buyurtmalar</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-shopping-cart fa-2x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card">
+            <div class="card-body text-center">
+                <div class="row no-gutters align-items-center">
+                    <div class="col">
+                        <div class="h5 font-weight-bold mb-1">
+                            ${new Intl.NumberFormat('uz-UZ').format(stats.totalDebt)} so'm
+                        </div>
+                        <div class="small">Umumiy qarzdorlik</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-money-bill-wave fa-2x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card">
+            <div class="card-body text-center">
+                <div class="row no-gutters align-items-center">
+                    <div class="col">
+                        <div class="h5 font-weight-bold mb-1">
+                            ${stats.todayOrders}
+                        </div>
+                        <div class="small">Bugungi buyurtmalar</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-calendar-day fa-2x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-plus-circle me-2"></i>Tezkor harakatlar</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="/admin/products/new" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Yangi mahsulot qo'shish
+                    </a>
+                    <a href="/admin/categories/new" class="btn btn-outline-primary">
+                        <i class="fas fa-tags me-2"></i>Yangi kategoriya qo'shish
+                    </a>
+                    <a href="/admin/debts" class="btn btn-outline-warning">
+                        <i class="fas fa-money-bill-wave me-2"></i>Qarzdorlik boshqaruvi
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-exclamation-triangle me-2"></i>Kam qolgan mahsulotlar</h5>
+            </div>
+            <div class="card-body">
+                ${lowStockHtml}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-clock me-2"></i>So'nggi buyurtmalar</h5>
+                <a href="/admin/orders" class="btn btn-sm btn-outline-primary">
+                    Barchasini ko'rish
+                </a>
+            </div>
+            <div class="card-body">
+                ${ordersHtml}
+            </div>
+        </div>
+    </div>
+</div>
+`;
+-%>
+<%- include(layout, { body, title }) %>
