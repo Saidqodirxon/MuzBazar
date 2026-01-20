@@ -118,7 +118,7 @@ const orderHandler = {
     } catch (e) {
       // Ignore delete errors
     }
-    
+
     await ctx.reply("📝 Miqdorni kiriting (raqam ko'rinishida):", {
       parse_mode: "HTML",
       ...cancelKeyboard,

@@ -146,14 +146,16 @@ class TaskScheduler {
 
       // Check if current time matches reminder time (check hour and within 10 min window)
       const now = new Date();
-      const [targetHour] = reminderTime.split(':').map(Number);
+      const [targetHour] = reminderTime.split(":").map(Number);
       const currentHour = now.getHours();
       const currentMin = now.getMinutes();
-      
+
       // Only run at the specified hour and within first 10 minutes (cron runs every 10 min)
       if (currentHour !== targetHour || currentMin >= 10) return;
 
-      console.log(`💰 Debt reminder check: hour=${currentHour}, target=${targetHour}`);
+      console.log(
+        `💰 Debt reminder check: hour=${currentHour}, target=${targetHour}`
+      );
 
       // Check last reminder date
       const lastReminder = await Settings.get("last_debt_reminder_date", null);
@@ -161,7 +163,9 @@ class TaskScheduler {
         const daysSinceLastReminder = Math.floor(
           (now - new Date(lastReminder)) / (1000 * 60 * 60 * 24)
         );
-        console.log(`💰 Days since last reminder: ${daysSinceLastReminder}, interval: ${intervalDays}`);
+        console.log(
+          `💰 Days since last reminder: ${daysSinceLastReminder}, interval: ${intervalDays}`
+        );
         if (daysSinceLastReminder < intervalDays) {
           console.log("💰 Skipping - interval not reached yet");
           return;

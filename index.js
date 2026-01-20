@@ -17,7 +17,7 @@ async function startApp() {
     // Start bot and server in parallel
     const bot = require("./src/bot");
     const server = require("./src/server/app");
-    
+
     // Initialize scheduler for automated tasks (debt reminders, etc.)
     const scheduler = require("./src/utils/scheduler");
     scheduler.init();
