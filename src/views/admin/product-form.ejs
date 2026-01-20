@@ -21,7 +21,7 @@ const body = `
     <div class="col-lg-8">
         <div class="card">
             <div class="card-body">
-                <form action="${formAction}" method="POST">
+                <form action="${formAction}" method="POST" enctype="multipart/form-data">
                     <div class="mb-3">
                         <label for="name" class="form-label">Mahsulot nomi *</label>
                         <input type="text" class="form-control" id="name" name="name" 
@@ -42,10 +42,13 @@ const body = `
                     </div>
 
                     <div class="mb-3">
-                        <label for="type" class="form-label">Tovar turi</label>
-                        <input type="text" class="form-control" id="type" name="type" 
-                               value="${product ? product.type || '' : ''}" 
-                               placeholder="dona, kg, litr...">
+                        <label for="type" class="form-label">O'lchov birligi *</label>
+                        <select class="form-control" id="type" name="type" required>
+                            <option value="piece" ${product && product.type === 'piece' ? 'selected' : ''}>Dona</option>
+                            <option value="kg" ${product && product.type === 'kg' ? 'selected' : ''}>Kilogram</option>
+                            <option value="liter" ${product && product.type === 'liter' ? 'selected' : ''}>Litr</option>
+                            <option value="box" ${product && product.type === 'box' ? 'selected' : ''}>Quti</option>
+                        </select>
                     </div>
 
                     <div class="row">
@@ -85,6 +88,18 @@ const body = `
                                 <small class="form-text text-muted">Ushbu miqdordan kam qolsa, ogohlantirish ko'rsatiladi</small>
                             </div>
                         </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="image" class="form-label">Mahsulot rasmi</label>
+                        <input type="file" class="form-control" id="image" name="image" accept="image/*">
+                        <small class="form-text text-muted">Rasm yuklang (JPEG, PNG, GIF, WebP - max 5MB)</small>
+                        ${product && product.image ? `
+                        <div class="mt-3">
+                            <label class="form-label">Hozirgi rasm:</label><br>
+                            <img src="${product.image}" alt="Mahsulot rasmi" class="img-thumbnail" style="max-width: 200px;">
+                        </div>
+                        ` : ''}
                     </div>
 
                     <div class="mb-3">

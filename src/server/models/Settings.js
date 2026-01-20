@@ -92,6 +92,56 @@ settingsSchema.statics.initDefaults = async function () {
       type: "text",
     },
     {
+      key: "welcome_message",
+      label: "Xush kelibsiz xabari",
+      value:
+        "Salom! 🛍️ MUZ BAZARga xush kelibsiz!\n\nBizda eng sifatli muzqaymoq va muzlatilgan mahsulotlarni topasiz.",
+      defaultValue:
+        "Salom! 🛍️ MUZ BAZARga xush kelibsiz!\n\nBizda eng sifatli muzqaymoq va muzlatilgan mahsulotlarni topasiz.",
+      description: "Botga start bosganida chiqadigan xabar",
+      type: "textarea",
+    },
+    {
+      key: "about_text",
+      label: "Bot haqida",
+      value:
+        "🏢 MUZ BAZAR\n\nBiz 2020 yildan beri mijozlarimizga sifatli muzqaymoq va muzlatilgan mahsulotlarni yetkazib beramiz.\n\n✅ Sifatli mahsulotlar\n✅ Tez yetkazib berish\n✅ Qulay narxlar",
+      defaultValue:
+        "🏢 MUZ BAZAR\n\nBiz 2020 yildan beri mijozlarimizga sifatli muzqaymoq va muzlatilgan mahsulotlarni yetkazib beramiz.",
+      description: "Bot haqida ma'lumot",
+      type: "textarea",
+    },
+    {
+      key: "contact_text",
+      label: "Aloqa ma'lumotlari",
+      value:
+        "📞 Biz bilan bog'laning:\n\n🏢 MUZ BAZAR\n📱 Telefon: +998 90 123 45 67\n📍 Manzil: Toshkent shahar\n⏰ Ish vaqti: 08:00 - 20:00\n\n💬 Telegramda: @muzbazar_admin\n🌐 Sayt: www.muzbazar.uz",
+      defaultValue:
+        "📞 Biz bilan bog'laning:\n\n🏢 MUZ BAZAR\n📱 Telefon: +998 90 123 45 67",
+      description: "Aloqa bo'limida chiqadigan matn",
+      type: "textarea",
+    },
+    {
+      key: "debt_notification_message",
+      label: "Qarzdorlik eslatmasi",
+      value:
+        "🔔 Hurmatli mijoz!\n\nSizning qarzdorligingiz: {amount} so'm\n\nIltimos, to'lovni amalga oshiring.\n\n📞 Aloqa: @muzbazar_admin",
+      defaultValue:
+        "🔔 Hurmatli mijoz!\n\nSizning qarzdorligingiz: {amount} so'm\n\nIltimos, to'lovni amalga oshiring.",
+      description: "Qarzdorlik eslatmasi xabari ({amount} - qarz miqdori)",
+      type: "textarea",
+    },
+    {
+      key: "order_confirmed_message",
+      label: "Buyurtma tasdiqlandi xabari",
+      value:
+        "✅ Buyurtmangiz tasdiqlandi!\n\nTez orada sizga yetkazib beriladi.\n\nSavol bo'lsa: @muzbazar_admin",
+      defaultValue:
+        "✅ Buyurtmangiz tasdiqlandi!\n\nTez orada sizga yetkazib beriladi.",
+      description: "Buyurtma tasdiqlanganida yuboriladigan xabar",
+      type: "textarea",
+    },
+    {
       key: "min_order_amount",
       label: "Minimal buyurtma summasi",
       value: "0",
@@ -118,6 +168,30 @@ settingsSchema.statics.initDefaults = async function () {
         "MUZ BAZARga xush kelibsiz! Bizda eng sifatli muzqaymoq va muzlatilgan mahsulotlarni topasiz.",
       description: "Botga kirganida ko'rinadigan xabar",
       type: "textarea",
+    },
+    {
+      key: "debt_reminder_enabled",
+      label: "Avtomatik qarzdorlik eslatmasi",
+      value: false,
+      defaultValue: false,
+      description: "Avtomatik qarzdorlik eslatmasini yoqish/o'chirish",
+      type: "boolean",
+    },
+    {
+      key: "debt_reminder_interval_days",
+      label: "Eslatma intervali (kunlarda)",
+      value: 3,
+      defaultValue: 3,
+      description: "Necha kunda bir eslatma yuboriladi",
+      type: "number",
+    },
+    {
+      key: "debt_reminder_time",
+      label: "Eslatma vaqti (soat)",
+      value: "10:00",
+      defaultValue: "10:00",
+      description: "Eslatma qaysi vaqtda yuboriladi (masalan: 10:00)",
+      type: "text",
     },
   ];
 

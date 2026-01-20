@@ -94,16 +94,13 @@ bot.start(async (ctx) => {
 
   // Check if user needs to provide phone
   if (!user.phone) {
-    const welcomeMessage = `Salom, *${user.firstName}*! 👋
+    const { Settings } = require("../server/models");
+    const welcomeMsg = await Settings.get(
+      "welcome_message",
+      "Salom! 🛍️ MUZ BAZARga xush kelibsiz!\n\nBizda eng sifatli muzqaymoq va muzlatilgan mahsulotlarni topasiz."
+    );
 
-🛍️ *MUZ BAZAR*ga xush kelibsiz!
-
-Bizda eng sifatli muzqaymoq va muzlatilgan mahsulotlarni topasiz.
-
-📱 *Davom etish uchun telefon raqamingizni yuboring:*
-
-Tugmani bosing yoki raqamni yozing:
-Masalan: \`901234567\` yoki \`+998901234567\``;
+    const welcomeMessage = `${welcomeMsg}\n\n📱 *Davom etish uchun telefon raqamingizni yuboring:*\n\nTugmani bosing yoki raqamni yozing:\nMasalan: \`901234567\` yoki \`+998901234567\``;
 
     ctx.session.awaitingPhone = true;
 
@@ -131,8 +128,13 @@ Masalan: \`901234567\` yoki \`+998901234567\``;
     });
   }
 
-  welcomeMessage +=
-    "🛍️ *MUZ BAZAR*ga xush kelibsiz!\n\nBizda eng sifatli muzqaymoq va muzlatilgan mahsulotlarni topasiz.";
+  const { Settings } = require("../server/models");
+  const welcomeText = await Settings.get(
+    "welcome_message",
+    "🛍️ *MUZ BAZAR*ga xush kelibsiz!\n\nBizda eng sifatli muzqaymoq va muzlatilgan mahsulotlarni topasiz."
+  );
+
+  welcomeMessage += welcomeText;
 
   await ctx.reply(welcomeMessage, {
     parse_mode: "Markdown",
@@ -141,25 +143,19 @@ Masalan: \`901234567\` yoki \`+998901234567\``;
 });
 
 // Help command
-bot.help((ctx) => {
-  const helpText = `
-🤖 **MUZ BAZAR BOT YORDAMCHI**
+bot.help(async (ctx) => {
+  try {
+    const { Settings } = require("../server/models");
+    const aboutText = await Settings.get(
+      "about_text",
+      "🤖 **MUZ BAZAR BOT YORDAMCHI**\n\n📱 **Asosiy buyruqlar:**\n• /start - Botni qayta ishga tushirish\n• /help - Yordam\n\n🛍️ **Klientlar uchun:**\n• Mahsulotlarni ko'rish\n• Buyurtma berish\n• Buyurtma holati\n• Qarzdorlik ma'lumotlari"
+    );
 
-📱 **Asosiy buyruqlar:**
-• /start - Botni qayta ishga tushirish
-• /help - Yordam
-• /chatid - Guruh ID ni olish (guruhda)
-
-🛍️ **Klientlar uchun:**
-• Mahsulotlarni ko'rish
-• Buyurtma berish
-• Buyurtma holati
-• Qarzdorlik ma'lumotlari
-
-❓ Yordam kerak bo'lsa: @admin_username
-  `;
-
-  ctx.reply(helpText, { parse_mode: "Markdown" });
+    ctx.reply(aboutText, { parse_mode: "Markdown" });
+  } catch (error) {
+    console.error("❌ Help error:", error);
+    ctx.reply("🤖 Yordam uchun /start bosing", { parse_mode: "Markdown" });
+  }
 });
 
 // Get Chat ID command (for group setup)
@@ -224,20 +220,19 @@ bot.hears("💰 Qarzdorlik", async (ctx) => {
   }
 });
 
-bot.hears("📞 Aloqa", (ctx) => {
-  ctx.reply(
-    `
-📞 Biz bilan bog'laning:
+bot.hears("📞 Aloqa", async (ctx) => {
+  try {
+    const { Settings } = require("../server/models");
+    const contactText = await Settings.get(
+      "contact_text",
+      "📞 Biz bilan bog'laning:\n\n🏢 MUZ BAZAR\n📱 Telefon: +998 90 123 45 67\n📍 Manzil: Toshkent shahar\n⏰ Ish vaqti: 08:00 - 20:00"
+    );
 
-🏢 MUZ BAZAR
-📱 Telefon: +998 90 123 45 67
-📍 Manzil: Toshkent shahar
-⏰ Ish vaqti: 08:00 - 20:00
-
-💬 Telegramda: @muzbazar_admin
-🌐 Sayt: www.muzbazar.uz
-  `
-  );
+    ctx.reply(contactText);
+  } catch (error) {
+    console.error("❌ Contact error:", error);
+    ctx.reply("📞 Aloqa uchun: +998 90 123 45 67");
+  }
 });
 
 /**
@@ -259,6 +254,9 @@ bot.action(/^category_(.+)$/, catalogHandler.showProducts);
 
 // Product selection
 bot.action(/^product_(.+)$/, catalogHandler.showProductDetails);
+
+// Cancel quantity input
+bot.action(/^cancel_qty_(.+)$/, orderHandler.cancelQuantityInput);
 
 // Quantity selection
 bot.action(/^qty_(.+)_(.+)$/, (ctx) => {

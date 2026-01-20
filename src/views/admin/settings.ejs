@@ -17,14 +17,28 @@ const body = `
             <div class="card-body">
                 <form method="POST" action="/admin/settings">
                     ${allSettings.map(setting => {
-                        const value = settings[setting.key] || setting.defaultValue || '';
+                        const value = settings[setting.key] !== undefined ? settings[setting.key] : setting.defaultValue;
+                        
+                        if (setting.type === 'boolean') {
+                            return `
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="${setting.key}" name="${setting.key}" ${value ? 'checked' : ''}>
+                                <label class="form-check-label" for="${setting.key}">
+                                    <strong>${setting.label || setting.key}</strong>
+                                </label>
+                                ${setting.description ? `<br><small class="form-text text-muted">${setting.description}</small>` : ''}
+                            </div>`;
+                        }
+                        
                         return `
                         <div class="mb-3">
-                            <label for="${setting.key}" class="form-label">${setting.label || setting.key}</label>
+                            <label for="${setting.key}" class="form-label"><strong>${setting.label || setting.key}</strong></label>
                             ${setting.type === 'textarea' ? `
-                            <textarea class="form-control" id="${setting.key}" name="${setting.key}" rows="4">${value}</textarea>
+                            <textarea class="form-control" id="${setting.key}" name="${setting.key}" rows="4">${value || ''}</textarea>
+                            ` : setting.type === 'number' ? `
+                            <input type="number" class="form-control" id="${setting.key}" name="${setting.key}" value="${value || 0}">
                             ` : `
-                            <input type="${setting.type || 'text'}" class="form-control" id="${setting.key}" name="${setting.key}" value="${value}">
+                            <input type="text" class="form-control" id="${setting.key}" name="${setting.key}" value="${value || ''}">
                             `}
                             ${setting.description ? `<small class="form-text text-muted">${setting.description}</small>` : ''}
                         </div>`;
@@ -50,10 +64,7 @@ const body = `
             </div>
             <div class="card-body">
                 <p class="text-muted">Bu sahifada asosiy bot sozlamalarini o'zgartirishingiz mumkin.</p>
-                <div class="alert alert-info">
-                    <i class="fas fa-lightbulb me-2"></i>
-                    <strong>Maslahat:</strong> O'zgartirishlarni amalga oshirgandan keyin botni qayta ishga tushirish talab qilinishi mumkin.
-                </div>
+                <p class="text-muted"><i class="fas fa-lightbulb me-1"></i>Sozlamalar saqlanganidan keyin bot avtomatik ravishda yangi qiymatlarni oladi.</p>
             </div>
         </div>
     </div>

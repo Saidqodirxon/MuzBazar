@@ -1,5 +1,8 @@
 const { Category, Product } = require("../../server/models");
 const Keyboards = require("../keyboards");
+const path = require("path");
+const fs = require("fs");
+const { Input } = require("telegraf");
 
 /**
  * Catalog handlers - mahsulotlarni ko'rish
@@ -8,8 +11,45 @@ const Keyboards = require("../keyboards");
 const catalogHandler = {
   formatSum(amount) {
     const num = Number(amount || 0);
-    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ", ");
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
   },
+
+  // Get image source for Telegram
+  getImageSource(imagePath) {
+    if (!imagePath) return null;
+
+    // If already full URL (http/https), return as is
+    if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
+      // Check if it's not localhost (Telegram can't access localhost)
+      if (
+        !imagePath.includes("localhost") &&
+        !imagePath.includes("127.0.0.1")
+      ) {
+        return imagePath;
+      }
+    }
+
+    // Convert URL path to file system path
+    // /uploads/products/image.jpg -> public/uploads/products/image.jpg
+    let filePath;
+    if (imagePath.startsWith("/")) {
+      filePath = path.join(__dirname, "../../../public", imagePath);
+    } else {
+      filePath = path.join(
+        __dirname,
+        "../../../public/uploads/products",
+        imagePath
+      );
+    }
+
+    // Check if file exists
+    if (fs.existsSync(filePath)) {
+      return Input.fromLocalFile(filePath);
+    }
+
+    return null;
+  },
+
   // Show all categories
   async showCategories(ctx) {
     try {
@@ -22,12 +62,29 @@ const catalogHandler = {
       }
 
       const categoriesKeyboard = await Keyboards.categoriesInline(categories);
-      await ctx.reply(
-        `🛍️ <b>Mahsulot kategoriyalari:</b>
 
-Quyidagi kategoriyalardan birini tanlang:`,
-        { parse_mode: "HTML", ...categoriesKeyboard }
-      );
+      // Check if this is from callback query (edit message) or new message
+      if (ctx.callbackQuery) {
+        try {
+          await ctx.editMessageText(
+            `🛍️ <b>Mahsulot kategoriyalari:</b>\n\nQuyidagi kategoriyalardan birini tanlang:`,
+            { parse_mode: "HTML", ...categoriesKeyboard }
+          );
+          await ctx.answerCbQuery();
+        } catch (e) {
+          // If edit fails (e.g., message with photo), delete and send new
+          await ctx.deleteMessage().catch(() => {});
+          await ctx.reply(
+            `🛍️ <b>Mahsulot kategoriyalari:</b>\n\nQuyidagi kategoriyalardan birini tanlang:`,
+            { parse_mode: "HTML", ...categoriesKeyboard }
+          );
+        }
+      } else {
+        await ctx.reply(
+          `🛍️ <b>Mahsulot kategoriyalari:</b>\n\nQuyidagi kategoriyalardan birini tanlang:`,
+          { parse_mode: "HTML", ...categoriesKeyboard }
+        );
+      }
     } catch (error) {
       console.error("❌ Categories error:", error);
       await ctx.reply("❌ Kategoriyalarni yuklashda xatolik yuz berdi.");
@@ -109,12 +166,30 @@ Quyidagi kategoriyalardan birini tanlang:`,
 
       // Send image if available
       if (product.image) {
+        const imageSource = catalogHandler.getImageSource(product.image);
         await ctx.deleteMessage().catch(() => {});
-        await ctx.replyWithPhoto(product.image, {
-          caption: details + "\n\n<b>Miqdorni tanlang:</b>",
-          parse_mode: "HTML",
-          ...quantityKeyboard,
-        });
+
+        if (imageSource) {
+          try {
+            await ctx.replyWithPhoto(imageSource, {
+              caption: details + "\n\n<b>Miqdorni tanlang:</b>",
+              parse_mode: "HTML",
+              ...quantityKeyboard,
+            });
+          } catch (imgError) {
+            console.error("Image send error:", imgError.message);
+            // If image fails, send text only
+            await ctx.reply(`${details}\n\n<b>Miqdorni tanlang:</b>`, {
+              parse_mode: "HTML",
+              ...quantityKeyboard,
+            });
+          }
+        } else {
+          await ctx.reply(`${details}\n\n<b>Miqdorni tanlang:</b>`, {
+            parse_mode: "HTML",
+            ...quantityKeyboard,
+          });
+        }
       } else {
         await ctx.editMessageText(`${details}\n\n<b>Miqdorni tanlang:</b>`, {
           parse_mode: "HTML",

@@ -1,0 +1,10 @@
+{
+  "watch": ["src", "index.js", ".env"],
+  "ext": "js,json,ejs",
+  "ignore": ["node_modules", "public/uploads"],
+  "delay": "2000",
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "verbose": true
+}

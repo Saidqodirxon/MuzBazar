@@ -12,7 +12,7 @@ const formatDate = (date) => {
 };
 
 // Format number helper
-const formatNumber = (num) => new Intl.NumberFormat('uz-UZ').format(num || 0);
+const formatNumber = (num) => (num || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 
 // Escape string for JS - HTML attribute safe
 const escapeJs = (str) => {
@@ -65,10 +65,10 @@ if (!debts || debts.length === 0) {
                 <a href="/admin/users/${clientId}" class="btn btn-sm btn-outline-primary">
                     <i class="fas fa-eye"></i>
                 </a>
-                <button type="button" class="btn btn-sm btn-outline-warning" 
+                <!-- <button type="button" class="btn btn-sm btn-outline-warning" 
                         onclick="sendSingleNotification('${clientId}', '${firstName} ${lastName}', ${totalDebt})">
                     <i class="fas fa-bell"></i>
-                </button>
+                </button> -->
             </td>
         </tr>`;
     }
@@ -118,7 +118,7 @@ if (debts && debts.length > 0) {
                 ${phone ? `<small class="text-muted">(${phone})</small>` : ''}
             </label>
         </div>`;
-    });
+    }
 }
 
 const body = `
@@ -127,6 +127,9 @@ const body = `
         <i class="fas fa-money-bill-wave me-2"></i>Qarzdorlik boshqaruvi
     </h1>
     <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="/admin/debts/export" class="btn btn-success me-2" ${!debts || debts.length === 0 ? 'disabled' : ''}>
+            <i class="fas fa-file-excel me-2"></i>Excel
+        </a>
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#notifyModal" ${!debts || debts.length === 0 ? 'disabled' : ''}>
             <i class="fas fa-envelope me-2"></i>Xabar yuborish
         </button>
@@ -190,7 +193,7 @@ function deselectAllClients() {
 }
 
 function sendSingleNotification(clientId, clientName, debtAmount) {
-    const formattedAmount = new Intl.NumberFormat('uz-UZ').format(debtAmount);
+    const formattedAmount = debtAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
     const defaultMessage = 'Hurmatli mijoz! Sizda ' + formattedAmount + " so'm qarzdorlik mavjud. Iltimos, to'lovni amalga oshiring. MUZ BAZAR";
     
     const message = prompt(clientName + " ga xabar yuboring (qarzdorlik: " + formattedAmount + " so'm):", defaultMessage);

@@ -56,8 +56,8 @@ const body = `
                             <tr>
                                 <td>${item.product?.name}</td>
                                 <td>${item.quantity}</td>
-                                <td>${new Intl.NumberFormat('uz-UZ').format(item.price)} so'm</td>
-                                <td>${new Intl.NumberFormat('uz-UZ').format(item.quantity * item.price)} so'm</td>
+                                <td>${(item.price || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</td>
+                                <td>${((item.quantity || 0) * (item.price || 0)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</td>
                             </tr>
                             `).join('')}
                         </tbody>
@@ -71,9 +71,9 @@ const body = `
                 <h5>To'lov ma'lumotlari</h5>
             </div>
             <div class="card-body">
-                <p><strong>Jami summa:</strong> ${new Intl.NumberFormat('uz-UZ').format(order.totalSum)} so'm</p>
-                <p><strong>To'landi:</strong> ${new Intl.NumberFormat('uz-UZ').format(order.paid)} so'm</p>
-                <p><strong>Qarzdorlik:</strong> ${new Intl.NumberFormat('uz-UZ').format(order.debt)} so'm</p>
+                <p><strong>Jami summa:</strong> ${(order.totalSum || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</p>
+                <p><strong>To'landi:</strong> ${(order.paid || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</p>
+                <p><strong>Qarzdorlik:</strong> ${(order.debt || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</p>
             </div>
         </div>
     </div>

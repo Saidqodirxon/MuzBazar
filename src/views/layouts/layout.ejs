@@ -205,7 +205,105 @@
     <!-- Chart.js for reports -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 9999;">
+        <div id="mainToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <i id="toastIcon" class="fas fa-check-circle me-2 text-success"></i>
+                <strong class="me-auto" id="toastTitle">Xabar</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body" id="toastMessage"></div>
+        </div>
+    </div>
+    
     <script>
+        // Toast notification function
+        function showToast(message, type = 'success', title = null) {
+            const toast = document.getElementById('mainToast');
+            const toastTitle = document.getElementById('toastTitle');
+            const toastMessage = document.getElementById('toastMessage');
+            const toastIcon = document.getElementById('toastIcon');
+            
+            // Set icon and color based on type
+            toast.classList.remove('border-success', 'border-danger', 'border-warning', 'border-info');
+            if (type === 'success') {
+                toastIcon.className = 'fas fa-check-circle me-2 text-success';
+                toastTitle.textContent = title || 'Muvaffaqiyat';
+                toast.classList.add('border-success');
+            } else if (type === 'error') {
+                toastIcon.className = 'fas fa-times-circle me-2 text-danger';
+                toastTitle.textContent = title || 'Xatolik';
+                toast.classList.add('border-danger');
+            } else if (type === 'warning') {
+                toastIcon.className = 'fas fa-exclamation-triangle me-2 text-warning';
+                toastTitle.textContent = title || 'Ogohlantirish';
+                toast.classList.add('border-warning');
+            } else {
+                toastIcon.className = 'fas fa-info-circle me-2 text-info';
+                toastTitle.textContent = title || 'Ma\'lumot';
+                toast.classList.add('border-info');
+            }
+            
+            toastMessage.textContent = message;
+            const bsToast = new bootstrap.Toast(toast, { delay: 4000 });
+            bsToast.show();
+        }
+        
+        // Check URL params for toast messages
+        (function() {
+            const params = new URLSearchParams(window.location.search);
+            const success = params.get('success');
+            const error = params.get('error');
+            
+            const successMessages = {
+                'created': 'Muvaffaqiyatli yaratildi!',
+                'updated': 'Muvaffaqiyatli yangilandi!',
+                'deleted': 'Muvaffaqiyatli o\'chirildi!',
+                'saved': 'Ma\'lumot saqlandi!',
+                'settings_updated': 'Sozlamalar saqlandi!',
+                'seller_added': 'Sotuvchi qo\'shildi!',
+                'category_created': 'Kategoriya yaratildi!',
+                'product_created': 'Mahsulot yaratildi!',
+                'product_updated': 'Mahsulot yangilandi!',
+                'status_updated': 'Status yangilandi!',
+                'payment_added': 'To\'lov qo\'shildi!',
+                'notification_sent': 'Xabar yuborildi!'
+            };
+            
+            const errorMessages = {
+                'not_found': 'Ma\'lumot topilmadi!',
+                'create_failed': 'Yaratishda xatolik!',
+                'update_failed': 'Yangilashda xatolik!',
+                'delete_failed': 'O\'chirishda xatolik!',
+                'send_failed': 'Yuborishda xatolik!',
+                'no_clients_selected': 'Klient tanlanmagan!',
+                'export_failed': 'Eksport qilishda xatolik!',
+                'username_exists': 'Bu login band!',
+                'no_telegram': 'Foydalanuvchining Telegram ID si yo\'q!',
+                'wrong_password': 'Joriy parol noto\'g\'ri!',
+                'password_mismatch': 'Parollar mos kelmadi!',
+                'password_too_short': 'Parol kamida 6 belgidan iborat bo\'lishi kerak!'
+            };
+            
+            if (success) {
+                // Handle sent_X format
+                if (success.startsWith('sent_')) {
+                    const count = success.replace('sent_', '');
+                    showToast(count + ' ta klientga xabar yuborildi!', 'success');
+                } else {
+                    showToast(successMessages[success] || 'Muvaffaqiyatli!', 'success');
+                }
+                // Clean URL
+                window.history.replaceState({}, '', window.location.pathname);
+            }
+            
+            if (error) {
+                showToast(errorMessages[error] || 'Xatolik yuz berdi!', 'error');
+                window.history.replaceState({}, '', window.location.pathname);
+            }
+        })();
+        
         // Auto hide alerts after 5 seconds
         setTimeout(() => {
             const alerts = document.querySelectorAll('.alert');

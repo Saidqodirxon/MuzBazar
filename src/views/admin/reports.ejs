@@ -2,7 +2,7 @@
 const layout = '../layouts/layout.ejs';
 
 // Format numbers helper
-const formatNumber = (num) => new Intl.NumberFormat('uz-UZ').format(num || 0);
+const formatNumber = (num) => (num || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 
 const body = `
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
@@ -10,8 +10,8 @@ const body = `
         <i class="fas fa-chart-bar me-2"></i>Hisobotlar
     </h1>
     <div class="btn-toolbar mb-2 mb-md-0">
-        <a href="/admin/reports/export?format=json" class="btn btn-primary">
-            <i class="fas fa-download me-2"></i>Eksport qilish (JSON)
+        <a href="/admin/reports/export" class="btn btn-success">
+            <i class="fas fa-file-excel me-2"></i>Excel yuklash
         </a>
     </div>
 </div>

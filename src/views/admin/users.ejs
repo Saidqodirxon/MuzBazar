@@ -30,7 +30,7 @@ if (users.length === 0) {
                             <td><strong>${user.firstName} ${user.lastName}</strong></td>
                             <td><a href="tel:${user.phone}">${user.phone}</a></td>
                             <td>${user.orderCount || 0}</td>
-                            <td>${new Intl.NumberFormat('uz-UZ').format(user.totalSpent || 0)} so'm</td>
+                            <td>${(user.totalSpent || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</td>
                             <td>${moment(user.createdAt).format('DD/MM/YYYY')}</td>
                             <td>
                                 <a href="/admin/users/${user._id}" class="btn btn-sm btn-outline-primary">

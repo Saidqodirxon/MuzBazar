@@ -33,7 +33,7 @@ if (products.length === 0) {
                         <tr>
                             <td><strong>${product.name}</strong></td>
                             <td>${product.category?.name || '-'}</td>
-                            <td>${new Intl.NumberFormat('uz-UZ').format(product.price)} so'm</td>
+                            <td>${(product.price || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</td>
                             <td>
                                 <span class="badge ${product.stock <= product.minStock ? 'bg-warning' : 'bg-success'}">
                                     ${product.stock}
@@ -71,6 +71,9 @@ const body = `
         <i class="fas fa-box me-2"></i>Mahsulotlar
     </h1>
     <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="/admin/products/export" class="btn btn-success me-2" ${products.length === 0 ? 'disabled' : ''}>
+            <i class="fas fa-file-excel me-2"></i>Excel
+        </a>
         <a href="/admin/products/new" class="btn btn-primary">
             <i class="fas fa-plus me-2"></i>Yangi mahsulot
         </a>
@@ -88,6 +91,18 @@ const body = `
 </div>
 
 ${productsHtml}
+
+<script>
+function confirmDelete(productId, productName) {
+    if (confirm('Haqiqatan ham "' + productName + '" mahsulotini o\'chirmoqchimisiz?')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/admin/products/' + productId + '/delete';
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
 `;
 -%>
 <%- include(layout, { body, title }) %>

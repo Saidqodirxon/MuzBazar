@@ -22,16 +22,22 @@ class TaskScheduler {
       await this.checkLowStockAndNotify();
     });
 
-    // Send debt reminders every Monday at 10 AM
-    cron.schedule("0 10 * * 1", async () => {
-      console.log("💰 Running weekly debt reminders...");
-      await this.sendWeeklyDebtReminders();
+    // Send automated debt reminders (configurable from settings)
+    cron.schedule("*/10 * * * *", async () => {
+      // Check every 10 minutes if it's time to send reminders
+      await this.checkAndSendDebtReminders();
     });
 
     // Generate daily reports every day at 11 PM
     cron.schedule("0 23 * * *", async () => {
       console.log("📊 Running daily reports...");
       await this.generateDailyReports();
+    });
+
+    // Generate monthly reports on 1st day of month at 9 AM
+    cron.schedule("0 9 1 * *", async () => {
+      console.log("📈 Running monthly reports...");
+      await this.sendMonthlySummary();
     });
 
     console.log("✅ Scheduled tasks initialized");
@@ -43,15 +49,17 @@ class TaskScheduler {
   async checkLowStockAndNotify() {
     try {
       const { Product } = require("../server/models");
-      
+
       const lowStockProducts = await Product.find({
         $expr: { $lte: ["$stock", "$minStock"] },
-        isActive: true
+        isActive: true,
       });
 
       if (lowStockProducts.length > 0) {
         await this.notificationService.notifyLowStock(lowStockProducts);
-        console.log(`📦 Low stock notification sent for ${lowStockProducts.length} products`);
+        console.log(
+          `📦 Low stock notification sent for ${lowStockProducts.length} products`
+        );
       } else {
         console.log("📦 All products have sufficient stock");
       }
@@ -119,6 +127,96 @@ class TaskScheduler {
   }
 
   /**
+   * Check settings and send automated debt reminders
+   */
+  async checkAndSendDebtReminders() {
+    try {
+      const { Settings, Order } = require("../server/models");
+
+      // Check if reminders are enabled
+      const enabled = await Settings.get("debt_reminder_enabled", false);
+      if (!enabled) {
+        // Don't log every 10 minutes - too noisy
+        return;
+      }
+
+      // Get settings
+      const intervalDays = await Settings.get("debt_reminder_interval_days", 3);
+      const reminderTime = await Settings.get("debt_reminder_time", "10:00");
+
+      // Check if current time matches reminder time (check hour and within 10 min window)
+      const now = new Date();
+      const [targetHour] = reminderTime.split(':').map(Number);
+      const currentHour = now.getHours();
+      const currentMin = now.getMinutes();
+      
+      // Only run at the specified hour and within first 10 minutes (cron runs every 10 min)
+      if (currentHour !== targetHour || currentMin >= 10) return;
+
+      console.log(`💰 Debt reminder check: hour=${currentHour}, target=${targetHour}`);
+
+      // Check last reminder date
+      const lastReminder = await Settings.get("last_debt_reminder_date", null);
+      if (lastReminder) {
+        const daysSinceLastReminder = Math.floor(
+          (now - new Date(lastReminder)) / (1000 * 60 * 60 * 24)
+        );
+        console.log(`💰 Days since last reminder: ${daysSinceLastReminder}, interval: ${intervalDays}`);
+        if (daysSinceLastReminder < intervalDays) {
+          console.log("💰 Skipping - interval not reached yet");
+          return;
+        }
+      }
+
+      console.log("💰 Running automated debt reminders...");
+
+      // Find clients with debt
+      const debts = await Order.aggregate([
+        { $match: { debt: { $gt: 0 } } },
+        {
+          $group: {
+            _id: "$client",
+            totalDebt: { $sum: "$debt" },
+          },
+        },
+        {
+          $lookup: {
+            from: "users",
+            localField: "_id",
+            foreignField: "_id",
+            as: "client",
+          },
+        },
+        { $unwind: "$client" },
+      ]);
+
+      if (debts.length === 0) {
+        console.log("💰 No debts to remind");
+        return;
+      }
+
+      // Send reminders
+      let sentCount = 0;
+      for (const debt of debts) {
+        const result = await this.notificationService.sendDebtNotification(
+          debt._id
+        );
+        if (result.success) sentCount++;
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+
+      // Update last reminder date
+      await Settings.set("last_debt_reminder_date", now.toISOString());
+
+      console.log(
+        `💰 Automated debt reminders sent to ${sentCount}/${debts.length} clients`
+      );
+    } catch (error) {
+      console.error("❌ Automated debt reminder error:", error);
+    }
+  }
+
+  /**
    * Generate daily reports
    */
   async generateDailyReports() {
@@ -162,9 +260,9 @@ class TaskScheduler {
           `📅 ${startOfDay.toLocaleDateString("uz-UZ")}`,
           "",
           `📦 Bugungi buyurtmalar: **${todayOrders}** ta`,
-          `💰 Bugungi daromad: **${new Intl.NumberFormat("uz-UZ").format(revenue)} so'm**`,
+          `💰 Bugungi daromad: **${revenue.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm**`,
           `⏳ Kutilayotgan buyurtmalar: **${pendingOrders}** ta`,
-          `🔴 Umumiy qarzdorlik: **${new Intl.NumberFormat("uz-UZ").format(debt)} so'm**`,
+          `🔴 Umumiy qarzdorlik: **${debt.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm**`,
           "",
           "🌐 Batafsil ma'lumot uchun admin panelni ko'ring.",
         ].join("\\n");
@@ -216,10 +314,10 @@ class TaskScheduler {
         `📅 ${startOfMonth.toLocaleDateString("uz-UZ")} - ${endOfMonth.toLocaleDateString("uz-UZ")}`,
         "",
         `📦 Buyurtmalar: **${salesReport.summary.totalOrders || 0}** ta`,
-        `💰 Daromad: **${new Intl.NumberFormat("uz-UZ").format(salesReport.summary.totalRevenue || 0)} so'm**`,
-        `✅ To'langan: **${new Intl.NumberFormat("uz-UZ").format(salesReport.summary.totalPaid || 0)} so'm**`,
-        `🔴 Qarzdorlik: **${new Intl.NumberFormat("uz-UZ").format(salesReport.summary.totalDebt || 0)} so'm**`,
-        `📈 Foyda: **${new Intl.NumberFormat("uz-UZ").format(profitReport.totalProfit || 0)} so'm**`,
+        `💰 Daromad: **${(salesReport.summary.totalRevenue || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm**`,
+        `✅ To'langan: **${(salesReport.summary.totalPaid || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm**`,
+        `🔴 Qarzdorlik: **${(salesReport.summary.totalDebt || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm**`,
+        `📈 Foyda: **${(profitReport.totalProfit || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm**`,
         "",
         "🎯 Davom etishda muvaffaqiyat tilaymiz!",
       ].join("\\n");

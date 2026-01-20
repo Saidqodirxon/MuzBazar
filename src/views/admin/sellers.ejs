@@ -2,7 +2,7 @@
 const layout = '../layouts/layout.ejs';
 
 // Format number helper
-const formatNumber = (num) => new Intl.NumberFormat('uz-UZ').format(num || 0);
+const formatNumber = (num) => (num || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 
 // Build sellers table
 let sellersHtml = '';

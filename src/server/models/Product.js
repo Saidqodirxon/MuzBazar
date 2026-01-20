@@ -59,12 +59,19 @@ const productSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
 );
 
 // Virtual field for profit per unit
 productSchema.virtual("profitPerUnit").get(function () {
   return this.sellPrice - this.costPrice;
+});
+
+// Virtual field for price (alias for sellPrice for backward compatibility)
+productSchema.virtual("price").get(function () {
+  return this.sellPrice;
 });
 
 // Virtual field for profit percentage

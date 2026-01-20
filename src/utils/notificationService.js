@@ -40,7 +40,7 @@ class NotificationService {
   async sendToUser(telegramId, message, options = {}) {
     try {
       await this.bot.telegram.sendMessage(telegramId, message, {
-        parse_mode: "Markdown",
+        parse_mode: "HTML",
         disable_web_page_preview: true,
         ...options,
       });
@@ -86,11 +86,11 @@ class NotificationService {
         throw new Error("User not found");
       }
 
-      // Get user's debt
+      // Get user's debt with product details
       const orders = await Order.find({
         client: clientId,
         debt: { $gt: 0 },
-      });
+      }).populate("items.product");
 
       if (orders.length === 0) {
         throw new Error("No debt found");
@@ -98,25 +98,41 @@ class NotificationService {
 
       const totalDebt = orders.reduce((sum, order) => sum + order.debt, 0);
 
-      // Get message template from settings or use default
-      const defaultMessage = await Settings.get(
-        "debt_notification_template",
-        "Sizning qarzdorligingiz: {amount} so'm. Iltimos, to'lovni amalga oshiring."
-      );
+      // Build detailed message
+      let detailedMessage = `💰 **Qarzdorlik eslatmasi**\n\n`;
+      detailedMessage += `Hurmatli ${user.firstName}!\n\n`;
+      detailedMessage += `Sizning umumiy qarzdorligingiz: **${totalDebt.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm**\n\n`;
+      detailedMessage += `📋 **Buyurtmalar:**\n`;
 
-      const message = customMessage || defaultMessage;
-      const finalMessage = message.replace(
-        "{amount}",
-        new Intl.NumberFormat("uz-UZ").format(totalDebt)
-      );
+      orders.forEach((order) => {
+        const statusLabels = {
+          pending: "Kutilmoqda",
+          confirmed: "Tasdiqlangan",
+          delivered: "Yetkazilgan",
+          cancelled: "Bekor qilingan",
+        };
 
-      const fullMessage = `🔔 **Qarzdorlik eslatmasi**
+        detailedMessage += `\n🆔 **${order.orderNumber}**\n`;
+        detailedMessage += `📅 ${new Date(order.createdAt).toLocaleDateString("uz-UZ")}\n`;
+        detailedMessage += `📊 Status: ${statusLabels[order.status] || order.status}\n`;
+        detailedMessage += `Mahsulotlar:\n`;
 
-${finalMessage}
+        order.items.forEach((item) => {
+          detailedMessage += `  • ${item.product?.name || "Mahsulot"} x${item.quantity}\n`;
+        });
 
-📞 Aloqa: @muzbazar_admin`;
+        detailedMessage += `💰 Jami: ${order.totalSum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm\n`;
+        detailedMessage += `✅ To'landi: ${order.paid.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm\n`;
+        detailedMessage += `🔴 Qarz: ${order.debt.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm\n`;
+      });
 
-      return await this.sendToUser(user.telegramId, fullMessage);
+      detailedMessage += `\n📞 To'lov uchun: @muzbazar_admin`;
+
+      const finalMessage = customMessage || detailedMessage;
+
+      return await this.sendToUser(user.telegramId, finalMessage, {
+        parse_mode: "Markdown",
+      });
     } catch (error) {
       console.error("❌ Debt notification error:", error);
       return { success: false, error: error.message };
@@ -166,10 +182,10 @@ ${finalMessage}
         "📦 **Mahsulotlar:**",
         ...populatedOrder.items.map(
           (item) =>
-            `  • ${item.product.name} x${item.quantity} - ${new Intl.NumberFormat("uz-UZ").format(item.totalPrice)} so'm`
+            `  • ${item.product.name} x${item.quantity} - ${(item.totalPrice || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm`
         ),
         "",
-        `💰 **Jami summa: ${new Intl.NumberFormat("uz-UZ").format(populatedOrder.totalSum)} so'm**`,
+        `💰 **Jami summa: ${(populatedOrder.totalSum || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm**`,
         `📅 Vaqt: ${new Date().toLocaleString("uz-UZ")}`,
         "",
         "✅ Tasdiqlash uchun admin panelga kiring:",
@@ -248,7 +264,7 @@ ${finalMessage}
         "📋 **Buyurtma yangilanishi**",
         "",
         `🆔 Buyurtma: **${order.orderNumber}**`,
-        `💰 Summa: **${new Intl.NumberFormat("uz-UZ").format(order.totalSum)} so'm**`,
+        `💰 Summa: **${(order.totalSum || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm**`,
         "",
         message,
       ].join("\n");
@@ -274,8 +290,8 @@ ${finalMessage}
         "💰 **To'lov qabul qilindi!**",
         "",
         `🆔 Buyurtma: **${order.orderNumber}**`,
-        `💵 To\'langan: **${new Intl.NumberFormat("uz-UZ").format(amount)} so'm**`,
-        `🔴 Qolgan qarz: **${new Intl.NumberFormat("uz-UZ").format(order.debt)} so'm**`,
+        `💵 To'langan: **${(amount || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm**`,
+        `🔴 Qolgan qarz: **${(order.debt || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm**`,
         "",
         order.debt > 0
           ? "Qolgan qarzni ham to'lash uchun aloqaga chiqing."

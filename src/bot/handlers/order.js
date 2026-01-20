@@ -9,10 +9,10 @@ const orderHandler = {
   // User's cart storage (in real app, use Redis or session)
   userCarts: new Map(),
 
-  // Helper: format sum with comma+space (1 000 000 -> 1, 000, 000)
+  // Helper: format sum with spaces (1 000 000)
   formatSum(amount) {
     const num = Number(amount || 0);
-    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ", ");
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
   },
 
   // Add item to cart
@@ -20,12 +20,25 @@ const orderHandler = {
     try {
       const [, productId, quantity] = ctx.match[0].split("_");
       const userId = ctx.user._id.toString();
+      const qty = parseInt(quantity);
 
       const product = await Product.findById(productId);
-      if (!product || product.stock < quantity) {
-        return ctx.answerCbQuery(
-          "❌ Mahsulot mavjud emas yoki yetarli miqdorda yo'q."
-        );
+
+      if (!product) {
+        if (ctx.callbackQuery) {
+          return ctx.answerCbQuery("❌ Mahsulot topilmadi.");
+        } else {
+          return ctx.reply("❌ Mahsulot topilmadi.");
+        }
+      }
+
+      if (product.stock < qty) {
+        const maxMsg = `❌ Kechirasiz, faqat ${product.stock} ta mavjud. Kamroq miqdor kiriting.`;
+        if (ctx.callbackQuery) {
+          return ctx.answerCbQuery(maxMsg);
+        } else {
+          return ctx.reply(maxMsg);
+        }
       }
 
       // Get or create user cart
@@ -54,35 +67,64 @@ const orderHandler = {
       const cartTotal = cart.reduce((sum, item) => sum + item.totalPrice, 0);
 
       const cartKeyboard = Keyboards.cartActions();
-      await ctx.editMessageText(
-        `✅ <b>${product.name}</b> savatga qo'shildi!
 
-📦 Savat:
-${orderHandler.formatCart(cart)}
-
-💰 <b>Jami: ${orderHandler.formatSum(cartTotal)} so'm</b>`,
-        { parse_mode: "HTML", ...cartKeyboard }
-      );
-
-      await ctx.answerCbQuery(`✅ ${product.name} savatga qo'shildi`);
+      // Send response based on context type
+      if (ctx.callbackQuery) {
+        await ctx.editMessageText(
+          `✅ <b>${product.name}</b> savatga qo'shildi!\n\n📦 Savat:\n${orderHandler.formatCart(cart)}\n\n💰 <b>Jami: ${orderHandler.formatSum(cartTotal)} so'm</b>`,
+          { parse_mode: "HTML", ...cartKeyboard }
+        );
+        await ctx.answerCbQuery(`✅ ${product.name} savatga qo'shildi`);
+      } else {
+        await ctx.reply(
+          `✅ <b>${product.name}</b> savatga qo'shildi!\n\n📦 Savat:\n${orderHandler.formatCart(cart)}\n\n💰 <b>Jami: ${orderHandler.formatSum(cartTotal)} so'm</b>`,
+          { parse_mode: "HTML", ...cartKeyboard }
+        );
+      }
     } catch (error) {
       console.error("❌ Add to cart error:", error);
-      await ctx.answerCbQuery("❌ Savatga qo'shishda xatolik.");
+      if (ctx.callbackQuery) {
+        await ctx.answerCbQuery("❌ Savatga qo'shishda xatolik.");
+      } else {
+        await ctx.reply("❌ Savatga qo'shishda xatolik.");
+      }
     }
   },
 
   // Custom quantity input
   async handleCustomQuantity(ctx) {
-    const productId = ctx.match[1];
+    const match = ctx.match[0].split("_");
+    const productId = match[1];
 
     ctx.session = ctx.session || {};
     ctx.session.awaitingQuantity = productId;
 
-    await ctx.editMessageText("📝 Miqdorni kiriting (raqam ko'rinishida):", {
-      ...Keyboards.remove(),
+    const cancelKeyboard = {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text: "❌ Bekor qilish",
+              callback_data: `cancel_qty_${productId}`,
+            },
+          ],
+        ],
+      },
+    };
+
+    // Delete current message (might be photo) and send new text message
+    try {
+      await ctx.deleteMessage();
+    } catch (e) {
+      // Ignore delete errors
+    }
+    
+    await ctx.reply("📝 Miqdorni kiriting (raqam ko'rinishida):", {
+      parse_mode: "HTML",
+      ...cancelKeyboard,
     });
 
-    await ctx.answerCbQuery();
+    await ctx.answerCbQuery().catch(() => {});
   },
 
   // Process custom quantity input
@@ -93,7 +135,22 @@ ${orderHandler.formatCart(cart)}
     const quantity = parseInt(ctx.message.text);
 
     if (isNaN(quantity) || quantity <= 0) {
-      return ctx.reply("❌ Iltimos, to'g'ri miqdor kiriting (masalan: 5)");
+      const cancelKeyboard = {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: "❌ Bekor qilish",
+                callback_data: `cancel_qty_${productId}`,
+              },
+            ],
+          ],
+        },
+      };
+      return ctx.reply(
+        "❌ Iltimos, to'g'ri miqdor kiriting (masalan: 5)",
+        cancelKeyboard
+      );
     }
 
     delete ctx.session.awaitingQuantity;
@@ -105,6 +162,20 @@ ${orderHandler.formatCart(cart)}
       quantity.toString(),
     ];
     await this.addToCart(ctx);
+  },
+
+  // Cancel quantity input
+  async cancelQuantityInput(ctx) {
+    const productId = ctx.match[0].split("_")[2];
+
+    if (ctx.session) {
+      delete ctx.session.awaitingQuantity;
+    }
+
+    // Return to product details
+    const catalogHandler = require("./catalog");
+    ctx.match = [`product_${productId}`, productId];
+    await catalogHandler.showProductDetails(ctx);
   },
 
   // Show cart
@@ -222,7 +293,10 @@ Buyurtmangiz tez orada ko'rib chiqiladi.`,
 
       for (const order of orders) {
         const statusEmoji = orderHandler.getStatusEmoji(order.status);
+        const statusText = orderHandler.getStatusText(order.status);
         message += `${statusEmoji} <b>${order.orderNumber}</b>
+`;
+        message += `📊 Holat: <b>${statusText}</b>
 `;
         message += `📅 ${order.createdAt.toLocaleDateString("uz")}
 `;
@@ -232,7 +306,7 @@ Buyurtmangiz tez orada ko'rib chiqiladi.`,
         }
         message += `
 
-      `;
+`;
       }
 
       await ctx.reply(message, { parse_mode: "HTML" });
@@ -262,6 +336,17 @@ Buyurtmangiz tez orada ko'rib chiqiladi.`,
       cancelled: "❌",
     };
     return emojis[status] || "❓";
+  },
+
+  // Helper: Get status text
+  getStatusText(status) {
+    const texts = {
+      pending: "Kutilmoqda",
+      confirmed: "Tasdiqlangan",
+      delivered: "Yetkazilgan",
+      cancelled: "Bekor qilingan",
+    };
+    return texts[status] || "Noma'lum";
   },
 
   // Helper: Notify sellers about new order

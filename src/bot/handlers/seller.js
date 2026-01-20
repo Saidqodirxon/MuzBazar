@@ -285,6 +285,12 @@ const sellerHandler = {
 
     return Markup.inlineKeyboard(buttons);
   },
+
+  // Helpers
+  formatSum(amount) {
+    const num = Number(amount || 0);
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  },
 };
 
 module.exports = sellerHandler;

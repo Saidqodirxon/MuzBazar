@@ -287,10 +287,17 @@ const adminController = {
         minStock,
       } = req.body;
 
+      // Get image from uploaded file
+      let imageValue = "";
+      if (req.file) {
+        imageValue = `/uploads/products/${req.file.filename}`;
+      }
+
       const product = new Product({
         name,
         category,
         description,
+        image: imageValue,
         type,
         costPrice: parseFloat(costPrice),
         sellPrice: parseFloat(sellPrice),
@@ -345,10 +352,40 @@ const adminController = {
         isActive,
       } = req.body;
 
+      // Get existing product
+      const existingProduct = await Product.findById(req.params.id);
+      if (!existingProduct) {
+        return res.redirect("/admin/products?error=not_found");
+      }
+
+      // Keep existing image or update with new file
+      let imageValue = existingProduct.image;
+      if (req.file) {
+        imageValue = `/uploads/products/${req.file.filename}`;
+
+        // Delete old image file
+        if (
+          existingProduct.image &&
+          existingProduct.image.startsWith("/uploads/")
+        ) {
+          const fs = require("fs");
+          const path = require("path");
+          const oldImagePath = path.join(
+            __dirname,
+            "../../../public",
+            existingProduct.image
+          );
+          if (fs.existsSync(oldImagePath)) {
+            fs.unlinkSync(oldImagePath);
+          }
+        }
+      }
+
       await Product.findByIdAndUpdate(req.params.id, {
         name,
         category,
         description,
+        image: imageValue,
         type,
         costPrice: parseFloat(costPrice),
         sellPrice: parseFloat(sellPrice),
@@ -372,6 +409,73 @@ const adminController = {
     } catch (error) {
       console.error("❌ Delete product error:", error);
       res.redirect("/admin/products?error=delete_failed");
+    }
+  },
+
+  // Export products to Excel
+  async exportProducts(req, res) {
+    try {
+      const ExcelJS = require("exceljs");
+
+      const products = await Product.find()
+        .populate("category")
+        .sort({ name: 1 });
+
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Mahsulotlar");
+
+      worksheet.columns = [
+        { header: "Nomi", key: "name", width: 30 },
+        { header: "Kategoriya", key: "category", width: 20 },
+        { header: "O'lchov", key: "type", width: 15 },
+        { header: "Tannarx", key: "costPrice", width: 15 },
+        { header: "Sotish narxi", key: "sellPrice", width: 15 },
+        { header: "Qolgan", key: "stock", width: 10 },
+        { header: "Min. qolgan", key: "minStock", width: 12 },
+        { header: "Status", key: "status", width: 10 },
+      ];
+
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.getRow(1).fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFE0E0E0" },
+      };
+
+      const typeLabels = {
+        piece: "Dona",
+        kg: "Kilogram",
+        liter: "Litr",
+        box: "Quti",
+      };
+
+      products.forEach((product) => {
+        worksheet.addRow({
+          name: product.name,
+          category: product.category?.name || "-",
+          type: typeLabels[product.type] || product.type,
+          costPrice: product.costPrice,
+          sellPrice: product.sellPrice,
+          stock: product.stock,
+          minStock: product.minStock,
+          status: product.isActive ? "Faol" : "Nofaol",
+        });
+      });
+
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=mahsulotlar-${Date.now()}.xlsx`
+      );
+
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (error) {
+      console.error("❌ Export products error:", error);
+      res.redirect("/admin/products?error=export_failed");
     }
   },
 
@@ -435,6 +539,109 @@ const adminController = {
     }
   },
 
+  // Export orders to Excel
+  async exportOrders(req, res) {
+    try {
+      const ExcelJS = require("exceljs");
+      const { status } = req.query;
+
+      let filter = {};
+      if (status) filter.status = status;
+
+      const orders = await Order.find(filter)
+        .populate("client", "firstName lastName phone")
+        .populate("items.product", "name")
+        .sort({ createdAt: -1 });
+
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Buyurtmalar");
+
+      worksheet.columns = [
+        { header: "Buyurtma №", key: "orderNumber", width: 15 },
+        { header: "Klient", key: "client", width: 25 },
+        { header: "Telefon", key: "phone", width: 15 },
+        { header: "Mahsulotlar", key: "products", width: 40 },
+        { header: "Jami summa", key: "totalSum", width: 15 },
+        { header: "To'landi", key: "paid", width: 15 },
+        { header: "Qarz", key: "debt", width: 15 },
+        { header: "Status", key: "status", width: 15 },
+        { header: "Sana", key: "date", width: 15 },
+      ];
+
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.getRow(1).fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF4472C4" },
+      };
+      worksheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+
+      const statusLabels = {
+        pending: "Kutilmoqda",
+        confirmed: "Tasdiqlangan",
+        delivered: "Yetkazilgan",
+        cancelled: "Bekor qilingan",
+      };
+
+      let totalSum = 0;
+      let totalPaid = 0;
+      let totalDebt = 0;
+
+      orders.forEach((order) => {
+        const products = order.items
+          .map((item) => `${item.product?.name || "?"} x${item.quantity}`)
+          .join(", ");
+
+        worksheet.addRow({
+          orderNumber: order.orderNumber,
+          client: order.client
+            ? `${order.client.firstName} ${order.client.lastName || ""}`
+            : "Noma'lum",
+          phone: order.client?.phone || "-",
+          products,
+          totalSum: order.totalSum || 0,
+          paid: order.paidSum || 0,
+          debt: order.debt || 0,
+          status: statusLabels[order.status] || order.status,
+          date: new Date(order.createdAt).toLocaleDateString("uz-UZ"),
+        });
+
+        totalSum += order.totalSum || 0;
+        totalPaid += order.paidSum || 0;
+        totalDebt += order.debt || 0;
+      });
+
+      worksheet.addRow({});
+      const totalRow = worksheet.addRow({
+        orderNumber: "JAMI",
+        totalSum,
+        paid: totalPaid,
+        debt: totalDebt,
+      });
+      totalRow.font = { bold: true };
+      totalRow.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFFFD700" },
+      };
+
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=buyurtmalar-${Date.now()}.xlsx`
+      );
+
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (error) {
+      console.error("❌ Export orders error:", error);
+      res.redirect("/admin/orders?error=export_failed");
+    }
+  },
+
   // Order details
   async orderDetails(req, res) {
     try {
@@ -467,7 +674,44 @@ const adminController = {
   async updateOrderStatus(req, res) {
     try {
       const { status } = req.body;
+      const order = await Order.findById(req.params.id).populate("client");
+
+      if (!order) {
+        return res.redirect("/admin/orders?error=not_found");
+      }
+
+      const oldStatus = order.status;
       await Order.findByIdAndUpdate(req.params.id, { status });
+
+      // Send notification to client if status changed
+      if (oldStatus !== status && order.client?.telegramId) {
+        const NotificationService = require("../../utils/notificationService");
+        const notificationService = new NotificationService();
+
+        const statusMessages = {
+          pending: "⏳ Sizning buyurtmangiz qabul qilindi va kutilmoqda.",
+          confirmed:
+            "✅ Buyurtmangiz tasdiqlandi! Tez orada yetkazib beriladi.",
+          delivered: "🎉 Buyurtmangiz yetkazildi! Xaridingiz uchun rahmat!",
+          cancelled:
+            "❌ Buyurtmangiz bekor qilindi. Batafsil ma'lumot uchun bog'laning.",
+        };
+
+        const message = [
+          "📋 **Buyurtma yangilanishi**",
+          "",
+          `🆔 Buyurtma: **${order.orderNumber}**`,
+          `📊 Yangi holat: **${statusMessages[status] || status}**`,
+          `💰 Summa: **${(order.totalSum || 0).toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, " ")} so'm**`,
+          "",
+          "📞 Savollar uchun: @muzbazar_admin",
+        ].join("\\n");
+
+        await notificationService.sendToUser(order.client.telegramId, message, {
+          parse_mode: "Markdown",
+        });
+      }
+
       res.redirect(`/admin/orders/${req.params.id}?success=status_updated`);
     } catch (error) {
       console.error("❌ Update order status error:", error);
@@ -623,6 +867,235 @@ const adminController = {
     } catch (error) {
       console.error("❌ Toggle user status error:", error);
       res.redirect(`/admin/users/${req.params.id}?error=update_failed`);
+    }
+  },
+
+  // Send notification to single user
+  async sendUserNotification(req, res) {
+    try {
+      const { message } = req.body;
+      const user = await User.findById(req.params.id);
+
+      if (!user) {
+        return res.redirect("/admin/users?error=not_found");
+      }
+
+      if (!user.telegramId) {
+        return res.redirect(`/admin/users/${req.params.id}?error=no_telegram`);
+      }
+
+      const NotificationService = require("../../utils/notificationService");
+      const notificationService = new NotificationService();
+
+      const result = await notificationService.sendToUser(
+        user.telegramId,
+        message
+      );
+
+      if (result.success) {
+        res.redirect(`/admin/users/${req.params.id}?success=notification_sent`);
+      } else {
+        res.redirect(`/admin/users/${req.params.id}?error=send_failed`);
+      }
+    } catch (error) {
+      console.error("❌ Send user notification error:", error);
+      res.redirect(`/admin/users/${req.params.id}?error=send_failed`);
+    }
+  },
+
+  // Export user debt details to Excel
+  async exportUserDebt(req, res) {
+    try {
+      const ExcelJS = require("exceljs");
+      const user = await User.findById(req.params.id);
+
+      if (!user) {
+        return res.redirect("/admin/users?error=not_found");
+      }
+
+      const orders = await Order.find({ client: user._id, debt: { $gt: 0 } })
+        .populate("items.product")
+        .sort({ createdAt: -1 });
+
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Qarzdorlik");
+
+      worksheet.columns = [
+        { header: "Buyurtma №", key: "orderNumber", width: 15 },
+        { header: "Sana", key: "date", width: 15 },
+        { header: "Mahsulot", key: "product", width: 30 },
+        { header: "Miqdor", key: "quantity", width: 10 },
+        { header: "Narx", key: "price", width: 15 },
+        { header: "Jami summa", key: "totalSum", width: 15 },
+        { header: "To'landi", key: "paid", width: 15 },
+        { header: "Qarz", key: "debt", width: 15 },
+        { header: "Status", key: "status", width: 15 },
+      ];
+
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.getRow(1).fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF4472C4" },
+      };
+      worksheet.getRow(1).font.color = { argb: "FFFFFFFF" };
+
+      const statusLabels = {
+        pending: "Kutilmoqda",
+        confirmed: "Tasdiqlangan",
+        delivered: "Yetkazilgan",
+        cancelled: "Bekor qilingan",
+      };
+
+      orders.forEach((order) => {
+        order.items.forEach((item, index) => {
+          worksheet.addRow({
+            orderNumber: index === 0 ? order.orderNumber : "",
+            date:
+              index === 0
+                ? new Date(order.createdAt).toLocaleDateString("uz-UZ")
+                : "",
+            product: item.product?.name || "Mahsulot",
+            quantity: item.quantity,
+            price: item.price,
+            totalSum: index === 0 ? order.totalSum : "",
+            paid: index === 0 ? order.paidSum || 0 : "",
+            debt: index === 0 ? order.debt : "",
+            status:
+              index === 0 ? statusLabels[order.status] || order.status : "",
+          });
+        });
+      });
+
+      const totalDebt = orders.reduce((sum, order) => sum + order.debt, 0);
+      worksheet.addRow({});
+      const totalRow = worksheet.addRow({
+        orderNumber: "JAMI",
+        debt: totalDebt,
+      });
+      totalRow.font = { bold: true };
+      totalRow.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFFFD700" },
+      };
+
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=${user.firstName}-qarzdorlik-${Date.now()}.xlsx`
+      );
+
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (error) {
+      console.error("❌ Export user debt error:", error);
+      res.redirect(`/admin/users/${req.params.id}?error=export_failed`);
+    }
+  },
+
+  // Export all user orders to Excel
+  async exportUserOrders(req, res) {
+    try {
+      const ExcelJS = require("exceljs");
+      const user = await User.findById(req.params.id);
+
+      if (!user) {
+        return res.redirect("/admin/users?error=not_found");
+      }
+
+      const orders = await Order.find({ client: user._id })
+        .populate("items.product")
+        .sort({ createdAt: -1 });
+
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Buyurtmalar");
+
+      worksheet.columns = [
+        { header: "Buyurtma №", key: "orderNumber", width: 15 },
+        { header: "Sana", key: "date", width: 15 },
+        { header: "Mahsulot", key: "product", width: 30 },
+        { header: "Miqdor", key: "quantity", width: 10 },
+        { header: "Narx", key: "price", width: 15 },
+        { header: "Jami summa", key: "totalSum", width: 15 },
+        { header: "To'landi", key: "paid", width: 15 },
+        { header: "Qarz", key: "debt", width: 15 },
+        { header: "Status", key: "status", width: 15 },
+      ];
+
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.getRow(1).fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF4472C4" },
+      };
+      worksheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+
+      const statusLabels = {
+        pending: "Kutilmoqda",
+        confirmed: "Tasdiqlangan",
+        delivered: "Yetkazilgan",
+        cancelled: "Bekor qilingan",
+      };
+
+      let grandTotal = 0;
+      let grandPaid = 0;
+      let grandDebt = 0;
+
+      orders.forEach((order) => {
+        order.items.forEach((item, index) => {
+          worksheet.addRow({
+            orderNumber: index === 0 ? order.orderNumber : "",
+            date:
+              index === 0
+                ? new Date(order.createdAt).toLocaleDateString("uz-UZ")
+                : "",
+            product: item.product?.name || "Mahsulot",
+            quantity: item.quantity,
+            price: item.price,
+            totalSum: index === 0 ? order.totalSum : "",
+            paid: index === 0 ? order.paidSum || 0 : "",
+            debt: index === 0 ? order.debt : "",
+            status:
+              index === 0 ? statusLabels[order.status] || order.status : "",
+          });
+        });
+        grandTotal += order.totalSum || 0;
+        grandPaid += order.paidSum || 0;
+        grandDebt += order.debt || 0;
+      });
+
+      worksheet.addRow({});
+      const totalRow = worksheet.addRow({
+        orderNumber: "JAMI",
+        totalSum: grandTotal,
+        paid: grandPaid,
+        debt: grandDebt,
+      });
+      totalRow.font = { bold: true };
+      totalRow.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFFFD700" },
+      };
+
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=${user.firstName}-buyurtmalar-${Date.now()}.xlsx`
+      );
+
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (error) {
+      console.error("❌ Export user orders error:", error);
+      res.redirect(`/admin/users/${req.params.id}?error=export_failed`);
     }
   },
 
@@ -801,17 +1274,36 @@ const adminController = {
 
       for (const debt of debts) {
         try {
+          // Check if client has telegramId
+          if (!debt.client.telegramId) {
+            console.log(`Skipping ${debt.client.firstName}: no telegramId`);
+            failCount++;
+            continue;
+          }
+
           // Replace {summa} with actual debt amount
           const personalMessage = message.replace(
             /{summa}/g,
-            new Intl.NumberFormat("uz-UZ").format(debt.totalDebt)
+            (debt.totalDebt || 0)
+              .toString()
+              .replace(/\B(?=(\d{3})+(?!\d))/g, " ")
           );
 
-          await notificationService.sendToUser(
+          const result = await notificationService.sendToUser(
             debt.client.telegramId,
-            `💰 ${personalMessage}`
+            `💰 ${personalMessage}`,
+            { parse_mode: "HTML" }
           );
-          successCount++;
+
+          if (result.success) {
+            successCount++;
+          } else {
+            console.error(
+              `Failed to send to ${debt.client.firstName}:`,
+              result.error
+            );
+            failCount++;
+          }
         } catch (err) {
           console.error(`Failed to send to ${debt.client.telegramId}:`, err);
           failCount++;
@@ -826,6 +1318,104 @@ const adminController = {
     } catch (error) {
       console.error("❌ Send notification error:", error);
       res.redirect("/admin/debts?error=send_failed");
+    }
+  },
+
+  // Export debts to Excel
+  async exportDebts(req, res) {
+    try {
+      const ExcelJS = require("exceljs");
+      const { Order, User } = require("../models");
+
+      // Get debts data
+      const debts = await Order.aggregate([
+        { $match: { debt: { $gt: 0 } } },
+        {
+          $group: {
+            _id: "$client",
+            totalDebt: { $sum: "$debt" },
+            orderCount: { $sum: 1 },
+            lastOrder: { $max: "$createdAt" },
+          },
+        },
+        {
+          $lookup: {
+            from: "users",
+            localField: "_id",
+            foreignField: "_id",
+            as: "client",
+          },
+        },
+        { $unwind: "$client" },
+        { $sort: { totalDebt: -1 } },
+      ]);
+
+      // Create workbook
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Qarzdorlik");
+
+      // Add headers
+      worksheet.columns = [
+        { header: "Ism", key: "firstName", width: 20 },
+        { header: "Familiya", key: "lastName", width: 20 },
+        { header: "Telefon", key: "phone", width: 15 },
+        { header: "Qarzdorlik (so'm)", key: "debt", width: 20 },
+        { header: "Buyurtmalar", key: "orderCount", width: 15 },
+        { header: "Oxirgi buyurtma", key: "lastOrder", width: 20 },
+      ];
+
+      // Style header
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.getRow(1).fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFE0E0E0" },
+      };
+
+      // Add data
+      debts.forEach((debt) => {
+        worksheet.addRow({
+          firstName: debt.client.firstName || "",
+          lastName: debt.client.lastName || "",
+          phone: debt.client.phone || "",
+          debt: debt.totalDebt || 0,
+          orderCount: debt.orderCount || 0,
+          lastOrder: debt.lastOrder
+            ? new Date(debt.lastOrder).toLocaleDateString("uz-UZ")
+            : "",
+        });
+      });
+
+      // Add total row
+      const totalDebt = debts.reduce((sum, debt) => sum + debt.totalDebt, 0);
+      worksheet.addRow({});
+      const totalRow = worksheet.addRow({
+        firstName: "JAMI",
+        debt: totalDebt,
+        orderCount: debts.length,
+      });
+      totalRow.font = { bold: true };
+      totalRow.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFFFD700" },
+      };
+
+      // Set response headers
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=qarzdorlik-${Date.now()}.xlsx`
+      );
+
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (error) {
+      console.error("❌ Export debts error:", error);
+      res.redirect("/admin/debts?error=export_failed");
     }
   },
 
@@ -848,25 +1438,130 @@ const adminController = {
     }
   },
 
-  // Export reports
+  // Export reports to Excel
   async exportReports(req, res) {
     try {
-      const { format = "json" } = req.query;
-      const stats = await this.getDetailedStatistics();
+      const ExcelJS = require("exceljs");
+      const stats = await adminController.getDetailedStatistics();
 
-      if (format === "json") {
-        res.setHeader("Content-Type", "application/json");
-        res.setHeader(
-          "Content-Disposition",
-          `attachment; filename=report-${Date.now()}.json`
-        );
-        res.json(stats);
-      } else {
-        res.status(400).json({ error: "Unsupported format" });
-      }
+      const workbook = new ExcelJS.Workbook();
+
+      // Sheet 1: Umumiy statistika
+      const summarySheet = workbook.addWorksheet("Umumiy statistika");
+      summarySheet.columns = [
+        { header: "Ko'rsatkich", key: "label", width: 30 },
+        { header: "Qiymat", key: "value", width: 25 },
+      ];
+
+      summarySheet.getRow(1).font = { bold: true };
+      summarySheet.getRow(1).fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF4472C4" },
+      };
+      summarySheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+
+      summarySheet.addRow({
+        label: "Umumiy daromad",
+        value: `${stats.totalRevenue || 0} so'm`,
+      });
+      summarySheet.addRow({
+        label: "Jami buyurtmalar",
+        value: stats.totalOrders || 0,
+      });
+      summarySheet.addRow({
+        label: "O'rtacha buyurtma",
+        value: `${stats.averageOrder || 0} so'm`,
+      });
+      summarySheet.addRow({
+        label: "Foydalanuvchilar soni",
+        value: stats.totalCustomers || 0,
+      });
+      summarySheet.addRow({
+        label: "Bugungi buyurtmalar",
+        value: stats.todayOrders || 0,
+      });
+      summarySheet.addRow({
+        label: "Bugungi daromad",
+        value: `${stats.todayRevenue || 0} so'm`,
+      });
+      summarySheet.addRow({
+        label: "Oylik buyurtmalar",
+        value: stats.monthlyOrders || 0,
+      });
+      summarySheet.addRow({
+        label: "Oylik daromad",
+        value: `${stats.monthlyRevenue || 0} so'm`,
+      });
+      summarySheet.addRow({
+        label: "Umumiy qarzdorlik",
+        value: `${stats.totalDebt || 0} so'm`,
+      });
+      summarySheet.addRow({
+        label: "Umumiy foyda",
+        value: `${stats.totalProfit || 0} so'm`,
+      });
+
+      // Sheet 2: Buyurtmalar (agar mavjud bo'lsa)
+      const ordersSheet = workbook.addWorksheet("Buyurtmalar");
+      ordersSheet.columns = [
+        { header: "Buyurtma №", key: "orderNumber", width: 15 },
+        { header: "Klient", key: "client", width: 25 },
+        { header: "Jami summa", key: "totalSum", width: 15 },
+        { header: "To'landi", key: "paid", width: 15 },
+        { header: "Qarz", key: "debt", width: 15 },
+        { header: "Status", key: "status", width: 15 },
+        { header: "Sana", key: "date", width: 15 },
+      ];
+
+      ordersSheet.getRow(1).font = { bold: true };
+      ordersSheet.getRow(1).fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF4472C4" },
+      };
+      ordersSheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+
+      const orders = await Order.find()
+        .populate("client", "firstName lastName")
+        .sort({ createdAt: -1 })
+        .limit(100);
+
+      const statusLabels = {
+        pending: "Kutilmoqda",
+        confirmed: "Tasdiqlangan",
+        delivered: "Yetkazilgan",
+        cancelled: "Bekor qilingan",
+      };
+
+      orders.forEach((order) => {
+        ordersSheet.addRow({
+          orderNumber: order.orderNumber,
+          client: order.client
+            ? `${order.client.firstName} ${order.client.lastName || ""}`
+            : "Noma'lum",
+          totalSum: order.totalSum || 0,
+          paid: order.paidSum || 0,
+          debt: order.debt || 0,
+          status: statusLabels[order.status] || order.status,
+          date: new Date(order.createdAt).toLocaleDateString("uz-UZ"),
+        });
+      });
+
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=hisobot-${Date.now()}.xlsx`
+      );
+
+      await workbook.xlsx.write(res);
+      res.end();
     } catch (error) {
       console.error("❌ Export reports error:", error);
-      res.status(500).json({ error: "Export xatolik" });
+      res.redirect("/admin/reports?error=export_failed");
     }
   },
 
@@ -909,12 +1604,35 @@ const adminController = {
         // Skip _csrf and other non-setting fields
         if (key.startsWith("_")) continue;
 
+        // Find the setting
+        const setting = await Settings.findOne({ key });
+        if (!setting) continue;
+
+        // Convert value based on type
+        let convertedValue = value;
+        if (setting.type === "number") {
+          convertedValue = parseFloat(value) || 0;
+        } else if (setting.type === "boolean") {
+          convertedValue = value === "on" || value === "true";
+        }
+
         // Update the setting
         await Settings.findOneAndUpdate(
           { key },
-          { value, updatedAt: new Date() },
+          { value: convertedValue, updatedAt: new Date() },
           { upsert: false }
         );
+      }
+
+      // Handle checkboxes that weren't sent (unchecked)
+      const allSettings = await Settings.find({ type: "boolean" });
+      for (const setting of allSettings) {
+        if (!(setting.key in updates)) {
+          await Settings.findOneAndUpdate(
+            { key: setting.key },
+            { value: false, updatedAt: new Date() }
+          );
+        }
       }
 
       res.redirect("/admin/settings?success=settings_updated");
