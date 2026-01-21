@@ -70,7 +70,11 @@ const catalogHandler = {
             `🛍️ <b>Mahsulot kategoriyalari:</b>\n\nQuyidagi kategoriyalardan birini tanlang:`,
             { parse_mode: "HTML", ...categoriesKeyboard }
           );
-          await ctx.answerCbQuery();
+          try {
+            await ctx.answerCbQuery();
+          } catch (cbErr) {
+            // Ignore callback query errors
+          }
         } catch (e) {
           // If edit fails (e.g., message with photo), delete and send new
           await ctx.deleteMessage().catch(() => {});
@@ -98,7 +102,11 @@ const catalogHandler = {
 
       const category = await Category.findById(categoryId);
       if (!category) {
-        return ctx.answerCbQuery("❌ Kategoriya topilmadi.");
+        try {
+          return await ctx.answerCbQuery("❌ Kategoriya topilmadi.");
+        } catch (e) {
+          return;
+        }
       }
 
       const products = await Product.find({
@@ -109,10 +117,14 @@ const catalogHandler = {
 
       if (products.length === 0) {
         const backKeyboard = await Keyboards.categoriesInline([category]);
-        return ctx.editMessageText(
+        await ctx.editMessageText(
           `📦 <b>${category.name}</b> kategoriyasida mahsulotlar mavjud emas yoki sotilgan.`,
           { parse_mode: "HTML", ...backKeyboard }
         );
+        try {
+          await ctx.answerCbQuery();
+        } catch (e) {}
+        return;
       }
 
       const productList = products
@@ -131,10 +143,18 @@ const catalogHandler = {
         { parse_mode: "HTML", ...productsKeyboard }
       );
 
-      await ctx.answerCbQuery();
+      try {
+        await ctx.answerCbQuery();
+      } catch (e) {
+        // Ignore callback query errors
+      }
     } catch (error) {
       console.error("❌ Products error:", error);
-      await ctx.answerCbQuery("❌ Mahsulotlarni yuklashda xatolik.");
+      try {
+        await ctx.answerCbQuery("❌ Mahsulotlarni yuklashda xatolik.");
+      } catch (e) {
+        // Ignore callback query errors
+      }
     }
   },
 
@@ -145,11 +165,19 @@ const catalogHandler = {
 
       const product = await Product.findById(productId).populate("category");
       if (!product) {
-        return ctx.answerCbQuery("❌ Mahsulot topilmadi.");
+        try {
+          return await ctx.answerCbQuery("❌ Mahsulot topilmadi.");
+        } catch (e) {
+          return;
+        }
       }
 
       if (product.stock <= 0) {
-        return ctx.answerCbQuery("❌ Bu mahsulot sotilgan.");
+        try {
+          return await ctx.answerCbQuery("❌ Bu mahsulot sotilgan.");
+        } catch (e) {
+          return;
+        }
       }
 
       const details = [
@@ -197,10 +225,20 @@ const catalogHandler = {
         });
       }
 
-      await ctx.answerCbQuery();
+      try {
+        await ctx.answerCbQuery();
+      } catch (e) {
+        // Ignore callback query errors
+      }
     } catch (error) {
       console.error("❌ Product details error:", error);
-      await ctx.answerCbQuery("❌ Mahsulot ma'lumotlarini yuklashda xatolik.");
+      try {
+        await ctx.answerCbQuery(
+          "❌ Mahsulot ma'lumotlarini yuklashda xatolik."
+        );
+      } catch (e) {
+        // Ignore callback query errors
+      }
     }
   },
 };

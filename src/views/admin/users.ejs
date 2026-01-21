@@ -20,30 +20,85 @@ if (users.length === 0) {
                             <th>Telefon</th>
                             <th>Buyurtmalar</th>
                             <th>Umumiy summa</th>
+                            <th>Status</th>
                             <th>Qayd qilingan</th>
                             <th>Amallar</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${users.map(user => `
+                        ${users.map(user => {
+                            const statusBadge = user.isActive ? 'success' : 'danger';
+                            const statusText = user.isActive ? 'Aktiv' : 'Bloklangan';
+                            const toggleIcon = user.isActive ? 'ban' : 'check';
+                            const toggleTitle = user.isActive ? 'Bloklash' : 'Aktivlashtirish';
+                            const notifyDisabled = user.telegramId ? '' : 'disabled';
+                            
+                            return `
                         <tr>
-                            <td><strong>${user.firstName} ${user.lastName}</strong></td>
-                            <td><a href="tel:${user.phone}">${user.phone}</a></td>
+                            <td>
+                                <strong>${user.firstName} ${user.lastName}</strong>
+                                ${user.username ? '<br><small class="text-muted">@' + user.username + '</small>' : ''}
+                            </td>
+                            <td><a href="tel:${user.phone}">${user.phone || 'N/A'}</a></td>
                             <td>${user.orderCount || 0}</td>
                             <td>${(user.totalSpent || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</td>
+                            <td><span class="badge bg-${statusBadge}">${statusText}</span></td>
                             <td>${moment(user.createdAt).format('DD/MM/YYYY')}</td>
                             <td>
-                                <a href="/admin/users/${user._id}" class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-eye"></i>
-                                </a>
+                                <div class="btn-group" role="group">
+                                    <a href="/admin/users/${user._id}" class="btn btn-sm btn-outline-primary" title="Ko'rish">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <form method="POST" action="/admin/users/${user._id}/toggle-status" style="display: inline;" 
+                                          onsubmit="event.stopPropagation(); if(!confirm('Statusni ozgartirmoqchimisiz?')) return false;">
+                                        <button type="submit" class="btn btn-sm btn-outline-${user.isActive ? 'warning' : 'success'}" 
+                                                title="${toggleTitle}" onclick="event.stopPropagation();">
+                                            <i class="fas fa-${toggleIcon}"></i>
+                                        </button>
+                                    </form>
+                                    <button type="button" class="btn btn-sm btn-outline-info" title="Xabar yuborish" 
+                                            ${notifyDisabled} data-bs-toggle="modal" data-bs-target="#notifyModal${user._id}"
+                                            onclick="event.stopPropagation();">
+                                        <i class="fas fa-bell"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
-                        `).join('')}
+                        `;
+                        }).join('')}
                     </tbody>
                 </table>
             </div>
         </div>
-    </div>`;
+    </div>
+    
+    <!-- Notification Modals -->
+    ${users.map(user => `
+    <div class="modal fade" id="notifyModal${user._id}" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Xabar yuborish: ${user.firstName} ${user.lastName}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="/admin/users/${user._id}/notify">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="message${user._id}" class="form-label">Xabar matni:</label>
+                            <textarea class="form-control" id="message${user._id}" name="message" rows="4" required>Hurmatli ${user.firstName}!</textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor qilish</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane me-1"></i>Yuborish
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    `).join('')}`;
 }
 
 const body = `

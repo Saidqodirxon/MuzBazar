@@ -187,8 +187,8 @@ bot.command("chatid", (ctx) => {
 
 // Main menu buttons
 bot.hears("🛍️ Mahsulotlar", catalogHandler.showCategories);
+bot.hears("🛒 Savat", orderHandler.showCart);
 bot.hears("📦 Buyurtmalarim", orderHandler.showMyOrders);
-
 bot.hears("💰 Qarzdorlik", async (ctx) => {
   try {
     const { Order } = require("../server/models");
@@ -269,27 +269,57 @@ bot.action(/^qty_(.+)_(.+)$/, (ctx) => {
 
 // Cart actions
 bot.action("place_order", orderHandler.placeOrder);
-bot.action("clear_cart", (ctx) => {
-  const userId = ctx.user._id.toString();
-  orderHandler.userCarts.delete(userId);
-  ctx.editMessageText("🗑️ Savat tozalandi.", {
-    ...Keyboards.remove(),
-  });
-  ctx.answerCbQuery("Savat tozalandi");
+bot.action("clear_cart", async (ctx) => {
+  orderHandler.clearCart(ctx);
+
+  const clearKeyboard = {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          {
+            text: "🛍️ Mahsulotlarni ko'rish",
+            callback_data: "back_to_categories",
+          },
+        ],
+      ],
+    },
+  };
+
+  await ctx.editMessageText(
+    "🗑️ <b>Savat tozalandi.</b>\n\n🛍️ Xaridni davom ettirish uchun quyidagi tugmani bosing:",
+    {
+      parse_mode: "HTML",
+      ...clearKeyboard,
+    }
+  );
+
+  try {
+    await ctx.answerCbQuery("Savat tozalandi");
+  } catch (e) {
+    // Ignore callback query errors
+  }
 });
 
-bot.action("continue_shopping", (ctx) => {
-  ctx.editMessageText("🛍️ Xaridni davom eting!");
-  catalogHandler.showCategories(ctx);
+bot.action("continue_shopping", async (ctx) => {
+  await catalogHandler.showCategories(ctx);
+  try {
+    await ctx.answerCbQuery();
+  } catch (e) {
+    // Ignore callback query errors
+  }
 });
 
 // Order confirmation (seller)
 bot.action(/^confirm_order_(.+)$/, sellerOnly, sellerHandler.confirmOrder);
 
 // Back buttons
-bot.action("back_to_main", (ctx) => {
-  ctx.editMessageText("🏠 Bosh menu");
-  ctx.answerCbQuery();
+bot.action("back_to_main", async (ctx) => {
+  await ctx.editMessageText("🏠 Bosh menu");
+  try {
+    await ctx.answerCbQuery();
+  } catch (e) {
+    // Ignore callback query errors
+  }
 });
 
 bot.action("back_to_categories", catalogHandler.showCategories);

@@ -56,8 +56,8 @@ const body = `
                             <tr>
                                 <td>${item.product?.name}</td>
                                 <td>${item.quantity}</td>
-                                <td>${(item.price || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</td>
-                                <td>${((item.quantity || 0) * (item.price || 0)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</td>
+                                <td>${(item.pricePerUnit || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</td>
+                                <td>${(item.totalPrice || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</td>
                             </tr>
                             `).join('')}
                         </tbody>
@@ -72,8 +72,42 @@ const body = `
             </div>
             <div class="card-body">
                 <p><strong>Jami summa:</strong> ${(order.totalSum || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</p>
-                <p><strong>To'landi:</strong> ${(order.paid || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</p>
+                <p><strong>To'landi:</strong> ${(order.paidSum || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</p>
                 <p><strong>Qarzdorlik:</strong> ${(order.debt || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</p>
+                
+                ${payments && payments.length > 0 ? `
+                <hr class="my-3">
+                <h6 class="mb-3">To'lovlar tarixi:</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Sana</th>
+                                <th>Summa</th>
+                                <th>Kim qo'shdi</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${payments.map(payment => `
+                            <tr>
+                                <td>${moment(payment.createdAt).format('DD/MM/YYYY HH:mm')}</td>
+                                <td>${(payment.amount || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</td>
+                                <td>${payment.seller ? (payment.seller.firstName + ' ' + payment.seller.lastName) : 'System'}</td>
+                                <td class="text-end">
+                                    <form action="/admin/payments/${payment._id}/delete" method="POST" style="display: inline;" 
+                                          onsubmit="if(!confirm('Tolovni ochirasizmi?')) return false;">
+                                        <button type="submit" class="btn btn-sm btn-danger" title="Tolovni ochirish">
+                                            <i class="fas fa-minus"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                ` : ''}
             </div>
         </div>
     </div>
@@ -132,7 +166,7 @@ const body = `
                 <h5 class="modal-title">To'lov qayd qilish</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form action="/admin/orders/${order._id}/payment" method="POST">
+            <form action="/admin/orders/${order._id}/payment" method="POST" onsubmit="return handlePaymentSubmit(event)">
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="amount" class="form-label">To'lov miqdori (so'm)</label>
@@ -142,9 +176,32 @@ const body = `
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor qilish</button>
-                    <button type="submit" class="btn btn-primary">Qo'shish</button>
+                    <button type="submit" class="btn btn-primary" id="paymentSubmitBtn">
+                        <span class="spinner-border spinner-border-sm d-none me-2" id="paymentSpinner"></span>
+                        <span id="paymentBtnText">Qo'shish</span>
+                    </button>
                 </div>
             </form>
+            <script>
+            function handlePaymentSubmit(event) {
+                const btn = document.getElementById('paymentSubmitBtn');
+                const spinner = document.getElementById('paymentSpinner');
+                const btnText = document.getElementById('paymentBtnText');
+                
+                // Prevent double submission
+                if (btn.disabled) {
+                    event.preventDefault();
+                    return false;
+                }
+                
+                // Disable button and show loading
+                btn.disabled = true;
+                spinner.classList.remove('d-none');
+                btnText.textContent = 'Yuklanmoqda...';
+                
+                return true;
+            }
+            </script>
         </div>
     </div>
 </div>

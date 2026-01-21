@@ -48,6 +48,14 @@ const authMiddleware = async (ctx, next) => {
       }
     }
 
+    // Check if user is blocked/inactive
+    if (!user.isActive) {
+      return ctx.reply(
+        "❌ Sizning hisobingiz bloklangan. Ma'lumot uchun administratorga murojaat qiling.",
+        Markup.removeKeyboard()
+      );
+    }
+
     // Update last activity
     user.lastActivity = new Date();
     await user.save();

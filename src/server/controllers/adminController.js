@@ -681,7 +681,8 @@ const adminController = {
       }
 
       const oldStatus = order.status;
-      await Order.findByIdAndUpdate(req.params.id, { status });
+      order.status = status;
+      await order.save();
 
       // Send notification to client if status changed
       if (oldStatus !== status && order.client?.telegramId) {
@@ -697,19 +698,26 @@ const adminController = {
             "❌ Buyurtmangiz bekor qilindi. Batafsil ma'lumot uchun bog'laning.",
         };
 
-        const message = [
-          "📋 **Buyurtma yangilanishi**",
-          "",
-          `🆔 Buyurtma: **${order.orderNumber}**`,
-          `📊 Yangi holat: **${statusMessages[status] || status}**`,
-          `💰 Summa: **${(order.totalSum || 0).toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, " ")} so'm**`,
-          "",
-          "📞 Savollar uchun: @muzbazar_admin",
-        ].join("\\n");
+        const statusText = statusMessages[status] || status;
+        const totalSum = (order.totalSum || 0)
+          .toString()
+          .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+
+        const message = `📋 <b>Buyurtma yangilanishi</b>
+
+🆔 Buyurtma: <b>${order.orderNumber}</b>
+📊 Yangi holat: ${statusText}
+💰 Summa: <b>${totalSum} so'm</b>
+
+📞 Savollar uchun: @muzbazar_admin`;
 
         await notificationService.sendToUser(order.client.telegramId, message, {
-          parse_mode: "Markdown",
+          parse_mode: "HTML",
         });
+
+        console.log(
+          `📬 Status notification sent to user ${order.client.telegramId} for order ${order.orderNumber}`
+        );
       }
 
       res.redirect(`/admin/orders/${req.params.id}?success=status_updated`);
@@ -723,7 +731,7 @@ const adminController = {
   async addPayment(req, res) {
     try {
       const { amount } = req.body;
-      const order = await Order.findById(req.params.id);
+      const order = await Order.findById(req.params.id).populate("client");
 
       if (!order) return res.redirect("/admin/orders?error=not_found");
 
@@ -734,22 +742,16 @@ const adminController = {
         );
       }
 
-      // Add payment to order (using method on Order model if exists, or manual)
-      // Inspecting Order.js logic from memory/context: It likely has methods or just fields.
-      // I'll manually update to be safe and simple.
-
+      // Add payment to order
       order.paidSum = (order.paidSum || 0) + paymentAmount;
       order.debt = Math.max(0, order.totalSum - order.paidSum);
 
-      // If fully paid, maybe update status? Optional.
       await order.save();
 
       // Create Payment record
       const payment = new Payment({
         order: order._id,
-        client: order.client, // Assuming populated or just ID? order.client is Ref.
-        // If order.client is not populated, it is ID. If populated, it is object.
-        // Order.findById(id) without populate returns ID. Safe.
+        client: order.client._id,
         amount: paymentAmount,
         paymentMethod: "cash", // Default for Admin
         notes: "Admin panel orqali",
@@ -758,14 +760,53 @@ const adminController = {
       if (req.session.role === "seller") {
         payment.seller = req.session.sellerId;
       }
-      // If admin, seller field is left empty (null)
 
       await payment.save();
+
+      // Send payment notification to client
+      if (order.client?.telegramId) {
+        const NotificationService = require("../../utils/notificationService");
+        const notificationService = new NotificationService();
+
+        await notificationService.notifyPaymentReceived(
+          order._id,
+          paymentAmount
+        );
+      }
 
       res.redirect(`/admin/orders/${req.params.id}?success=payment_added`);
     } catch (error) {
       console.error("❌ Add payment error:", error);
       res.redirect(`/admin/orders/${req.params.id}?error=payment_failed`);
+    }
+  },
+
+  async deletePayment(req, res) {
+    try {
+      const { paymentId } = req.params;
+      const payment = await Payment.findById(paymentId);
+
+      if (!payment) {
+        return res.redirect("/admin/orders?error=payment_not_found");
+      }
+
+      const order = await Order.findById(payment.order);
+      if (!order) {
+        return res.redirect("/admin/orders?error=order_not_found");
+      }
+
+      // Update order payment info
+      order.paidSum = Math.max(0, (order.paidSum || 0) - payment.amount);
+      order.debt = order.totalSum - order.paidSum;
+      await order.save();
+
+      // Delete payment
+      await Payment.findByIdAndDelete(paymentId);
+
+      res.redirect(`/admin/orders/${order._id}?success=payment_deleted`);
+    } catch (error) {
+      console.error("❌ Delete payment error:", error);
+      res.redirect("/admin/orders?error=delete_failed");
     }
   },
 
@@ -863,10 +904,10 @@ const adminController = {
       user.isActive = !user.isActive;
       await user.save();
 
-      res.redirect(`/admin/users/${req.params.id}?success=status_updated`);
+      res.redirect("/admin/users?success=status_updated");
     } catch (error) {
       console.error("❌ Toggle user status error:", error);
-      res.redirect(`/admin/users/${req.params.id}?error=update_failed`);
+      res.redirect("/admin/users?error=update_failed");
     }
   },
 
@@ -881,7 +922,7 @@ const adminController = {
       }
 
       if (!user.telegramId) {
-        return res.redirect(`/admin/users/${req.params.id}?error=no_telegram`);
+        return res.redirect("/admin/users?error=no_telegram");
       }
 
       const NotificationService = require("../../utils/notificationService");
@@ -893,13 +934,13 @@ const adminController = {
       );
 
       if (result.success) {
-        res.redirect(`/admin/users/${req.params.id}?success=notification_sent`);
+        res.redirect("/admin/users?success=notification_sent");
       } else {
-        res.redirect(`/admin/users/${req.params.id}?error=send_failed`);
+        res.redirect("/admin/users?error=send_failed");
       }
     } catch (error) {
       console.error("❌ Send user notification error:", error);
-      res.redirect(`/admin/users/${req.params.id}?error=send_failed`);
+      res.redirect("/admin/users?error=send_failed");
     }
   },
 
@@ -1639,6 +1680,87 @@ const adminController = {
     } catch (error) {
       console.error("❌ Update settings error:", error);
       res.redirect("/admin/settings?error=update_failed");
+    }
+  },
+
+  async testDebtReminders(req, res) {
+    try {
+      const NotificationService = require("../../utils/notificationService");
+      const notificationService = new NotificationService();
+      const { Order } = require("../models");
+
+      // Find clients with debt
+      const debts = await Order.aggregate([
+        { $match: { debt: { $gt: 0 } } },
+        {
+          $group: {
+            _id: "$client",
+            totalDebt: { $sum: "$debt" },
+          },
+        },
+        {
+          $lookup: {
+            from: "users",
+            localField: "_id",
+            foreignField: "_id",
+            as: "client",
+          },
+        },
+        { $unwind: "$client" },
+      ]);
+
+      if (debts.length === 0) {
+        return res.redirect("/admin/settings?error=no_debts_found");
+      }
+
+      // Send reminders
+      let sentCount = 0;
+      for (const debt of debts) {
+        const result = await notificationService.sendDebtNotification(debt._id);
+        if (result.success) sentCount++;
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+
+      console.log(
+        `💰 Test debt reminders sent to ${sentCount}/${debts.length} clients`
+      );
+
+      res.redirect(
+        `/admin/settings?success=debt_reminders_sent&sent=${sentCount}&total=${debts.length}`
+      );
+    } catch (error) {
+      console.error("❌ Test debt reminders error:", error);
+      res.redirect("/admin/settings?error=test_failed");
+    }
+  },
+
+  async testGroupNotification(req, res) {
+    try {
+      const NotificationService = require("../../utils/notificationService");
+      const notificationService = new NotificationService();
+
+      const testMessage = [
+        "🧪 *Test Xabari*",
+        "",
+        `Vaqt: ${new Date().toLocaleString("uz-UZ")}`,
+        "",
+        "✅ Agar bu xabarni ko'rayotgan bo'lsangiz, guruh xabarlari ishlayapti\\!",
+      ].join("\n");
+
+      const result = await notificationService.sendToGroup(testMessage, {
+        parse_mode: "MarkdownV2",
+      });
+
+      if (result.success) {
+        res.redirect("/admin/settings?success=group_notification_sent");
+      } else {
+        res.redirect(
+          `/admin/settings?error=group_notification_failed&message=${encodeURIComponent(result.error)}`
+        );
+      }
+    } catch (error) {
+      console.error("❌ Test group notification error:", error);
+      res.redirect("/admin/settings?error=test_failed");
     }
   },
 

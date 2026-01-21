@@ -6,8 +6,24 @@ const Keyboards = require("../keyboards");
  */
 
 const orderHandler = {
-  // User's cart storage (in real app, use Redis or session)
-  userCarts: new Map(),
+  // Helper: Get cart from session
+  getCart(ctx) {
+    ctx.session = ctx.session || {};
+    ctx.session.cart = ctx.session.cart || [];
+    return ctx.session.cart;
+  },
+
+  // Helper: Save cart to session
+  saveCart(ctx, cart) {
+    ctx.session = ctx.session || {};
+    ctx.session.cart = cart;
+  },
+
+  // Helper: Clear cart from session
+  clearCart(ctx) {
+    ctx.session = ctx.session || {};
+    ctx.session.cart = [];
+  },
 
   // Helper: format sum with spaces (1 000 000)
   formatSum(amount) {
@@ -33,20 +49,78 @@ const orderHandler = {
       }
 
       if (product.stock < qty) {
-        const maxMsg = `❌ Kechirasiz, faqat ${product.stock} ta mavjud. Kamroq miqdor kiriting.`;
-        if (ctx.callbackQuery) {
-          return ctx.answerCbQuery(maxMsg);
+        await ctx
+          .answerCbQuery(`❌ Faqat ${product.stock} ta mavjud`)
+          .catch(() => {});
+
+        // Re-show product details with error message
+        const catalogHandler = require("./catalog");
+        const populatedProduct =
+          await Product.findById(productId).populate("category");
+
+        const details = [
+          `⚠️ <b>Omborda yetarli mahsulot yo'q!</b>`,
+          ``,
+          `📋 Siz buyurtma qildingiz: <b>${qty} ta</b>`,
+          `📦 Omborda mavjud: <b>${product.stock} ta</b>`,
+          ``,
+          `💡 Iltimos, kamroq miqdor tanlang yoki kiriting.`,
+          ``,
+          `━━━━━━━━━━━━━━━━━━━━`,
+          ``,
+          `🛍️ <b>${populatedProduct.name}</b>`,
+          `📁 Kategoriya: ${populatedProduct.category.name}`,
+          `💰 Narxi: ${orderHandler.formatSum(populatedProduct.sellPrice)} so'm`,
+          `📦 Mavjud: ${populatedProduct.stock} ${populatedProduct.type}`,
+          `\n${populatedProduct.description || ""}`,
+        ]
+          .filter(Boolean)
+          .join("\n");
+
+        const Keyboards = require("../keyboards");
+        const quantityKeyboard = Keyboards.quantityInline(productId);
+
+        // Delete previous message and send with image
+        try {
+          await ctx.deleteMessage();
+        } catch (delErr) {}
+
+        if (populatedProduct.image) {
+          const imageSource = catalogHandler.getImageSource(
+            populatedProduct.image
+          );
+          if (imageSource) {
+            try {
+              await ctx.replyWithPhoto(imageSource, {
+                caption: details + "\n\n<b>Miqdorni tanlang:</b>",
+                parse_mode: "HTML",
+                ...quantityKeyboard,
+              });
+            } catch (imgError) {
+              console.error("Image send error:", imgError.message);
+              await ctx.reply(`${details}\n\n<b>Miqdorni tanlang:</b>`, {
+                parse_mode: "HTML",
+                ...quantityKeyboard,
+              });
+            }
+          } else {
+            await ctx.reply(`${details}\n\n<b>Miqdorni tanlang:</b>`, {
+              parse_mode: "HTML",
+              ...quantityKeyboard,
+            });
+          }
         } else {
-          return ctx.reply(maxMsg);
+          await ctx.reply(`${details}\n\n<b>Miqdorni tanlang:</b>`, {
+            parse_mode: "HTML",
+            ...quantityKeyboard,
+          });
         }
+
+        return;
       }
 
-      // Get or create user cart
-      if (!orderHandler.userCarts.has(userId)) {
-        orderHandler.userCarts.set(userId, []);
-      }
-
-      const cart = orderHandler.userCarts.get(userId);
+      // Get cart from session
+      const cart = orderHandler.getCart(ctx);
 
       // Check if product already in cart
       const existingItem = cart.find((item) => item.productId === productId);
@@ -64,27 +138,63 @@ const orderHandler = {
         });
       }
 
+      // Save cart to session
+      orderHandler.saveCart(ctx, cart);
+
       const cartTotal = cart.reduce((sum, item) => sum + item.totalPrice, 0);
 
       const cartKeyboard = Keyboards.cartActions();
 
       // Send response based on context type
+      const cartMessage = `✅ <b>${product.name}</b> savatga qo'shildi!\n\n📦 Savat:\n${orderHandler.formatCart(cart)}\n\n💰 <b>Jami: ${orderHandler.formatSum(cartTotal)} so'm</b>`;
+
       if (ctx.callbackQuery) {
-        await ctx.editMessageText(
-          `✅ <b>${product.name}</b> savatga qo'shildi!\n\n📦 Savat:\n${orderHandler.formatCart(cart)}\n\n💰 <b>Jami: ${orderHandler.formatSum(cartTotal)} so'm</b>`,
-          { parse_mode: "HTML", ...cartKeyboard }
-        );
-        await ctx.answerCbQuery(`✅ ${product.name} savatga qo'shildi`);
+        // Answer callback query first to avoid timeout
+        try {
+          await ctx.answerCbQuery(`✅ ${product.name} savatga qo'shildi`);
+        } catch (cbErr) {
+          // Ignore callback query timeout errors
+          if (!cbErr.description?.includes("query is too old")) {
+            console.error("⚠️ Callback query error:", cbErr.message);
+          }
+        }
+
+        try {
+          // Try to edit message text
+          await ctx.editMessageText(cartMessage, {
+            parse_mode: "HTML",
+            ...cartKeyboard,
+          });
+        } catch (error) {
+          // If can't edit (e.g., message is photo), delete and send new message
+          if (
+            error.description &&
+            error.description.includes("no text in the message")
+          ) {
+            try {
+              await ctx.deleteMessage();
+            } catch (delErr) {
+              // Ignore delete errors
+            }
+            await ctx.reply(cartMessage, {
+              parse_mode: "HTML",
+              ...cartKeyboard,
+            });
+          } else {
+            throw error;
+          }
+        }
       } else {
-        await ctx.reply(
-          `✅ <b>${product.name}</b> savatga qo'shildi!\n\n📦 Savat:\n${orderHandler.formatCart(cart)}\n\n💰 <b>Jami: ${orderHandler.formatSum(cartTotal)} so'm</b>`,
-          { parse_mode: "HTML", ...cartKeyboard }
-        );
+        await ctx.reply(cartMessage, { parse_mode: "HTML", ...cartKeyboard });
       }
     } catch (error) {
       console.error("❌ Add to cart error:", error);
       if (ctx.callbackQuery) {
-        await ctx.answerCbQuery("❌ Savatga qo'shishda xatolik.");
+        try {
+          await ctx.answerCbQuery("❌ Savatga qo'shishda xatolik.");
+        } catch (cbErr) {
+          // Ignore callback query errors
+        }
       } else {
         await ctx.reply("❌ Savatga qo'shishda xatolik.");
       }
@@ -153,6 +263,71 @@ const orderHandler = {
       );
     }
 
+    // Check stock before proceeding
+    const product = await Product.findById(productId).populate("category");
+    if (!product) {
+      delete ctx.session.awaitingQuantity;
+      return ctx.reply("❌ Mahsulot topilmadi.");
+    }
+
+    if (product.stock < quantity) {
+      // Show error with product image and quantity buttons
+      const catalogHandler = require("./catalog");
+      const details = [
+        `⚠️ <b>Omborda yetarli mahsulot yo'q!</b>`,
+        ``,
+        `📋 Siz buyurtma qildingiz: <b>${quantity} ta</b>`,
+        `📦 Omborda mavjud: <b>${product.stock} ta</b>`,
+        ``,
+        `💡 Iltimos, kamroq miqdor tanlang yoki kiriting.`,
+        ``,
+        `━━━━━━━━━━━━━━━━━━━━`,
+        ``,
+        `🛍️ <b>${product.name}</b>`,
+        `📁 Kategoriya: ${product.category.name}`,
+        `💰 Narxi: ${orderHandler.formatSum(product.sellPrice)} so'm`,
+        `📦 Mavjud: ${product.stock} ${product.type}`,
+        `\n${product.description || ""}`,
+      ]
+        .filter(Boolean)
+        .join("\n");
+
+      const Keyboards = require("../keyboards");
+      const quantityKeyboard = Keyboards.quantityInline(productId);
+
+      if (product.image) {
+        const imageSource = catalogHandler.getImageSource(product.image);
+        if (imageSource) {
+          try {
+            await ctx.replyWithPhoto(imageSource, {
+              caption: details + "\n\n<b>Miqdorni tanlang:</b>",
+              parse_mode: "HTML",
+              ...quantityKeyboard,
+            });
+          } catch (imgError) {
+            console.error("Image send error:", imgError.message);
+            await ctx.reply(`${details}\n\n<b>Miqdorni tanlang:</b>`, {
+              parse_mode: "HTML",
+              ...quantityKeyboard,
+            });
+          }
+        } else {
+          await ctx.reply(`${details}\n\n<b>Miqdorni tanlang:</b>`, {
+            parse_mode: "HTML",
+            ...quantityKeyboard,
+          });
+        }
+      } else {
+        await ctx.reply(`${details}\n\n<b>Miqdorni tanlang:</b>`, {
+          parse_mode: "HTML",
+          ...quantityKeyboard,
+        });
+      }
+
+      delete ctx.session.awaitingQuantity;
+      return;
+    }
+
     delete ctx.session.awaitingQuantity;
 
     // Add to cart with custom quantity
@@ -180,34 +355,49 @@ const orderHandler = {
 
   // Show cart
   async showCart(ctx) {
-    const userId = ctx.user._id.toString();
-    const cart = orderHandler.userCarts.get(userId) || [];
+    const cart = orderHandler.getCart(ctx);
 
     if (cart.length === 0) {
-      return ctx.reply("📭 Savatingiz bo'sh.");
+      const Keyboards = require("../keyboards");
+      const emptyCartKeyboard = {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: "🛍️ Mahsulotlarni ko'rish",
+                callback_data: "back_to_categories",
+              },
+            ],
+          ],
+        },
+      };
+
+      return ctx.reply(
+        "📝 <b>Savatingiz bo'sh.</b>\n\n🛍️ Mahsulotlarni ko'rish uchun quyidagi tugmani bosing:",
+        { parse_mode: "HTML", ...emptyCartKeyboard }
+      );
     }
 
     const cartTotal = cart.reduce((sum, item) => sum + item.totalPrice, 0);
 
     const cartKeyboard = Keyboards.cartActions();
-    await ctx.reply(
-      `🛒 <b>Savatingiz:</b>
 
-${orderHandler.formatCart(cart)}
+    const message = `🛍️ <b>Savatingiz:</b>\n\n${orderHandler.formatCart(cart)}\n\n💰 <b>Jami: ${orderHandler.formatSum(cartTotal)} so'm</b>`;
 
-💰 <b>Jami: ${orderHandler.formatSum(cartTotal)} so'm</b>`,
-      { parse_mode: "HTML", ...cartKeyboard }
-    );
+    await ctx.reply(message, { parse_mode: "HTML", ...cartKeyboard });
   },
 
   // Place order
   async placeOrder(ctx) {
     try {
-      const userId = ctx.user._id.toString();
-      const cart = orderHandler.userCarts.get(userId) || [];
+      const cart = orderHandler.getCart(ctx);
 
       if (cart.length === 0) {
-        return ctx.answerCbQuery("❌ Savatingiz bo'sh.");
+        try {
+          return await ctx.answerCbQuery("❌ Savatingiz bo'sh.");
+        } catch (e) {
+          return;
+        }
       }
 
       // Create order items
@@ -218,9 +408,13 @@ ${orderHandler.formatCart(cart)}
         const product = await Product.findById(item.productId);
 
         if (!product || product.stock < item.quantity) {
-          return ctx.answerCbQuery(
-            `❌ ${item.name} yetarli miqdorda mavjud emas.`
-          );
+          try {
+            return await ctx.answerCbQuery(
+              `❌ ${item.name} yetarli miqdorda mavjud emas.`
+            );
+          } catch (e) {
+            return;
+          }
         }
 
         orderItems.push({
@@ -237,11 +431,36 @@ ${orderHandler.formatCart(cart)}
         totalSum += item.quantity * product.sellPrice;
       }
 
-      // Create order
-      const orderNumber = `ORD-${Date.now().toString().slice(-6)}-${Math.floor(
-        Math.random() * 1000
-      )}`;
+      // Generate unique order number with retry logic and timestamp
+      let orderNumber;
+      let attempts = 0;
+      const maxAttempts = 10;
 
+      while (attempts < maxAttempts) {
+        const now = new Date();
+        const dateStr = now.toISOString().slice(0, 10).replace(/-/g, "");
+
+        // Use timestamp seconds + random for uniqueness
+        const timestamp = Math.floor(now.getTime() / 1000) % 10000; // Last 4 digits of timestamp
+        const randomSuffix = Math.floor(Math.random() * 100);
+        orderNumber = `MB${dateStr}${String(timestamp).padStart(4, "0")}${String(randomSuffix).padStart(2, "0")}`;
+
+        // Check if order number already exists
+        const existing = await Order.findOne({ orderNumber });
+        if (!existing) {
+          break;
+        }
+
+        attempts++;
+        // Small delay to ensure different timestamp on retry
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+
+      if (attempts >= maxAttempts) {
+        throw new Error("Could not generate unique order number");
+      }
+
+      // Create order
       const order = new Order({
         orderNumber,
         client: ctx.user._id,
@@ -253,7 +472,7 @@ ${orderHandler.formatCart(cart)}
       await order.save();
 
       // Clear cart
-      orderHandler.userCarts.delete(userId);
+      orderHandler.clearCart(ctx);
 
       await ctx.editMessageText(
         `✅ <b>Buyurtma muvaffaqiyatli yaratildi!</b>
@@ -268,51 +487,73 @@ Buyurtmangiz tez orada ko'rib chiqiladi.`,
       // Notify sellers about new order
       await orderHandler.notifySellersAboutNewOrder(ctx, order);
 
-      await ctx.answerCbQuery("✅ Buyurtma yaratildi!");
+      try {
+        await ctx.answerCbQuery("✅ Buyurtma yaratildi!");
+      } catch (e) {
+        // Ignore callback query errors
+      }
     } catch (error) {
       console.error("❌ Place order error:", error);
-      await ctx.answerCbQuery("❌ Buyurtma yaratishda xatolik.");
+      try {
+        await ctx.answerCbQuery("❌ Buyurtma yaratishda xatolik.");
+      } catch (e) {
+        // Ignore callback query errors
+      }
     }
   },
 
   // Show user's orders
   async showMyOrders(ctx) {
     try {
+      console.log(
+        `📦 Loading orders for user: ${ctx.user?._id || "UNDEFINED"}`
+      );
+
+      if (!ctx.user || !ctx.user._id) {
+        console.error("❌ User not found in context");
+        return ctx.reply(
+          "❌ Foydalanuvchi ma'lumotlari topilmadi. /start buyrug'ini qayta kiriting."
+        );
+      }
+
       const orders = await Order.find({ client: ctx.user._id })
         .sort({ createdAt: -1 })
         .limit(10)
         .populate("items.product");
 
+      console.log(`📦 Found ${orders.length} orders for user ${ctx.user._id}`);
+
       if (orders.length === 0) {
-        return ctx.reply("📭 Sizda hali buyurtmalar yo'q.");
+        return ctx.reply("📭 Sizda hali buyurtmalar yo'q.", {
+          reply_markup: Keyboards.mainMenu(),
+        });
       }
 
-      let message = `📦 <b>Buyurtmalaringiz:</b>
-
-`;
+      let message = `📦 <b>Buyurtmalaringiz:</b>\n\n`;
 
       for (const order of orders) {
         const statusEmoji = orderHandler.getStatusEmoji(order.status);
         const statusText = orderHandler.getStatusText(order.status);
-        message += `${statusEmoji} <b>${order.orderNumber}</b>
-`;
-        message += `📊 Holat: <b>${statusText}</b>
-`;
-        message += `📅 ${order.createdAt.toLocaleDateString("uz")}
-`;
+        message += `${statusEmoji} <b>${order.orderNumber}</b>\n`;
+        message += `📊 Holat: <b>${statusText}</b>\n`;
+        message += `📅 ${order.createdAt.toLocaleDateString("uz")}\n`;
         message += `💰 ${orderHandler.formatSum(order.totalSum)} so'm`;
         if (order.debt > 0) {
           message += ` (qarz: ${orderHandler.formatSum(order.debt)} so'm)`;
         }
-        message += `
-
-`;
+        message += `\n\n`;
       }
 
-      await ctx.reply(message, { parse_mode: "HTML" });
+      await ctx.reply(message, {
+        parse_mode: "HTML",
+        reply_markup: Keyboards.mainMenu(),
+      });
     } catch (error) {
       console.error("❌ Show orders error:", error);
-      await ctx.reply("❌ Buyurtmalarni yuklashda xatolik.");
+      console.error("❌ Error stack:", error.stack);
+      await ctx.reply("❌ Buyurtmalarni yuklashda xatolik.", {
+        reply_markup: Keyboards.mainMenu(),
+      });
     }
   },
 
@@ -324,7 +565,7 @@ Buyurtmangiz tez orada ko'rib chiqiladi.`,
           `${index + 1}. <b>${item.name}</b>
    ${item.quantity} x ${orderHandler.formatSum(item.price)} = ${orderHandler.formatSum(item.totalPrice)} so'm`
       )
-      .join("\\n\\n");
+      .join("\n\n");
   },
 
   // Helper: Get status emoji
@@ -355,12 +596,24 @@ Buyurtmangiz tez orada ko'rib chiqiladi.`,
       const NotificationService = require("../../utils/notificationService");
       const notificationService = new NotificationService();
 
-      await notificationService.notifyNewOrder(order);
       console.log(
-        `📋 New order ${order.orderNumber} notification sent to sellers group`
+        `📋 Attempting to send order ${order.orderNumber} notification...`
       );
+      const result = await notificationService.notifyNewOrder(order);
+
+      if (result && result.success) {
+        console.log(
+          `✅ Order ${order.orderNumber} notification sent to sellers group`
+        );
+      } else {
+        console.error(
+          `❌ Notification failed for order ${order.orderNumber}:`,
+          result
+        );
+      }
     } catch (error) {
-      console.error("❌ Failed to notify sellers:", error);
+      console.error("❌ Failed to notify sellers:", error.message);
+      console.error("Full error:", error);
     }
   },
 };

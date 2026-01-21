@@ -8,8 +8,9 @@ class Keyboards {
   // Main menu for clients
   static mainMenu() {
     return Markup.keyboard([
-      ["🛍️ Mahsulotlar", "📦 Buyurtmalarim"],
-      ["💰 Qarzdorlik", "📞 Aloqa"],
+      ["🛍️ Mahsulotlar", "🛒 Savat"],
+      ["📦 Buyurtmalarim", "💰 Qarzdorlik"],
+      ["📞 Aloqa"],
     ]).resize();
   }
 

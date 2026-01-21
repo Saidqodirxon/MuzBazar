@@ -58,13 +58,38 @@ const body = `
     </div>
     
     <div class="col-lg-4">
-        <div class="card">
+        <div class="card mb-3">
             <div class="card-header">
                 <h5><i class="fas fa-info-circle me-2"></i>Ma'lumot</h5>
             </div>
             <div class="card-body">
                 <p class="text-muted">Bu sahifada asosiy bot sozlamalarini o'zgartirishingiz mumkin.</p>
                 <p class="text-muted"><i class="fas fa-lightbulb me-1"></i>Sozlamalar saqlanganidan keyin bot avtomatik ravishda yangi qiymatlarni oladi.</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-vial me-2"></i>Testlar</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/admin/settings/test-group-notification" class="mb-3">
+                    <button type="submit" class="btn btn-info w-100">
+                        <i class="fas fa-bullhorn me-2"></i>Guruh xabarini test qilish
+                    </button>
+                    <small class="form-text text-muted d-block mt-2">
+                        Telegram guruhga test xabari yuboriladi
+                    </small>
+                </form>
+                
+                <form method="POST" action="/admin/settings/test-debt-reminders" onsubmit="return confirm('Barcha qarzdorlarga eslatma yuboriladi. Davom ettirasizmi?');">
+                    <button type="submit" class="btn btn-warning w-100">
+                        <i class="fas fa-paper-plane me-2"></i>Qarz eslatmalarini test qilish
+                    </button>
+                    <small class="form-text text-muted d-block mt-2">
+                        Barcha qarzdor mijozlarga eslatma yuboriladi
+                    </small>
+                </form>
             </div>
         </div>
     </div>

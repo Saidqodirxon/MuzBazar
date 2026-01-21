@@ -36,13 +36,17 @@ if (user.orders && user.orders.length > 0) {
             case 'cancelled': statusClass = 'danger'; statusText = 'Bekor qilingan'; break;
         }
         const orderSum = (order.totalSum || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+        const orderPaid = (order.paidSum || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+        const orderDebt = (order.debt || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
         const orderDate = moment(order.createdAt).format('DD/MM/YYYY');
         rows += '<tr><td><a href="/admin/orders/' + order._id + '">#' + order.orderNumber + '</a></td>';
         rows += '<td>' + orderSum + " so'm</td>";
+        rows += '<td>' + orderPaid + " so'm</td>";
+        rows += '<td class="' + (order.debt > 0 ? 'text-danger fw-bold' : 'text-success') + '">' + orderDebt + " so'm</td>";
         rows += '<td><span class="badge bg-' + statusClass + '">' + statusText + '</span></td>';
         rows += '<td>' + orderDate + '</td></tr>';
     }
-    ordersTableHtml = '<div class="table-responsive"><table class="table table-sm"><thead><tr><th>Buyurtma №</th><th>Summa</th><th>Status</th><th>Sana</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+    ordersTableHtml = '<div class="table-responsive"><table class="table table-sm"><thead><tr><th>Buyurtma №</th><th>Jami summa</th><th>To\'landi</th><th>Qarz</th><th>Status</th><th>Sana</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
 }
 -%>
 <%- include(layout, { body: `
@@ -76,7 +80,9 @@ if (user.orders && user.orders.length > 0) {
                 <p><strong>Telefon:</strong> ${userPhone}</p>
                 <p><strong>Qayd qilingan:</strong> ${userCreatedAt}</p>
                 <p><strong>Buyurtmalar soni:</strong> ${userOrderCount}</p>
-                <p><strong>Umumiy summa:</strong> ${userTotalSpent} som</p>
+                <p><strong>Umumiy summa:</strong> ${userTotalSpent} so'm</p>
+                <p><strong>To'landi:</strong> ${(stats.totalPaid || 0).toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, ' ')} so'm</p>
+                <p><strong>Qarzdorlik:</strong> ${(stats.totalDebt || 0).toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, ' ')} so'm</p>
                 <p><strong>Status:</strong> 
                     <span class="badge bg-${userStatusBadge}">
                         ${userStatusText}
@@ -95,18 +101,6 @@ if (user.orders && user.orders.length > 0) {
                 <h5>Boshqaruv</h5>
             </div>
             <div class="card-body">
-                <form method="POST" action="/admin/users/${user._id}/role" class="mb-3">
-                    <label class="form-label"><strong>Rol ozgartirish:</strong></label>
-                    <select name="role" class="form-select mb-2">
-                        <option value="client" ${roleClientSelected}>Klient</option>
-                        <option value="seller" ${roleSellerSelected}>Sotuvchi</option>
-                        <option value="admin" ${roleAdminSelected}>Admin</option>
-                    </select>
-                    <button type="submit" class="btn btn-primary btn-sm w-100">
-                        <i class="fas fa-save me-2"></i>Rolni ozgartirish
-                    </button>
-                </form>
-
                 <form method="POST" action="/admin/users/${user._id}/toggle-status" class="mb-3">
                     <button type="submit" class="btn btn-${toggleBtnClass} btn-sm w-100">
                         <i class="fas fa-${toggleIcon} me-2"></i>

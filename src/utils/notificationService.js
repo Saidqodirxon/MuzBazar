@@ -11,6 +11,14 @@ class NotificationService {
   }
 
   /**
+   * Escape text for MarkdownV2
+   */
+  escapeMarkdownV2(text) {
+    if (!text) return "";
+    return String(text).replace(/[_*[\]()~`>#+\-=|{}.!\\]/g, "\\$&");
+  }
+
+  /**
    * Send notification to Telegram group
    */
   async sendToGroup(message, options = {}) {
@@ -96,13 +104,27 @@ class NotificationService {
         throw new Error("No debt found");
       }
 
-      const totalDebt = orders.reduce((sum, order) => sum + order.debt, 0);
+      const totalDebt = orders.reduce(
+        (sum, order) => sum + (order.debt || 0),
+        0
+      );
 
-      // Build detailed message
-      let detailedMessage = `💰 **Qarzdorlik eslatmasi**\n\n`;
+      // Get debt notification message from settings
+      const { Settings } = require("../server/models");
+      const debtMessageTemplate = await Settings.get(
+        "debt_notification_text",
+        "Hurmatli mijoz! Sizda {summa} so'm qarzdorlik mavjud. Iltimos, to'lovni amalga oshiring. MUZ BAZAR"
+      );
+
+      // Build detailed message using HTML
+      const totalDebtFormatted = totalDebt
+        .toString()
+        .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+
+      let detailedMessage = `💰 <b>Qarzdorlik eslatmasi</b>\n\n`;
       detailedMessage += `Hurmatli ${user.firstName}!\n\n`;
-      detailedMessage += `Sizning umumiy qarzdorligingiz: **${totalDebt.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm**\n\n`;
-      detailedMessage += `📋 **Buyurtmalar:**\n`;
+      detailedMessage += `Sizning umumiy qarzdorligingiz: <b>${totalDebtFormatted} so'm</b>\n\n`;
+      detailedMessage += `📋 <b>Buyurtmalar:</b>\n`;
 
       orders.forEach((order) => {
         const statusLabels = {
@@ -112,7 +134,17 @@ class NotificationService {
           cancelled: "Bekor qilingan",
         };
 
-        detailedMessage += `\n🆔 **${order.orderNumber}**\n`;
+        const totalSum = (order.totalSum || 0)
+          .toString()
+          .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+        const paidSum = (order.paidSum || 0)
+          .toString()
+          .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+        const debtSum = (order.debt || 0)
+          .toString()
+          .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+
+        detailedMessage += `\n🆔 <b>${order.orderNumber}</b>\n`;
         detailedMessage += `📅 ${new Date(order.createdAt).toLocaleDateString("uz-UZ")}\n`;
         detailedMessage += `📊 Status: ${statusLabels[order.status] || order.status}\n`;
         detailedMessage += `Mahsulotlar:\n`;
@@ -121,9 +153,9 @@ class NotificationService {
           detailedMessage += `  • ${item.product?.name || "Mahsulot"} x${item.quantity}\n`;
         });
 
-        detailedMessage += `💰 Jami: ${order.totalSum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm\n`;
-        detailedMessage += `✅ To'landi: ${order.paid.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm\n`;
-        detailedMessage += `🔴 Qarz: ${order.debt.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm\n`;
+        detailedMessage += `💰 Jami: ${totalSum} so'm\n`;
+        detailedMessage += `✅ To'landi: ${paidSum} so'm\n`;
+        detailedMessage += `🔴 Qarz: ${debtSum} so'm\n`;
       });
 
       detailedMessage += `\n📞 To'lov uchun: @muzbazar_admin`;
@@ -131,7 +163,7 @@ class NotificationService {
       const finalMessage = customMessage || detailedMessage;
 
       return await this.sendToUser(user.telegramId, finalMessage, {
-        parse_mode: "Markdown",
+        parse_mode: "HTML",
       });
     } catch (error) {
       console.error("❌ Debt notification error:", error);
@@ -164,41 +196,79 @@ class NotificationService {
    */
   async notifyNewOrder(order) {
     try {
+      console.log(`📤 Starting notifyNewOrder for order ${order._id}...`);
+
+      if (!this.groupId) {
+        console.error("❌ NOTIFICATION_GROUP_ID is not set!");
+        return { success: false, error: "Group ID not configured" };
+      }
+
+      console.log(`📍 Group ID: ${this.groupId}`);
+
       // Populate order data
       const populatedOrder = await Order.findById(order._id)
         .populate("client", "firstName lastName username telegramId")
         .populate("items.product", "name");
 
+      console.log(
+        `📦 Order populated, client: ${populatedOrder.client?.firstName}`
+      );
+
       const client = populatedOrder.client;
 
-      // Build message
-      const message = [
-        "🆕 **Yangi buyurtma!**",
-        "",
-        `🆔 Buyurtma: **${populatedOrder.orderNumber}**`,
-        `👤 Klient: ${client.firstName} ${client.lastName}`,
-        `📱 Telegram: @${client.username || client.telegramId}`,
-        "",
-        "📦 **Mahsulotlar:**",
-        ...populatedOrder.items.map(
-          (item) =>
-            `  • ${item.product.name} x${item.quantity} - ${(item.totalPrice || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm`
-        ),
-        "",
-        `💰 **Jami summa: ${(populatedOrder.totalSum || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm**`,
-        `📅 Vaqt: ${new Date().toLocaleString("uz-UZ")}`,
-        "",
-        "✅ Tasdiqlash uchun admin panelga kiring:",
-        `http://localhost:${process.env.PORT || 3000}/admin/orders/${populatedOrder._id}`,
-      ].join("\n");
+      // Build message using HTML format (easier than MarkdownV2)
+      const clientName =
+        `${client.firstName || ""} ${client.lastName || ""}`.trim();
+      const telegramInfo = client.username
+        ? `@${client.username}`
+        : client.telegramId;
+      const totalSum = (populatedOrder.totalSum || 0)
+        .toString()
+        .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+      const timeStr = new Date().toLocaleString("uz-UZ");
+      const siteUrl =
+        process.env.SITE_URL || `http://localhost:${process.env.PORT || 3000}`;
+      const orderUrl = `${siteUrl}/admin/orders/${populatedOrder._id}`;
 
-      // Send to group
-      const result = await this.sendToGroup(message);
+      const productLines = populatedOrder.items
+        .map((item) => {
+          const price = (item.totalPrice || 0)
+            .toString()
+            .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+          return `  • ${item.product.name} x${item.quantity} - ${price} so'm`;
+        })
+        .join("\n");
 
-      console.log(`📋 New order notification sent to group`);
+      const message = `🆕 <b>Yangi buyurtma!</b>
+
+🆔 Buyurtma: <b>${populatedOrder.orderNumber}</b>
+👤 Klient: ${clientName}
+📱 Telegram: ${telegramInfo}
+
+📦 <b>Mahsulotlar:</b>
+${productLines}
+
+💰 <b>Jami summa: ${totalSum} so'm</b>
+📅 Vaqt: ${timeStr}
+
+✅ Tasdiqlash uchun admin panelga kiring:
+${orderUrl}`;
+
+      console.log(`📝 Message prepared, length: ${message.length} chars`);
+
+      // Send to group using HTML format
+      const result = await this.sendToGroup(message, {
+        parse_mode: "HTML",
+      });
+
+      console.log(`✅ Notification sent, result:`, result);
       return result;
     } catch (error) {
-      console.error("❌ New order notification error:", error);
+      console.error("❌ New order notification error:", error.message);
+      console.error("❌ Full error:", error);
+      if (error.response) {
+        console.error("❌ Telegram response:", error.response.description);
+      }
       return { success: false, error: error.message };
     }
   }

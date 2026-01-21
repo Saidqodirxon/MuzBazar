@@ -22,6 +22,7 @@ router.get("/orders/export", adminController.exportOrders);
 router.get("/orders/:id", adminController.orderDetails);
 router.post("/orders/:id/status", adminController.updateOrderStatus);
 router.post("/orders/:id/payment", adminController.addPayment);
+router.post("/payments/:paymentId/delete", adminController.deletePayment);
 
 // Admin Only Routes
 router.use(adminOnly);
@@ -79,6 +80,11 @@ router.get("/reports/export", adminController.exportReports);
 // Settings
 router.get("/settings", adminController.settings);
 router.post("/settings", adminController.updateSettings);
+router.post("/settings/test-debt-reminders", adminController.testDebtReminders);
+router.post(
+  "/settings/test-group-notification",
+  adminController.testGroupNotification
+);
 
 // Profile
 router.get("/profile", adminController.profile);
