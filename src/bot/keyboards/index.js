@@ -10,7 +10,7 @@ class Keyboards {
     return Markup.keyboard([
       ["🛍️ Mahsulotlar", "🛒 Savat"],
       ["📦 Buyurtmalarim", "💰 Qarzdorlik"],
-      ["📞 Aloqa"],
+      ["ℹ️ Biz haqimizda", "📞 Aloqa"],
     ]).resize();
   }
 

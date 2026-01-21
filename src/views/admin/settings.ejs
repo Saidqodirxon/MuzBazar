@@ -30,6 +30,20 @@ const body = `
                             </div>`;
                         }
                         
+                        if (setting.type === 'datetime') {
+                            const dateValue = value ? new Date(value).toISOString().slice(0, 16) : '';
+                            const displayDate = value ? new Date(value).toLocaleString('uz-UZ', { 
+                                dateStyle: 'short', 
+                                timeStyle: 'short' 
+                            }) : 'Hali yuborilmagan';
+                            return `
+                            <div class="mb-3">
+                                <label for="${setting.key}" class="form-label"><strong>${setting.label || setting.key}</strong></label>
+                                <input type="text" class="form-control" value="${displayDate}" readonly disabled>
+                                <small class="form-text text-muted">${setting.description || ''}</small>
+                            </div>`;
+                        }
+                        
                         return `
                         <div class="mb-3">
                             <label for="${setting.key}" class="form-label"><strong>${setting.label || setting.key}</strong></label>

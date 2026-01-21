@@ -145,16 +145,26 @@ bot.start(async (ctx) => {
 // Help command
 bot.help(async (ctx) => {
   try {
-    const { Settings } = require("../server/models");
-    const aboutText = await Settings.get(
-      "about_text",
-      "🤖 **MUZ BAZAR BOT YORDAMCHI**\n\n📱 **Asosiy buyruqlar:**\n• /start - Botni qayta ishga tushirish\n• /help - Yordam\n\n🛍️ **Klientlar uchun:**\n• Mahsulotlarni ko'rish\n• Buyurtma berish\n• Buyurtma holati\n• Qarzdorlik ma'lumotlari"
-    );
-
-    ctx.reply(aboutText, { parse_mode: "Markdown" });
+    ctx.reply("🤖 **MUZ BAZAR BOT YORDAMCHI**\n\n📱 **Asosiy buyruqlar:**\n• /start - Botni qayta ishga tushirish\n• /help - Yordam\n\n🛍️ **Klientlar uchun:**\n• Mahsulotlarni ko'rish\n• Buyurtma berish\n• Buyurtma holati\n• Qarzdorlik ma'lumotlari", { parse_mode: "Markdown" });
   } catch (error) {
     console.error("❌ Help error:", error);
     ctx.reply("🤖 Yordam uchun /start bosing", { parse_mode: "Markdown" });
+  }
+});
+
+// Biz haqimizda tugmasi
+bot.hears("ℹ️ Biz haqimizda", async (ctx) => {
+  try {
+    const { Settings } = require("../server/models");
+    const aboutText = await Settings.get(
+      "about_text",
+      "🏢 MUZ BAZAR\n\nBiz 2020 yildan beri mijozlarimizga sifatli muzqaymoq va muzlatilgan mahsulotlarni yetkazib beramiz.\n\n✅ Sifatli mahsulotlar\n✅ Tez yetkazib berish\n✅ Qulay narxlar"
+    );
+
+    ctx.reply(aboutText);
+  } catch (error) {
+    console.error("❌ About error:", error);
+    ctx.reply("ℹ️ Ma'lumot olishda xatolik yuz berdi.");
   }
 });
 

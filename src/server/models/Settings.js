@@ -28,7 +28,7 @@ const settingsSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["string", "number", "boolean", "json", "textarea", "text"],
+      enum: ["string", "number", "boolean", "json", "textarea", "text", "datetime"],
       default: "text",
     },
     isEditable: {
@@ -162,6 +162,15 @@ settingsSchema.statics.initDefaults = async function () {
       defaultValue: "10:00",
       description: "Eslatma qaysi vaqtda yuboriladi (masalan: 10:00)",
       type: "text",
+    },
+    {
+      key: "last_debt_reminder_date",
+      label: "Oxirgi eslatma yuborilgan sana",
+      value: null,
+      defaultValue: null,
+      description: "Avtomatik qarzdorlik eslatmasi oxirgi marta yuborilgan vaqt (faqat o'qish uchun)",
+      type: "datetime",
+      isEditable: true,
     },
   ];
 
