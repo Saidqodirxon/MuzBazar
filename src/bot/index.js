@@ -145,7 +145,10 @@ bot.start(async (ctx) => {
 // Help command
 bot.help(async (ctx) => {
   try {
-    ctx.reply("🤖 **MUZ BAZAR BOT YORDAMCHI**\n\n📱 **Asosiy buyruqlar:**\n• /start - Botni qayta ishga tushirish\n• /help - Yordam\n\n🛍️ **Klientlar uchun:**\n• Mahsulotlarni ko'rish\n• Buyurtma berish\n• Buyurtma holati\n• Qarzdorlik ma'lumotlari", { parse_mode: "Markdown" });
+    ctx.reply(
+      "🤖 **MUZ BAZAR BOT YORDAMCHI**\n\n📱 **Asosiy buyruqlar:**\n• /start - Botni qayta ishga tushirish\n• /help - Yordam\n\n🛍️ **Klientlar uchun:**\n• Mahsulotlarni ko'rish\n• Buyurtma berish\n• Buyurtma holati\n• Qarzdorlik ma'lumotlari",
+      { parse_mode: "Markdown" }
+    );
   } catch (error) {
     console.error("❌ Help error:", error);
     ctx.reply("🤖 Yordam uchun /start bosing", { parse_mode: "Markdown" });

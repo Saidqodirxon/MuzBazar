@@ -28,7 +28,15 @@ const settingsSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["string", "number", "boolean", "json", "textarea", "text", "datetime"],
+      enum: [
+        "string",
+        "number",
+        "boolean",
+        "json",
+        "textarea",
+        "text",
+        "datetime",
+      ],
       default: "text",
     },
     isEditable: {
@@ -168,7 +176,8 @@ settingsSchema.statics.initDefaults = async function () {
       label: "Oxirgi eslatma yuborilgan sana",
       value: null,
       defaultValue: null,
-      description: "Avtomatik qarzdorlik eslatmasi oxirgi marta yuborilgan vaqt (faqat o'qish uchun)",
+      description:
+        "Avtomatik qarzdorlik eslatmasi oxirgi marta yuborilgan vaqt (faqat o'qish uchun)",
       type: "datetime",
       isEditable: true,
     },
