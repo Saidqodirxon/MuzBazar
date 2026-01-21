@@ -400,6 +400,22 @@ const orderHandler = {
         }
       }
 
+      // Check minimum order amount
+      const { Settings } = require("../../server/models");
+      const minOrderAmount = await Settings.get("min_order_amount", 0);
+      const cartTotal = cart.reduce((sum, item) => sum + item.totalPrice, 0);
+
+      if (minOrderAmount > 0 && cartTotal < minOrderAmount) {
+        try {
+          return await ctx.answerCbQuery(
+            `❌ Minimal buyurtma summasi: ${orderHandler.formatSum(minOrderAmount)} so'm`,
+            { show_alert: true }
+          );
+        } catch (e) {
+          return;
+        }
+      }
+
       // Create order items
       const orderItems = [];
       let totalSum = 0;

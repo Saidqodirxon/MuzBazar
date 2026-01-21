@@ -223,12 +223,14 @@ bot.hears("💰 Qarzdorlik", async (ctx) => {
 bot.hears("📞 Aloqa", async (ctx) => {
   try {
     const { Settings } = require("../server/models");
-    const contactText = await Settings.get(
-      "contact_text",
-      "📞 Biz bilan bog'laning:\n\n🏢 MUZ BAZAR\n📱 Telefon: +998 90 123 45 67\n📍 Manzil: Toshkent shahar\n⏰ Ish vaqti: 08:00 - 20:00"
-    );
+    const shopName = await Settings.get("shop_name", "MUZ BAZAR");
+    const shopPhone = await Settings.get("shop_phone", "+998 90 123 45 67");
+    const shopAddress = await Settings.get("shop_address", "Toshkent shahar");
+    const workingHours = await Settings.get("working_hours", "08:00 - 20:00");
 
-    ctx.reply(contactText);
+    const contactText = `📞 *Biz bilan bog'laning:*\n\n🏢 ${shopName}\n📱 Telefon: ${shopPhone}\n📍 Manzil: ${shopAddress}\n⏰ Ish vaqti: ${workingHours}`;
+
+    ctx.reply(contactText, { parse_mode: "Markdown" });
   } catch (error) {
     console.error("❌ Contact error:", error);
     ctx.reply("📞 Aloqa uchun: +998 90 123 45 67");

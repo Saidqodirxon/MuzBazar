@@ -121,6 +121,14 @@ class NotificationService {
         .toString()
         .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 
+      // Use template message if customMessage not provided
+      if (!customMessage && debtMessageTemplate.includes("{summa}")) {
+        customMessage = debtMessageTemplate.replace(
+          "{summa}",
+          totalDebtFormatted
+        );
+      }
+
       let detailedMessage = `💰 <b>Qarzdorlik eslatmasi</b>\n\n`;
       detailedMessage += `Hurmatli ${user.firstName}!\n\n`;
       detailedMessage += `Sizning umumiy qarzdorligingiz: <b>${totalDebtFormatted} so'm</b>\n\n`;

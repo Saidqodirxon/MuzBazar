@@ -688,17 +688,25 @@ const adminController = {
       if (oldStatus !== status && order.client?.telegramId) {
         const NotificationService = require("../../utils/notificationService");
         const notificationService = new NotificationService();
+        const { Settings } = require("../models");
 
-        const statusMessages = {
-          pending: "⏳ Sizning buyurtmangiz qabul qilindi va kutilmoqda.",
-          confirmed:
-            "✅ Buyurtmangiz tasdiqlandi! Tez orada yetkazib beriladi.",
-          delivered: "🎉 Buyurtmangiz yetkazildi! Xaridingiz uchun rahmat!",
-          cancelled:
-            "❌ Buyurtmangiz bekor qilindi. Batafsil ma'lumot uchun bog'laning.",
-        };
+        // Get custom message for confirmed status
+        let statusText = "";
+        if (status === "confirmed") {
+          statusText = await Settings.get(
+            "order_confirmed_message",
+            "✅ Buyurtmangiz tasdiqlandi! Tez orada yetkazib beriladi."
+          );
+        } else {
+          const statusMessages = {
+            pending: "⏳ Sizning buyurtmangiz qabul qilindi va kutilmoqda.",
+            delivered: "🎉 Buyurtmangiz yetkazildi! Xaridingiz uchun rahmat!",
+            cancelled:
+              "❌ Buyurtmangiz bekor qilindi. Batafsil ma'lumot uchun bog'laning.",
+          };
+          statusText = statusMessages[status] || status;
+        }
 
-        const statusText = statusMessages[status] || status;
         const totalSum = (order.totalSum || 0)
           .toString()
           .replace(/\B(?=(\d{3})+(?!\d))/g, " ");

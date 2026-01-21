@@ -112,26 +112,6 @@ settingsSchema.statics.initDefaults = async function () {
       type: "textarea",
     },
     {
-      key: "contact_text",
-      label: "Aloqa ma'lumotlari",
-      value:
-        "📞 Biz bilan bog'laning:\n\n🏢 MUZ BAZAR\n📱 Telefon: +998 90 123 45 67\n📍 Manzil: Toshkent shahar\n⏰ Ish vaqti: 08:00 - 20:00\n\n💬 Telegramda: @muzbazar_admin\n🌐 Sayt: www.muzbazar.uz",
-      defaultValue:
-        "📞 Biz bilan bog'laning:\n\n🏢 MUZ BAZAR\n📱 Telefon: +998 90 123 45 67",
-      description: "Aloqa bo'limida chiqadigan matn",
-      type: "textarea",
-    },
-    {
-      key: "debt_notification_message",
-      label: "Qarzdorlik eslatmasi",
-      value:
-        "🔔 Hurmatli mijoz!\n\nSizning qarzdorligingiz: {amount} so'm\n\nIltimos, to'lovni amalga oshiring.\n\n📞 Aloqa: @muzbazar_admin",
-      defaultValue:
-        "🔔 Hurmatli mijoz!\n\nSizning qarzdorligingiz: {amount} so'm\n\nIltimos, to'lovni amalga oshiring.",
-      description: "Qarzdorlik eslatmasi xabari ({amount} - qarz miqdori)",
-      type: "textarea",
-    },
-    {
       key: "order_confirmed_message",
       label: "Buyurtma tasdiqlandi xabari",
       value:
@@ -157,16 +137,6 @@ settingsSchema.statics.initDefaults = async function () {
       defaultValue:
         "Hurmatli mijoz! Sizda {summa} so'm qarzdorlik mavjud. Iltimos, to'lovni amalga oshiring. MUZ BAZAR",
       description: "{summa} - avtomatik almashtiriladi",
-      type: "textarea",
-    },
-    {
-      key: "welcome_message",
-      label: "Xush kelibsiz xabari",
-      value:
-        "MUZ BAZARga xush kelibsiz! Bizda eng sifatli muzqaymoq va muzlatilgan mahsulotlarni topasiz.",
-      defaultValue:
-        "MUZ BAZARga xush kelibsiz! Bizda eng sifatli muzqaymoq va muzlatilgan mahsulotlarni topasiz.",
-      description: "Botga kirganida ko'rinadigan xabar",
       type: "textarea",
     },
     {
