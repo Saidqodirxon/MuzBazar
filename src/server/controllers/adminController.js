@@ -738,7 +738,7 @@ const adminController = {
   // Add Payment
   async addPayment(req, res) {
     try {
-      const { amount } = req.body;
+      const { amount, type } = req.body; // type: 'add' yoki 'subtract'
       const order = await Order.findById(req.params.id).populate("client");
 
       if (!order) return res.redirect("/admin/orders?error=not_found");
@@ -750,36 +750,82 @@ const adminController = {
         );
       }
 
+      console.log(`💰 Processing payment: ${type}, Amount: ${paymentAmount}`);
+      console.log(
+        `📊 Current state - Total: ${order.totalSum}, Paid: ${order.paidSum}, Debt: ${order.debt}`
+      );
+
       // Add payment to order
-      order.paidSum = (order.paidSum || 0) + paymentAmount;
-      order.debt = Math.max(0, order.totalSum - order.paidSum);
+      if (type === "subtract") {
+        // Qarzdan ayirish (to'lov qabul qilish)
+        if (paymentAmount > order.debt) {
+          return res.redirect(
+            `/admin/orders/${req.params.id}?error=amount_exceeds_debt`
+          );
+        }
 
-      await order.save();
+        order.paidSum = (order.paidSum || 0) + paymentAmount;
+        order.debt = order.totalSum - order.paidSum;
 
-      // Create Payment record
-      const payment = new Payment({
-        order: order._id,
-        client: order.client._id,
-        amount: paymentAmount,
-        paymentMethod: "cash", // Default for Admin
-        notes: "Admin panel orqali",
-      });
-
-      if (req.session.role === "seller") {
-        payment.seller = req.session.sellerId;
-      }
-
-      await payment.save();
-
-      // Send payment notification to client
-      if (order.client?.telegramId) {
-        const NotificationService = require("../../utils/notificationService");
-        const notificationService = new NotificationService();
-
-        await notificationService.notifyPaymentReceived(
-          order._id,
-          paymentAmount
+        console.log(
+          `✅ After payment - Total: ${order.totalSum}, Paid: ${order.paidSum}, Debt: ${order.debt}`
         );
+
+        // Save order first
+        await order.save();
+
+        // Create Payment record
+        const payment = new Payment({
+          order: order._id,
+          client: order.client._id,
+          amount: paymentAmount,
+          paymentMethod: "cash",
+          notes: "Admin panel orqali to'lov qabul qilindi",
+        });
+
+        if (req.session.role === "seller") {
+          payment.seller = req.session.sellerId;
+        }
+
+        await payment.save();
+
+        // Send payment notification to client
+        if (order.client?.telegramId) {
+          const NotificationService = require("../../utils/notificationService");
+          const notificationService = new NotificationService();
+
+          await notificationService.notifyPaymentReceived(
+            order._id,
+            paymentAmount
+          );
+        }
+      } else {
+        // Qarzga qo'shish (narx berish)
+        order.totalSum = (order.totalSum || 0) + paymentAmount;
+        order.debt = order.totalSum - order.paidSum;
+
+        console.log(
+          `✅ After debt increase - Total: ${order.totalSum}, Paid: ${order.paidSum}, Debt: ${order.debt}`
+        );
+
+        // Save order
+        await order.save();
+
+        // Send notification about debt increase
+        if (order.client?.telegramId) {
+          const NotificationService = require("../../utils/notificationService");
+          const notificationService = new NotificationService();
+
+          try {
+            await notificationService.sendToUser(
+              order.client.telegramId,
+              `📋 Buyurtma: <b>${order.orderNumber}</b>\n\n💰 Qarz yangilandi: +${paymentAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm\n🔴 Jami qarz: <b>${order.debt.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm</b>`,
+              { parse_mode: "HTML" }
+            );
+          } catch (err) {
+            console.error("Failed to notify about debt increase:", err);
+          }
+        }
       }
 
       res.redirect(`/admin/orders/${req.params.id}?success=payment_added`);
@@ -1374,7 +1420,8 @@ const adminController = {
   async exportDebts(req, res) {
     try {
       const ExcelJS = require("exceljs");
-      const { Order, User } = require("../models");
+
+      console.log("📊 Starting debts export...");
 
       // Get debts data
       const debts = await Order.aggregate([
@@ -1398,6 +1445,12 @@ const adminController = {
         { $unwind: "$client" },
         { $sort: { totalDebt: -1 } },
       ]);
+
+      console.log(`📊 Found ${debts.length} clients with debts`);
+
+      if (debts.length === 0) {
+        return res.redirect("/admin/debts?error=no_debts");
+      }
 
       // Create workbook
       const workbook = new ExcelJS.Workbook();
@@ -1436,7 +1489,10 @@ const adminController = {
       });
 
       // Add total row
-      const totalDebt = debts.reduce((sum, debt) => sum + debt.totalDebt, 0);
+      const totalDebt = debts.reduce(
+        (sum, debt) => sum + (debt.totalDebt || 0),
+        0
+      );
       worksheet.addRow({});
       const totalRow = worksheet.addRow({
         firstName: "JAMI",
@@ -1460,10 +1516,14 @@ const adminController = {
         `attachment; filename=qarzdorlik-${Date.now()}.xlsx`
       );
 
+      // Write to response
       await workbook.xlsx.write(res);
       res.end();
+
+      console.log("✅ Debts export completed successfully");
     } catch (error) {
       console.error("❌ Export debts error:", error);
+      console.error("❌ Error stack:", error.stack);
       res.redirect("/admin/debts?error=export_failed");
     }
   },

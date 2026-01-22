@@ -163,26 +163,55 @@ const body = `
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">To'lov qayd qilish</h5>
+                <h5 class="modal-title">To'lov/Qarz boshqaruvi</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form action="/admin/orders/${order._id}/payment" method="POST" onsubmit="return handlePaymentSubmit(event)">
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="amount" class="form-label">To'lov miqdori (so'm)</label>
+                        <label class="form-label">Amal turi</label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="type" id="typeSubtract" value="subtract" checked>
+                            <label class="btn btn-outline-success" for="typeSubtract">
+                                <i class="fas fa-minus-circle me-1"></i>Qarzdan ayirish (To'lov)
+                            </label>
+                            <input type="radio" class="btn-check" name="type" id="typeAdd" value="add">
+                            <label class="btn btn-outline-warning" for="typeAdd">
+                                <i class="fas fa-plus-circle me-1"></i>Qarzga qo'shish (Narx berish)
+                            </label>
+                        </div>
+                        <small class="text-muted d-block mt-2" id="typeHint">To'lov qabul qilish uchun</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Miqdor (so'm)</label>
                         <input type="number" class="form-control" id="amount" name="amount" 
                                value="${order.debt}" placeholder="0" required>
+                        <small class="text-muted">Joriy qarz: <strong>${(order.debt || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</strong></small>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor qilish</button>
                     <button type="submit" class="btn btn-primary" id="paymentSubmitBtn">
                         <span class="spinner-border spinner-border-sm d-none me-2" id="paymentSpinner"></span>
-                        <span id="paymentBtnText">Qo'shish</span>
+                        <span id="paymentBtnText">Tasdiqlash</span>
                     </button>
                 </div>
             </form>
             <script>
+            // Update hint text when radio changes
+            document.querySelectorAll('input[name="type"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    const hint = document.getElementById('typeHint');
+                    if (this.value === 'subtract') {
+                        hint.textContent = 'To\'lov qabul qilish uchun';
+                        hint.className = 'text-success d-block mt-2';
+                    } else {
+                        hint.textContent = 'Qarzga qo\'shish uchun';
+                        hint.className = 'text-warning d-block mt-2';
+                    }
+                });
+            });
+            
             function handlePaymentSubmit(event) {
                 const btn = document.getElementById('paymentSubmitBtn');
                 const spinner = document.getElementById('paymentSpinner');
