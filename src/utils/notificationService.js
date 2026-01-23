@@ -116,63 +116,49 @@ class NotificationService {
         "Hurmatli mijoz! Sizda {summa} so'm qarzdorlik mavjud. Iltimos, to'lovni amalga oshiring. MUZ BAZAR"
       );
 
-      // Build detailed message using HTML
-      const totalDebtFormatted = totalDebt
-        .toString()
-        .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+      // Build simple message format
+      const formatSum = (num) =>
+        (num || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 
-      // Use template message if customMessage not provided
-      if (!customMessage && debtMessageTemplate.includes("{summa}")) {
-        customMessage = debtMessageTemplate.replace(
-          "{summa}",
-          totalDebtFormatted
-        );
+      const totalSum = orders.reduce(
+        (sum, order) => sum + (order.totalSum || 0),
+        0
+      );
+      const totalPaid = orders.reduce(
+        (sum, order) => sum + (order.paidSum || 0),
+        0
+      );
+
+      // Use template message if customMessage provided
+      if (customMessage) {
+        const finalMessage = customMessage
+          .replace("{summa}", formatSum(totalDebt))
+          .replace("{ism}", user.firstName);
+        return await this.sendToUser(user.telegramId, finalMessage);
       }
 
-      let detailedMessage = `💰 <b>Qarzdorlik eslatmasi</b>\n\n`;
-      detailedMessage += `Hurmatli ${user.firstName}!\n\n`;
-      detailedMessage += `Sizning umumiy qarzdorligingiz: <b>${totalDebtFormatted} so'm</b>\n\n`;
-      detailedMessage += `📋 <b>Buyurtmalar:</b>\n`;
+      // Simple format message
+      let detailedMessage = `${user.firstName} ${user.lastName || ""}.\n\n`;
+      detailedMessage += `Boshlang'ich qoldiq: ${formatSum(totalSum)}.\n`;
+      detailedMessage += `To'lov summasi: ${formatSum(totalPaid)}.\n`;
+      detailedMessage += `Umumiy qoldiq: ${formatSum(totalDebt)}.\n\n`;
 
-      orders.forEach((order) => {
-        const statusLabels = {
-          pending: "Kutilmoqda",
-          confirmed: "Tasdiqlangan",
-          delivered: "Yetkazilgan",
-          cancelled: "Bekor qilingan",
-        };
-
-        const totalSum = (order.totalSum || 0)
-          .toString()
-          .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-        const paidSum = (order.paidSum || 0)
-          .toString()
-          .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-        const debtSum = (order.debt || 0)
-          .toString()
-          .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-
-        detailedMessage += `\n🆔 <b>${order.orderNumber}</b>\n`;
-        detailedMessage += `📅 ${new Date(order.createdAt).toLocaleDateString("uz-UZ")}\n`;
-        detailedMessage += `📊 Status: ${statusLabels[order.status] || order.status}\n`;
-        detailedMessage += `Mahsulotlar:\n`;
-
-        order.items.forEach((item) => {
-          detailedMessage += `  • ${item.product?.name || "Mahsulot"} x${item.quantity}\n`;
-        });
-
-        detailedMessage += `💰 Jami: ${totalSum} so'm\n`;
-        detailedMessage += `✅ To'landi: ${paidSum} so'm\n`;
-        detailedMessage += `🔴 Qarz: ${debtSum} so'm\n`;
+      const now = new Date();
+      const dateStr = now.toLocaleDateString("uz-UZ", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
       });
-
-      detailedMessage += `\n📞 To'lov uchun: @muzbazar_admin`;
-
-      const finalMessage = customMessage || detailedMessage;
-
-      return await this.sendToUser(user.telegramId, finalMessage, {
-        parse_mode: "HTML",
+      const timeStr = now.toLocaleTimeString("uz-UZ", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
       });
+      detailedMessage += `Vaqti: ${dateStr} ${timeStr}`;
+
+      const finalMessage = detailedMessage;
+
+      return await this.sendToUser(user.telegramId, finalMessage);
     } catch (error) {
       console.error("❌ Debt notification error:", error);
       return { success: false, error: error.message };
@@ -364,16 +350,29 @@ ${orderUrl}`;
         throw new Error("Order not found");
       }
 
+      const formatSum = (num) =>
+        (num || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+
+      const now = new Date();
+      const dateStr = now.toLocaleDateString("uz-UZ", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+      const timeStr = now.toLocaleTimeString("uz-UZ", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+
       const message = [
-        "💰 **To'lov qabul qilindi!**",
+        `${order.client.firstName} ${order.client.lastName || ""}.`,
         "",
-        `🆔 Buyurtma: **${order.orderNumber}**`,
-        `💵 To'langan: **${(amount || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm**`,
-        `🔴 Qolgan qarz: **${(order.debt || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm**`,
+        `Boshlang'ich qoldiq: ${formatSum(order.totalSum)}.`,
+        `To'lov summasi: ${formatSum(amount)}.`,
+        `Umumiy qoldiq: ${formatSum(order.debt)}.`,
         "",
-        order.debt > 0
-          ? "Qolgan qarzni ham to'lash uchun aloqaga chiqing."
-          : "✅ Barcha to'lov amalga oshirildi!",
+        `Vaqti: ${dateStr} ${timeStr}`,
       ].join("\n");
 
       return await this.sendToUser(order.client.telegramId, message);

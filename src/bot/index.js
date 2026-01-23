@@ -216,17 +216,20 @@ bot.hears("💰 Qarzdorlik", async (ctx) => {
     }
 
     const totalDebt = orders.reduce((sum, order) => sum + order.debt, 0);
+    const totalPaid = orders.reduce((sum, order) => sum + order.paidSum, 0);
+    const totalSum = orders.reduce((sum, order) => sum + order.totalSum, 0);
 
-    let message = `💰 **Qarzdorlik ma'lumoti:**\n\n`;
-    message += `🔴 **Umumiy qarz: ${totalDebt} so'm**\n\n`;
+    // Format numbers with spaces
+    const formatSum = (num) =>
+      (num || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 
-    for (const order of orders) {
-      message += `🆔 ${order.orderNumber}: ${order.debt} so'm\n`;
-    }
+    let message = `${ctx.user.firstName} ${ctx.user.lastName || ""}.\n\n`;
+    message += `Boshlang'ich qoldiq: ${formatSum(totalSum)}.\n`;
+    message += `To'lov summasi: ${formatSum(totalPaid)}.\n`;
+    message += `Umumiy qoldiq: ${formatSum(totalDebt)}.\n\n`;
+    message += `Vaqti: ${new Date().toLocaleString("uz-UZ", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }).replace(",", "")}`;
 
-    message += `\n📞 To'lov uchun sotuvchi bilan bog'laning.`;
-
-    await ctx.reply(message, { parse_mode: "Markdown" });
+    await ctx.reply(message);
   } catch (error) {
     console.error("❌ Debt check error:", error);
     await ctx.reply("❌ Qarzdorlik ma'lumotini yuklashda xatolik.");
