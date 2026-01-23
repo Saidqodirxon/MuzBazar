@@ -29,11 +29,19 @@ if (products.length === 0) {
                         </tr>
                     </thead>
                     <tbody>
-                        ${products.map(product => `
+                        ${products.map(product => {
+                            const price = product.sellPrice || product.price || 0;
+                            const formattedPrice = price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+                            const categoryName = product.category?.name || '-';
+                            const safeName = product.name.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                            const confirmMsg = `Haqiqatan ham "${product.name}" mahsulotini o'chirmoqchimisiz?`;
+                            const safeConfirmMsg = confirmMsg.replace(/"/g, '&quot;').replace(/'/g, "\\'");
+                            
+                            return `
                         <tr>
                             <td><strong>${product.name}</strong></td>
-                            <td>${product.category?.name || '-'}</td>
-                            <td>${(product.price || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</td>
+                            <td>${categoryName}</td>
+                            <td>${formattedPrice} so'm</td>
                             <td>
                                 <span class="badge ${product.stock <= product.minStock ? 'bg-warning' : 'bg-success'}">
                                     ${product.stock}
@@ -49,15 +57,16 @@ if (products.length === 0) {
                                     <a href="/admin/products/${product._id}/edit" class="btn btn-sm btn-outline-primary" title="Tahrirlash">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    <button type="button" class="btn btn-sm btn-outline-danger" 
-                                            onclick="confirmDelete('${product._id}', '${product.name}')"
-                                            title="O'chirish">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
+                                    <form method="POST" action="/admin/products/${product._id}/delete" style="display: inline;" onsubmit="return confirm('${safeConfirmMsg}')">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="O'chirish">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
                                 </div>
                             </td>
                         </tr>
-                        `).join('')}
+                        `;
+                        }).join('')}
                     </tbody>
                 </table>
             </div>
@@ -91,18 +100,6 @@ const body = `
 </div>
 
 ${productsHtml}
-
-<script>
-function confirmDelete(productId, productName) {
-    if (confirm('Haqiqatan ham "' + productName + '" mahsulotini o\'chirmoqchimisiz?')) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '/admin/products/' + productId + '/delete';
-        document.body.appendChild(form);
-        form.submit();
-    }
-}
-</script>
 `;
 -%>
 <%- include(layout, { body, title }) %>

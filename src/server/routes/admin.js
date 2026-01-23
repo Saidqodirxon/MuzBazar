@@ -48,11 +48,6 @@ router.post(
 );
 router.post("/products/:id/delete", adminController.deleteProduct);
 
-// Orders
-router.get("/orders", adminController.orders);
-router.get("/orders/:id", adminController.orderDetails);
-router.post("/orders/:id/status", adminController.updateOrderStatus);
-
 // Users
 router.get("/users", adminController.users);
 router.get("/users/:id", adminController.userDetails);
