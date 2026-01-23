@@ -46,7 +46,7 @@ if (user.orders && user.orders.length > 0) {
         rows += '<td><span class="badge bg-' + statusClass + '">' + statusText + '</span></td>';
         rows += '<td>' + orderDate + '</td></tr>';
     }
-    ordersTableHtml = '<div class="table-responsive"><table class="table table-sm"><thead><tr><th>Buyurtma №</th><th>Jami summa</th><th>To\'landi</th><th>Qarz</th><th>Status</th><th>Sana</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+    ordersTableHtml = '<div class="table-responsive"><table class="table table-sm"><thead><tr><th>Buyurtma №</th><th>Boshlang\'ich qoldiq</th><th>To\'lov summasi</th><th>Umumiy qoldiq</th><th>Status</th><th>Sana</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
 }
 -%>
 <%- include(layout, { body: `

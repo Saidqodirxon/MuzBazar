@@ -352,7 +352,11 @@ bot.on("text", async (ctx, next) => {
   const user = ctx.user;
 
   // Agar telefon raqam kutilayotgan bo'lsa yoki user ning telefoni yo'q bo'lsa
-  if (ctx.session?.awaitingPhone || !user.phone) {
+  if (
+    ctx.session?.awaitingPhone ||
+    ctx.session?.pendingOrderPlacement ||
+    !user.phone
+  ) {
     // Telefon raqamga o'xshash matnni tekshirish (faqat raqamlar)
     const phonePattern = /^[\d+\s\-()]+$/;
 
@@ -366,6 +370,13 @@ bot.on("text", async (ctx, next) => {
 
         ctx.session = ctx.session || {};
         ctx.session.awaitingPhone = false;
+
+        // If order was pending, retry order placement
+        if (ctx.session.pendingOrderPlacement) {
+          ctx.session.pendingOrderPlacement = false;
+          const orderHandler = require("./handlers/order");
+          return orderHandler.confirmOrderCreation(ctx);
+        }
 
         let keyboard;
         if (user.isAdmin()) {

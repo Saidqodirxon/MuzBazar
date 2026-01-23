@@ -44,6 +44,8 @@ if (!debts || debts.length === 0) {
         const firstName = escapeJs(debt.client?.firstName || '');
         const lastName = escapeJs(debt.client?.lastName || '');
         const phone = debt.client?.phone || '-';
+        const totalSum = debt.totalSum || 0;
+        const totalPaid = debt.totalPaid || 0;
         const totalDebt = debt.totalDebt || 0;
         const orderCount = debt.orderCount || 0;
         const lastOrderDate = formatDate(debt.lastOrder);
@@ -54,12 +56,14 @@ if (!debts || debts.length === 0) {
                 <strong>${firstName} ${lastName}</strong>
             </td>
             <td>
-                <a href="tel:${phone}">${phone}</a>
+                ${phone !== '-' ? '<a href="tel:' + phone + '">' + phone + '</a>' : '<span class="text-muted">Kiritilmagan</span>'}
             </td>
+            <td>${orderCount}</td>
+            <td>${formatNumber(totalSum)} so'm</td>
+            <td>${formatNumber(totalPaid)} so'm</td>
             <td>
                 <span class="badge bg-danger">${formatNumber(totalDebt)} so'm</span>
             </td>
-            <td>${orderCount}</td>
             <td>${lastOrderDate}</td>
             <td>
                 <a href="/admin/users/${clientId}" class="btn btn-sm btn-outline-primary">
@@ -82,8 +86,10 @@ if (!debts || debts.length === 0) {
                         <tr>
                             <th>Klient</th>
                             <th>Telefon</th>
-                            <th>Umumiy qarzdorlik</th>
                             <th>Buyurtmalar</th>
+                            <th>Boshlang'ich qoldiq</th>
+                            <th>To'lov summasi</th>
+                            <th>Umumiy qoldiq</th>
                             <th>Oxirgi buyurtma</th>
                             <th>Amallar</th>
                         </tr>

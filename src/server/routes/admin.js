@@ -21,6 +21,7 @@ router.get("/orders", adminController.orders);
 router.get("/orders/export", adminController.exportOrders);
 router.get("/orders/:id", adminController.orderDetails);
 router.post("/orders/:id/status", adminController.updateOrderStatus);
+router.post("/orders/:id/notify", adminController.sendOrderNotification);
 router.post("/orders/:id/payment", adminController.addPayment);
 router.post("/payments/:paymentId/delete", adminController.deletePayment);
 

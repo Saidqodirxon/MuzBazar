@@ -45,6 +45,8 @@
         /* Sidebar */
         .sidebar {
             min-height: 100vh;
+            max-height: 100vh;
+            overflow-y: auto;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             position: fixed;
             top: 0;
@@ -84,6 +86,11 @@
             bottom: 0;
             background: rgba(0, 0, 0, 0.5);
             z-index: 999;
+        }
+        
+        /* Prevent body scroll when sidebar is open on mobile */
+        body.sidebar-open {
+            overflow: hidden;
         }
         
         .card {
@@ -492,14 +499,19 @@
         const sidebarOverlay = document.getElementById('sidebarOverlay');
         
         if (mobileMenuToggle) {
-            mobileMenuToggle.addEventListener('click', function() {
+            mobileMenuToggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
                 sidebar.classList.toggle('show');
                 sidebarOverlay.classList.toggle('show');
+                document.body.classList.toggle('sidebar-open');
             });
             
-            sidebarOverlay.addEventListener('click', function() {
+            sidebarOverlay.addEventListener('click', function(e) {
+                e.preventDefault();
                 sidebar.classList.remove('show');
                 sidebarOverlay.classList.remove('show');
+                document.body.classList.remove('sidebar-open');
             });
             
             // Close menu when clicking on a link (mobile only)
@@ -509,8 +521,18 @@
                     if (window.innerWidth < 768) {
                         sidebar.classList.remove('show');
                         sidebarOverlay.classList.remove('show');
+                        document.body.classList.remove('sidebar-open');
                     }
                 });
+            });
+            
+            // Close sidebar when window is resized to desktop
+            window.addEventListener('resize', function() {
+                if (window.innerWidth >= 768) {
+                    sidebar.classList.remove('show');
+                    sidebarOverlay.classList.remove('show');
+                    document.body.classList.remove('sidebar-open');
+                }
             });
         }
     </script>

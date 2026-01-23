@@ -400,6 +400,17 @@ const orderHandler = {
         }
       }
 
+      // Check if user has phone number
+      if (!ctx.user.phone) {
+        ctx.session.pendingOrderPlacement = true;
+        return await ctx.editMessageText(
+          `📱 <b>Telefon raqamingizni kiriting:</b>\n\n` +
+            `Buyurtmani rasmiylashtirish uchun telefon raqamingiz kerak.\n\n` +
+            `Misol: +998901234567`,
+          { parse_mode: "HTML" }
+        );
+      }
+
       // Check minimum order amount
       const { Settings } = require("../../server/models");
       const minOrderAmount = await Settings.get("min_order_amount", 0);
@@ -420,17 +431,45 @@ const orderHandler = {
       const orderItems = [];
       let totalSum = 0;
 
+      return await orderHandler.confirmOrderCreation(ctx);
+    } catch (error) {
+      console.error("❌ Place order error:", error);
+      try {
+        await ctx.answerCbQuery("❌ Buyurtma yaratishda xatolik.");
+      } catch (e) {
+        // Ignore callback query errors
+      }
+    }
+  },
+
+  // Confirm and create order
+  async confirmOrderCreation(ctx) {
+    try {
+      const cart = orderHandler.getCart(ctx);
+
+      if (cart.length === 0) {
+        return await ctx.reply("❌ Savatingiz bo'sh.");
+      }
+
+      // Create order items
+      const orderItems = [];
+      let totalSum = 0;
+
       for (const item of cart) {
         const product = await Product.findById(item.productId);
 
         if (!product || product.stock < item.quantity) {
+          const errorMsg = `❌ ${item.name} yetarli miqdorda mavjud emas.`;
           try {
-            return await ctx.answerCbQuery(
-              `❌ ${item.name} yetarli miqdorda mavjud emas.`
-            );
+            if (ctx.callbackQuery) {
+              await ctx.answerCbQuery(errorMsg);
+            } else {
+              await ctx.reply(errorMsg);
+            }
           } catch (e) {
-            return;
+            // Ignore errors
           }
+          return;
         }
 
         orderItems.push({
@@ -490,30 +529,46 @@ const orderHandler = {
       // Clear cart
       orderHandler.clearCart(ctx);
 
-      await ctx.editMessageText(
-        `✅ <b>Buyurtma muvaffaqiyatli yaratildi!</b>
+      const responseMessage = `✅ <b>Buyurtma muvaffaqiyatli yaratildi!</b>
 
 📋 Buyurtma raqami: <b>${order.orderNumber}</b>
 💰 Summa: <b>${orderHandler.formatSum(order.totalSum)} so'm</b>
 
-Buyurtmangiz tez orada ko'rib chiqiladi.`,
-        { parse_mode: "HTML" }
-      );
+Buyurtmangiz tez orada ko'rib chiqiladi.`;
+
+      // Try to edit message if coming from callback, otherwise reply
+      try {
+        if (ctx.callbackQuery) {
+          await ctx.editMessageText(responseMessage, { parse_mode: "HTML" });
+        } else {
+          await ctx.reply(responseMessage, { parse_mode: "HTML" });
+        }
+      } catch (e) {
+        // If edit fails, send as new message
+        await ctx.reply(responseMessage, { parse_mode: "HTML" });
+      }
 
       // Notify sellers about new order
       await orderHandler.notifySellersAboutNewOrder(ctx, order);
 
       try {
-        await ctx.answerCbQuery("✅ Buyurtma yaratildi!");
+        if (ctx.callbackQuery) {
+          await ctx.answerCbQuery("✅ Buyurtma yaratildi!");
+        }
       } catch (e) {
         // Ignore callback query errors
       }
     } catch (error) {
-      console.error("❌ Place order error:", error);
+      console.error("❌ Confirm order creation error:", error);
+      const errorMsg = "❌ Buyurtma yaratishda xatolik yuz berdi.";
       try {
-        await ctx.answerCbQuery("❌ Buyurtma yaratishda xatolik.");
+        if (ctx.callbackQuery) {
+          await ctx.answerCbQuery(errorMsg);
+        } else {
+          await ctx.reply(errorMsg);
+        }
       } catch (e) {
-        // Ignore callback query errors
+        // Ignore errors
       }
     }
   },

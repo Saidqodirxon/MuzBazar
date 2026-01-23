@@ -32,7 +32,8 @@ const body = `
                 <div class="row mb-3">
                     <div class="col-md-6">
                         <p><strong>Klient:</strong> ${order.client?.firstName} ${order.client?.lastName}</p>
-                        <p><strong>Telefon:</strong> <a href="tel:${order.client?.phone}">${order.client?.phone}</a></p>
+                        <p><strong>Telefon:</strong> ${order.client?.phone ? '<a href="tel:' + order.client.phone + '">' + order.client.phone + '</a>' : '<span class="text-muted">Kiritilmagan</span>'}</p>
+                        ${order.client?.username ? '<p><strong>Username:</strong> @' + order.client.username + '</p>' : ''}
                     </div>
                     <div class="col-md-6">
                         <p><strong>Status:</strong> <span class="badge bg-${statusClass}">${statusText}</span></p>
@@ -124,6 +125,9 @@ const body = `
                     </button>
                     <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#paymentModal">
                         <i class="fas fa-money-bill me-2"></i>To'lov qayd qilish
+                    </button>
+                    <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#notifyModal" ${order.client?.telegramId ? '' : 'disabled'}>
+                        <i class="fas fa-bell me-2"></i>Eslatma yuborish
                     </button>
                 </div>
             </div>
@@ -234,6 +238,55 @@ const body = `
         </div>
     </div>
 </div>
+
+<!-- Notification Modal -->
+<div class="modal fade" id="notifyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-bell me-2"></i>Eslatma yuborish
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="/admin/orders/${order._id}/notify">
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>${order.client?.firstName} ${order.client?.lastName}</strong> ga eslatma yuboriladi
+                    </div>
+                    <div class="mb-3">
+                        <label for="notifyMessage" class="form-label">Xabar matni:</label>
+                        <textarea class="form-control" id="notifyMessage" name="message" rows="8" required>Hurmatli mijoz!
+
+<i>${order.client?.firstName || ''} ${order.client?.lastName || ''}</i>
+
+📦 Sizning buyurtmangiz: ${order.orderNumber}
+
+Boshlang'ich qoldiq: ${(order.totalSum || 0).toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, ' ')} so'm
+To'lov summasi: ${(order.paidSum || 0).toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, ' ')} so'm
+Umumiy qoldiq: ${(order.debt || 0).toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, ' ')} so'm
+
+Vaqti: ${moment(order.createdAt).format('DD/MM/YYYY HH:mm:ss')}
+
+${order.debt > 0 ? 'Iltimos, tolovni amalga oshiring.' : 'Rahmat! Tolovlar toliq amalga oshirilgan.'}
+
+MUZ BAZAR</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Bekor qilish
+                    </button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-paper-plane me-1"></i>Yuborish
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 `;
 -%>
 <%- include(layout, { body, title }) %>

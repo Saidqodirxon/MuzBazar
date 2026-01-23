@@ -98,12 +98,19 @@ const adminController = {
       // Get statistics
       const stats = await adminController.getStatistics();
 
-      // Recent orders
+      // Recent orders with payment calculations
       const recentOrders = await Order.find()
         .sort({ createdAt: -1 })
         .limit(5)
         .populate("client", "firstName lastName")
         .populate("items.product", "name");
+
+      // Calculate balance for each order
+      for (const order of recentOrders) {
+        const payments = await Payment.find({ order: order._id });
+        order.totalPaid = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+        order.debt = (order.totalSum || 0) - order.totalPaid;
+      }
 
       // Low stock products
       const lowStockProducts = await Product.find({
@@ -417,9 +424,17 @@ const adminController = {
     try {
       const ExcelJS = require("exceljs");
 
+      console.log("📊 Starting products export...");
+
       const products = await Product.find()
         .populate("category")
         .sort({ name: 1 });
+
+      console.log(`📊 Found ${products.length} products`);
+
+      if (products.length === 0) {
+        return res.redirect("/admin/products?error=no_products");
+      }
 
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Mahsulotlar");
@@ -471,11 +486,17 @@ const adminController = {
         `attachment; filename=mahsulotlar-${Date.now()}.xlsx`
       );
 
-      await workbook.xlsx.write(res);
-      res.end();
+      // Write to buffer first to avoid server memory issues
+      const buffer = await workbook.xlsx.writeBuffer();
+      res.send(buffer);
+
+      console.log("✅ Products export completed successfully");
     } catch (error) {
       console.error("❌ Export products error:", error);
-      res.redirect("/admin/products?error=export_failed");
+      console.error("❌ Error stack:", error.stack);
+      if (!res.headersSent) {
+        res.redirect("/admin/products?error=export_failed");
+      }
     }
   },
 
@@ -545,6 +566,8 @@ const adminController = {
       const ExcelJS = require("exceljs");
       const { status } = req.query;
 
+      console.log("📊 Starting orders export...");
+
       let filter = {};
       if (status) filter.status = status;
 
@@ -553,6 +576,12 @@ const adminController = {
         .populate("items.product", "name")
         .sort({ createdAt: -1 });
 
+      console.log(`📊 Found ${orders.length} orders`);
+
+      if (orders.length === 0) {
+        return res.redirect("/admin/orders?error=no_orders");
+      }
+
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Buyurtmalar");
 
@@ -560,10 +589,10 @@ const adminController = {
         { header: "Buyurtma №", key: "orderNumber", width: 15 },
         { header: "Klient", key: "client", width: 25 },
         { header: "Telefon", key: "phone", width: 15 },
+        { header: "Boshlang'ich qoldiq", key: "totalSum", width: 20 },
+        { header: "To'lov summasi", key: "paid", width: 20 },
+        { header: "Umumiy qoldiq", key: "debt", width: 20 },
         { header: "Mahsulotlar", key: "products", width: 40 },
-        { header: "Jami summa", key: "totalSum", width: 15 },
-        { header: "To'landi", key: "paid", width: 15 },
-        { header: "Qarz", key: "debt", width: 15 },
         { header: "Status", key: "status", width: 15 },
         { header: "Sana", key: "date", width: 15 },
       ];
@@ -598,10 +627,10 @@ const adminController = {
             ? `${order.client.firstName} ${order.client.lastName || ""}`
             : "Noma'lum",
           phone: order.client?.phone || "-",
-          products,
           totalSum: order.totalSum || 0,
           paid: order.paidSum || 0,
           debt: order.debt || 0,
+          products,
           status: statusLabels[order.status] || order.status,
           date: new Date(order.createdAt).toLocaleDateString("uz-UZ"),
         });
@@ -636,9 +665,14 @@ const adminController = {
 
       await workbook.xlsx.write(res);
       res.end();
+
+      console.log("✅ Orders export completed successfully");
     } catch (error) {
       console.error("❌ Export orders error:", error);
-      res.redirect("/admin/orders?error=export_failed");
+      console.error("❌ Error stack:", error.stack);
+      if (!res.headersSent) {
+        res.redirect("/admin/orders?error=export_failed");
+      }
     }
   },
 
@@ -732,6 +766,46 @@ const adminController = {
     } catch (error) {
       console.error("❌ Update order status error:", error);
       res.redirect(`/admin/orders/${req.params.id}?error=update_failed`);
+    }
+  },
+
+  // Send order notification/reminder
+  async sendOrderNotification(req, res) {
+    try {
+      const { message } = req.body;
+      const order = await Order.findById(req.params.id).populate("client");
+
+      if (!order) {
+        return res.redirect("/admin/orders?error=not_found");
+      }
+
+      if (!order.client?.telegramId) {
+        return res.redirect(`/admin/orders/${req.params.id}?error=no_telegram`);
+      }
+
+      const NotificationService = require("../../utils/notificationService");
+      const notificationService = new NotificationService();
+
+      const result = await notificationService.sendToUser(
+        order.client.telegramId,
+        message,
+        { parse_mode: "HTML" }
+      );
+
+      if (result.success) {
+        console.log(
+          `📬 Notification sent to user ${order.client.telegramId} for order ${order.orderNumber}`
+        );
+        res.redirect(
+          `/admin/orders/${req.params.id}?success=notification_sent`
+        );
+      } else {
+        console.error("Failed to send notification:", result.error);
+        res.redirect(`/admin/orders/${req.params.id}?error=send_failed`);
+      }
+    } catch (error) {
+      console.error("❌ Send order notification error:", error);
+      res.redirect(`/admin/orders/${req.params.id}?error=send_failed`);
     }
   },
 
@@ -881,9 +955,31 @@ const adminController = {
 
       const users = await User.find(filter).sort({ createdAt: -1 });
 
+      // Calculate balance information for each user
+      const usersWithBalances = await Promise.all(
+        users.map(async (user) => {
+          const userObj = user.toObject();
+          const orders = await Order.find({ client: user._id });
+          userObj.orderCount = orders.length;
+          userObj.totalSpent = orders.reduce(
+            (sum, order) => sum + (order.totalSum || 0),
+            0
+          );
+          userObj.totalPaid = orders.reduce(
+            (sum, order) => sum + (order.paidSum || 0),
+            0
+          );
+          userObj.totalDebt = orders.reduce(
+            (sum, order) => sum + (order.debt || 0),
+            0
+          );
+          return userObj;
+        })
+      );
+
       res.render("admin/users", {
         title: "Foydalanuvchilar",
-        users,
+        users: usersWithBalances,
         moment,
         search,
       });
@@ -1280,6 +1376,8 @@ const adminController = {
           $group: {
             _id: "$client",
             totalDebt: { $sum: "$debt" },
+            totalSum: { $sum: "$totalSum" },
+            totalPaid: { $sum: "$paidSum" },
             orderCount: { $sum: 1 },
             lastOrder: { $max: "$createdAt" },
           },
@@ -1430,6 +1528,8 @@ const adminController = {
           $group: {
             _id: "$client",
             totalDebt: { $sum: "$debt" },
+            totalSum: { $sum: "$totalSum" },
+            totalPaid: { $sum: "$paidSum" },
             orderCount: { $sum: 1 },
             lastOrder: { $max: "$createdAt" },
           },
@@ -1461,8 +1561,10 @@ const adminController = {
         { header: "Ism", key: "firstName", width: 20 },
         { header: "Familiya", key: "lastName", width: 20 },
         { header: "Telefon", key: "phone", width: 15 },
-        { header: "Qarzdorlik (so'm)", key: "debt", width: 20 },
         { header: "Buyurtmalar", key: "orderCount", width: 15 },
+        { header: "Boshlang'ich qoldiq (so'm)", key: "totalSum", width: 25 },
+        { header: "To'lov summasi (so'm)", key: "totalPaid", width: 25 },
+        { header: "Umumiy qoldiq (so'm)", key: "debt", width: 25 },
         { header: "Oxirgi buyurtma", key: "lastOrder", width: 20 },
       ];
 
@@ -1480,8 +1582,10 @@ const adminController = {
           firstName: debt.client.firstName || "",
           lastName: debt.client.lastName || "",
           phone: debt.client.phone || "",
-          debt: debt.totalDebt || 0,
           orderCount: debt.orderCount || 0,
+          totalSum: debt.totalSum || 0,
+          totalPaid: debt.totalPaid || 0,
+          debt: debt.totalDebt || 0,
           lastOrder: debt.lastOrder
             ? new Date(debt.lastOrder).toLocaleDateString("uz-UZ")
             : "",
@@ -1493,11 +1597,21 @@ const adminController = {
         (sum, debt) => sum + (debt.totalDebt || 0),
         0
       );
+      const totalSum = debts.reduce(
+        (sum, debt) => sum + (debt.totalSum || 0),
+        0
+      );
+      const totalPaid = debts.reduce(
+        (sum, debt) => sum + (debt.totalPaid || 0),
+        0
+      );
       worksheet.addRow({});
       const totalRow = worksheet.addRow({
         firstName: "JAMI",
-        debt: totalDebt,
         orderCount: debts.length,
+        totalSum: totalSum,
+        totalPaid: totalPaid,
+        debt: totalDebt,
       });
       totalRow.font = { bold: true };
       totalRow.fill = {
@@ -1516,15 +1630,17 @@ const adminController = {
         `attachment; filename=qarzdorlik-${Date.now()}.xlsx`
       );
 
-      // Write to response
-      await workbook.xlsx.write(res);
-      res.end();
+      // Write to buffer first to avoid server memory issues
+      const buffer = await workbook.xlsx.writeBuffer();
+      res.send(buffer);
 
       console.log("✅ Debts export completed successfully");
     } catch (error) {
       console.error("❌ Export debts error:", error);
       console.error("❌ Error stack:", error.stack);
-      res.redirect("/admin/debts?error=export_failed");
+      if (!res.headersSent) {
+        res.redirect("/admin/debts?error=export_failed");
+      }
     }
   },
 

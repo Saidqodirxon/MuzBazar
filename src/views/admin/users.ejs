@@ -19,7 +19,9 @@ if (users.length === 0) {
                             <th>Ism</th>
                             <th>Telefon</th>
                             <th>Buyurtmalar</th>
-                            <th>Umumiy summa</th>
+                            <th>Boshlang'ich qoldiq</th>
+                            <th>To'lov summasi</th>
+                            <th>Umumiy qoldiq</th>
                             <th>Status</th>
                             <th>Qayd qilingan</th>
                             <th>Amallar</th>
@@ -39,9 +41,11 @@ if (users.length === 0) {
                                 <strong>${user.firstName} ${user.lastName}</strong>
                                 ${user.username ? '<br><small class="text-muted">@' + user.username + '</small>' : ''}
                             </td>
-                            <td><a href="tel:${user.phone}">${user.phone || 'N/A'}</a></td>
+                            <td>${user.phone ? '<a href="tel:' + user.phone + '">' + user.phone + '</a>' : '<span class="text-muted">Kiritilmagan</span>'}</td>
                             <td>${user.orderCount || 0}</td>
                             <td>${(user.totalSpent || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</td>
+                            <td>${(user.totalPaid || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</td>
+                            <td><span class="${(user.totalDebt || 0) > 0 ? 'text-danger fw-bold' : 'text-success'}">${(user.totalDebt || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</span></td>
                             <td><span class="badge bg-${statusBadge}">${statusText}</span></td>
                             <td>${moment(user.createdAt).format('DD/MM/YYYY')}</td>
                             <td>

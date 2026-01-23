@@ -33,7 +33,9 @@ if (recentOrders.length === 0) {
                 <tr>
                     <th>Buyurtma №</th>
                     <th>Klient</th>
-                    <th>Summa</th>
+                    <th>Boshlang'ich qoldiq</th>
+                    <th>To'lov summasi</th>
+                    <th>Umumiy qoldiq</th>
                     <th>Status</th>
                     <th>Sana</th>
                     <th>Amallar</th>
@@ -63,11 +65,18 @@ if (recentOrders.length === 0) {
                 break;
         }
         
+        const totalSum = order.totalSum || 0;
+        const totalPaid = order.totalPaid || 0;
+        const debt = order.debt || 0;
+        const debtColor = debt > 0 ? 'text-danger' : 'text-success';
+        
         ordersHtml += `
             <tr>
                 <td><strong>${order.orderNumber}</strong></td>
                 <td>${order.client.firstName} ${order.client.lastName}</td>
-                <td>${(order.totalSum || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</td>
+                <td>${totalSum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</td>
+                <td class="text-success">${totalPaid.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</td>
+                <td class="${debtColor}"><strong>${debt.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</strong></td>
                 <td><span class="badge bg-${statusClass}">${statusText}</span></td>
                 <td>${moment(order.createdAt).format('DD/MM/YYYY HH:mm')}</td>
                 <td>

@@ -81,24 +81,8 @@ const orderSchema = new mongoose.Schema(
   }
 );
 
-// Pre-save middleware to generate order number
+// Pre-save middleware to calculate debt
 orderSchema.pre("save", async function (next) {
-  if (this.isNew) {
-    const today = new Date();
-    const dateStr = today.toISOString().slice(0, 10).replace(/-/g, "");
-    const count = await this.constructor.countDocuments({
-      createdAt: {
-        $gte: new Date(today.getFullYear(), today.getMonth(), today.getDate()),
-        $lt: new Date(
-          today.getFullYear(),
-          today.getMonth(),
-          today.getDate() + 1
-        ),
-      },
-    });
-    this.orderNumber = `MB${dateStr}${String(count + 1).padStart(3, "0")}`;
-  }
-
   // Calculate debt
   this.debt = this.totalSum - this.paidSum;
 
