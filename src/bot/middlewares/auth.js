@@ -19,10 +19,31 @@ const authMiddleware = async (ctx, next) => {
         lastName: ctx.from.last_name || "",
         username: ctx.from.username || "",
         role: "client",
+        isBlocked: true, // Default holatda blokli
       });
 
       await user.save();
       console.log(`🆕 New user registered: ${user.fullName} (${telegramId})`);
+
+      // Guruhga notification yuborish
+      try {
+        const NotificationService = require("../../utils/notificationService");
+        const notificationService = new NotificationService();
+        
+        const fullName = `${user.firstName} ${user.lastName || ""}`.trim();
+        const usernameInfo = user.username ? `@${user.username}` : `ID: ${telegramId}`;
+        
+        const message = `🆕 <b>Yangi foydalanuvchi!</b>\n\n` +
+          `👤 Ism: ${fullName}\n` +
+          `📱 Telegram: ${usernameInfo}\n` +
+          `🆔 User ID: ${user._id}\n\n` +
+          `⚠️ Foydalanuvchi hozir <b>bloklangan</b> holatda.\n` +
+          `✅ Admin paneldan ochib qo'ying: ${process.env.SITE_URL || "http://localhost:3000"}/admin/users`;
+        
+        await notificationService.sendToGroup(message, { parse_mode: "HTML" });
+      } catch (notifError) {
+        console.error("❌ Failed to send new user notification:", notifError);
+      }
     }
 
     // Check if user needs to provide phone number
@@ -46,6 +67,16 @@ const authMiddleware = async (ctx, next) => {
         ctx.session.needsPhone = true;
         return next();
       }
+    }
+
+    // Check if user is blocked
+    if (user.isBlocked) {
+      return ctx.reply(
+        "⛔️ Sizning hisobingiz hozircha bloklangan.\n\n" +
+          "✅ Admin sizning hisobingizni ko'rib chiqib, tez orada ochib qo'yadi.\n\n" +
+          "📞 Yordam uchun: @muzbazar_admin",
+        Markup.removeKeyboard()
+      );
     }
 
     // Check if user is blocked/inactive

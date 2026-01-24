@@ -57,6 +57,7 @@ router.get("/users/:id/export-orders", adminController.exportUserOrders);
 router.post("/users/:id/notify", adminController.sendUserNotification);
 router.post("/users/:id/role", adminController.updateUserRole);
 router.post("/users/:id/toggle-status", adminController.toggleUserStatus);
+router.post("/users/:id/toggle-block", adminController.toggleUserBlock);
 
 // Sellers Management
 router.get("/sellers", adminController.sellers);

@@ -1061,6 +1061,41 @@ const adminController = {
     }
   },
 
+  // Toggle user block status (for new users)
+  async toggleUserBlock(req, res) {
+    try {
+      const user = await User.findById(req.params.id);
+      if (!user) {
+        return res.redirect("/admin/users?error=user_not_found");
+      }
+
+      user.isBlocked = !user.isBlocked;
+      await user.save();
+
+      // Send notification to user if unblocked
+      if (!user.isBlocked && user.telegramId) {
+        try {
+          const NotificationService = require("../../utils/notificationService");
+          const notificationService = new NotificationService();
+          
+          const message = `✅ <b>Hisobingiz faollashtirildi!</b>\n\n` +
+            `🎉 Salom, ${user.firstName}! Sizning hisobingiz admin tomonidan tasdiqlandi.\n\n` +
+            `🛍️ Endi botdan to'liq foydalanishingiz mumkin!\n\n` +
+            `📱 /start buyrug'ini bosing va xarid qilishni boshlang!`;
+          
+          await notificationService.sendToUser(user.telegramId, message, { parse_mode: "HTML" });
+        } catch (notifError) {
+          console.error("❌ Failed to send unblock notification:", notifError);
+        }
+      }
+
+      res.redirect("/admin/users?success=block_status_updated");
+    } catch (error) {
+      console.error("❌ Toggle user block error:", error);
+      res.redirect("/admin/users?error=update_failed");
+    }
+  },
+
   // Send notification to single user
   async sendUserNotification(req, res) {
     try {

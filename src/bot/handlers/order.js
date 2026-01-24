@@ -486,19 +486,26 @@ const orderHandler = {
         totalSum += item.quantity * product.sellPrice;
       }
 
-      // Generate unique order number with retry logic and timestamp
+      // Generate unique order number with better obfuscation (no visible date)
       let orderNumber;
       let attempts = 0;
       const maxAttempts = 10;
 
       while (attempts < maxAttempts) {
         const now = new Date();
-        const dateStr = now.toISOString().slice(0, 10).replace(/-/g, "");
-
-        // Use timestamp seconds + random for uniqueness
-        const timestamp = Math.floor(now.getTime() / 1000) % 10000; // Last 4 digits of timestamp
-        const randomSuffix = Math.floor(Math.random() * 100);
-        orderNumber = `MB${dateStr}${String(timestamp).padStart(4, "0")}${String(randomSuffix).padStart(2, "0")}`;
+        
+        // Create a more obfuscated number using timestamp and random
+        const timestamp = now.getTime();
+        const random1 = Math.floor(Math.random() * 9000) + 1000; // 4 digits
+        const random2 = Math.floor(Math.random() * 9000) + 1000; // 4 digits
+        
+        // Mix timestamp parts with random for better obfuscation
+        const mixedPart1 = (timestamp % 10000).toString().padStart(4, '0');
+        const mixedPart2 = random1.toString();
+        const mixedPart3 = random2.toString();
+        
+        // Format: MB-XXXX-XXXX-XXXX (total 12 digits after MB)
+        orderNumber = `MB${mixedPart1}${mixedPart2}${mixedPart3}`;
 
         // Check if order number already exists
         const existing = await Order.findOne({ orderNumber });

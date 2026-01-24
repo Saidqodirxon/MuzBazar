@@ -35,6 +35,12 @@ if (users.length === 0) {
                             const toggleTitle = user.isActive ? 'Bloklash' : 'Aktivlashtirish';
                             const notifyDisabled = user.telegramId ? '' : 'disabled';
                             
+                            const blockBadge = user.isBlocked ? 'danger' : 'success';
+                            const blockText = user.isBlocked ? '🔒 Blok' : '✅ Ochiq';
+                            const blockToggleIcon = user.isBlocked ? 'unlock' : 'lock';
+                            const blockToggleTitle = user.isBlocked ? 'Ochish' : 'Yopish';
+                            const blockToggleClass = user.isBlocked ? 'success' : 'warning';
+                            
                             return `
                         <tr>
                             <td>
@@ -46,13 +52,25 @@ if (users.length === 0) {
                             <td>${(user.totalSpent || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</td>
                             <td>${(user.totalPaid || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</td>
                             <td><span class="${(user.totalDebt || 0) > 0 ? 'text-danger fw-bold' : 'text-success'}">${(user.totalDebt || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</span></td>
-                            <td><span class="badge bg-${statusBadge}">${statusText}</span></td>
+                            <td>
+                                <span class="badge bg-${statusBadge}">${statusText}</span>
+                                ${user.isBlocked ? '<br><span class="badge bg-' + blockBadge + ' mt-1">' + blockText + '</span>' : ''}
+                            </td>
                             <td>${moment(user.createdAt).format('DD/MM/YYYY')}</td>
                             <td>
                                 <div class="btn-group" role="group">
                                     <a href="/admin/users/${user._id}" class="btn btn-sm btn-outline-primary" title="Ko'rish">
                                         <i class="fas fa-eye"></i>
                                     </a>
+                                    ${user.isBlocked ? `
+                                    <form method="POST" action="/admin/users/${user._id}/toggle-block" style="display: inline;" 
+                                          onsubmit="event.stopPropagation(); if(!confirm('Foydalanuvchini ochmoqchimisiz?')) return false;">
+                                        <button type="submit" class="btn btn-sm btn-outline-${blockToggleClass}" 
+                                                title="${blockToggleTitle}" onclick="event.stopPropagation();">
+                                            <i class="fas fa-${blockToggleIcon}"></i>
+                                        </button>
+                                    </form>
+                                    ` : ''}
                                     <form method="POST" action="/admin/users/${user._id}/toggle-status" style="display: inline;" 
                                           onsubmit="event.stopPropagation(); if(!confirm('Statusni ozgartirmoqchimisiz?')) return false;">
                                         <button type="submit" class="btn btn-sm btn-outline-${user.isActive ? 'warning' : 'success'}" 

@@ -40,6 +40,10 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    isBlocked: {
+      type: Boolean,
+      default: true, // Yangi userlar default holatda blokli
+    },
     totalDebt: {
       type: Number,
       default: 0,
