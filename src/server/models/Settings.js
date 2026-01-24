@@ -174,8 +174,10 @@ settingsSchema.statics.initDefaults = async function () {
     {
       key: "blocked_user_message",
       label: "Bloklangan foydalanuvchi xabari",
-      value: "⛔️ Sizning hisobingiz hozircha bloklangan.\n\n✅ Admin sizning hisobingizni ko'rib chiqib, tez orada ochib qo'yadi.\n\n📞 Yordam uchun: @muzbazar_admin",
-      defaultValue: "⛔️ Sizning hisobingiz hozircha bloklangan.\n\n✅ Admin sizning hisobingizni ko'rib chiqib, tez orada ochib qo'yadi.\n\n📞 Yordam uchun: @muzbazar_admin",
+      value:
+        "⛔️ Sizning hisobingiz hozircha bloklangan.\n\n✅ Admin sizning hisobingizni ko'rib chiqib, tez orada ochib qo'yadi.\n\n📞 Yordam uchun: @muzbazar_admin",
+      defaultValue:
+        "⛔️ Sizning hisobingiz hozircha bloklangan.\n\n✅ Admin sizning hisobingizni ko'rib chiqib, tez orada ochib qo'yadi.\n\n📞 Yordam uchun: @muzbazar_admin",
       description: "Bloklangan foydalanuvchiga ko'rsatiladigan xabar",
       type: "textarea",
     },
