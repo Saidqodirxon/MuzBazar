@@ -29,17 +29,20 @@ const authMiddleware = async (ctx, next) => {
       try {
         const NotificationService = require("../../utils/notificationService");
         const notificationService = new NotificationService();
-        
+
         const fullName = `${user.firstName} ${user.lastName || ""}`.trim();
-        const usernameInfo = user.username ? `@${user.username}` : `ID: ${telegramId}`;
-        
-        const message = `🆕 <b>Yangi foydalanuvchi!</b>\n\n` +
+        const usernameInfo = user.username
+          ? `@${user.username}`
+          : `ID: ${telegramId}`;
+
+        const message =
+          `🆕 <b>Yangi foydalanuvchi!</b>\n\n` +
           `👤 Ism: ${fullName}\n` +
           `📱 Telegram: ${usernameInfo}\n` +
           `🆔 User ID: ${user._id}\n\n` +
           `⚠️ Foydalanuvchi hozir <b>bloklangan</b> holatda.\n` +
           `✅ Admin paneldan ochib qo'ying: ${process.env.SITE_URL || "http://localhost:3000"}/admin/users`;
-        
+
         await notificationService.sendToGroup(message, { parse_mode: "HTML" });
       } catch (notifError) {
         console.error("❌ Failed to send new user notification:", notifError);

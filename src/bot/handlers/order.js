@@ -493,17 +493,17 @@ const orderHandler = {
 
       while (attempts < maxAttempts) {
         const now = new Date();
-        
+
         // Create a more obfuscated number using timestamp and random
         const timestamp = now.getTime();
         const random1 = Math.floor(Math.random() * 9000) + 1000; // 4 digits
         const random2 = Math.floor(Math.random() * 9000) + 1000; // 4 digits
-        
+
         // Mix timestamp parts with random for better obfuscation
-        const mixedPart1 = (timestamp % 10000).toString().padStart(4, '0');
+        const mixedPart1 = (timestamp % 10000).toString().padStart(4, "0");
         const mixedPart2 = random1.toString();
         const mixedPart3 = random2.toString();
-        
+
         // Format: MB-XXXX-XXXX-XXXX (total 12 digits after MB)
         orderNumber = `MB${mixedPart1}${mixedPart2}${mixedPart3}`;
 

@@ -1077,13 +1077,16 @@ const adminController = {
         try {
           const NotificationService = require("../../utils/notificationService");
           const notificationService = new NotificationService();
-          
-          const message = `✅ <b>Hisobingiz faollashtirildi!</b>\n\n` +
+
+          const message =
+            `✅ <b>Hisobingiz faollashtirildi!</b>\n\n` +
             `🎉 Salom, ${user.firstName}! Sizning hisobingiz admin tomonidan tasdiqlandi.\n\n` +
             `🛍️ Endi botdan to'liq foydalanishingiz mumkin!\n\n` +
             `📱 /start buyrug'ini bosing va xarid qilishni boshlang!`;
-          
-          await notificationService.sendToUser(user.telegramId, message, { parse_mode: "HTML" });
+
+          await notificationService.sendToUser(user.telegramId, message, {
+            parse_mode: "HTML",
+          });
         } catch (notifError) {
           console.error("❌ Failed to send unblock notification:", notifError);
         }
