@@ -74,12 +74,14 @@ const authMiddleware = async (ctx, next) => {
 
     // Check if user is blocked
     if (user.isBlocked) {
-      return ctx.reply(
+      const { Settings } = require("../../server/models");
+      const blockedMessage = await Settings.get(
+        "blocked_user_message",
         "⛔️ Sizning hisobingiz hozircha bloklangan.\n\n" +
           "✅ Admin sizning hisobingizni ko'rib chiqib, tez orada ochib qo'yadi.\n\n" +
-          "📞 Yordam uchun: @muzbazar_admin",
-        Markup.removeKeyboard()
+          "📞 Yordam uchun: @muzbazar_admin"
       );
+      return ctx.reply(blockedMessage, Markup.removeKeyboard());
     }
 
     // Check if user is blocked/inactive
