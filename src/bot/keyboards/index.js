@@ -63,15 +63,13 @@ class Keyboards {
   static quantityInline(productId) {
     return Markup.inlineKeyboard([
       [
-        Markup.button.callback("10", `qty_${productId}_10`),
-        Markup.button.callback("20", `qty_${productId}_20`),
-        Markup.button.callback("30", `qty_${productId}_30`),
+        Markup.button.callback("1", `qty_${productId}_1`),
+        Markup.button.callback("2", `qty_${productId}_2`),
+        Markup.button.callback("3", `qty_${productId}_3`),
+        Markup.button.callback("4", `qty_${productId}_4`),
+        Markup.button.callback("5", `qty_${productId}_5`),
       ],
-      [
-        Markup.button.callback("40", `qty_${productId}_40`),
-        Markup.button.callback("50", `qty_${productId}_50`),
-        Markup.button.callback("➕ Boshqa", `qty_${productId}_custom`),
-      ],
+      [Markup.button.callback("➕ Boshqa", `qty_${productId}_custom`)],
       [Markup.button.callback("🔙 Orqaga", `product_${productId}`)],
     ]);
   }

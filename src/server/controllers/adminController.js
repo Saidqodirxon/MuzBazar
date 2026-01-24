@@ -1077,12 +1077,19 @@ const adminController = {
         try {
           const NotificationService = require("../../utils/notificationService");
           const notificationService = new NotificationService();
+          const { Settings } = require("../models");
 
-          const message =
-            `✅ <b>Hisobingiz faollashtirildi!</b>\n\n` +
-            `🎉 Salom, ${user.firstName}! Sizning hisobingiz admin tomonidan tasdiqlandi.\n\n` +
-            `🛍️ Endi botdan to'liq foydalanishingiz mumkin!\n\n` +
-            `📱 /start buyrug'ini bosing va xarid qilishni boshlang!`;
+          // Get message from settings
+          let message = await Settings.get(
+            "user_unblocked_message",
+            "✅ <b>Hisobingiz faollashtirildi!</b>\n\n" +
+              "🎉 Salom, {ism}! Sizning hisobingiz admin tomonidan tasdiqlandi.\n\n" +
+              "🛍️ Endi botdan to'liq foydalanishingiz mumkin!\n\n" +
+              "📱 /start buyrug'ini bosing va xarid qilishni boshlang!"
+          );
+
+          // Replace {ism} with user's first name
+          message = message.replace(/{ism}/g, user.firstName);
 
           await notificationService.sendToUser(user.telegramId, message, {
             parse_mode: "HTML",

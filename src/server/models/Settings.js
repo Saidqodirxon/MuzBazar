@@ -182,6 +182,17 @@ settingsSchema.statics.initDefaults = async function () {
       type: "textarea",
     },
     {
+      key: "user_unblocked_message",
+      label: "Hisobingiz faollashtirildi xabari",
+      value:
+        "✅ <b>Hisobingiz faollashtirildi!</b>\n\n🎉 Salom, {ism}! Sizning hisobingiz admin tomonidan tasdiqlandi.\n\n🛍️ Endi botdan to'liq foydalanishingiz mumkin!\n\n📱 /start buyrug'ini bosing va xarid qilishni boshlang!",
+      defaultValue:
+        "✅ <b>Hisobingiz faollashtirildi!</b>\n\n🎉 Salom, {ism}! Sizning hisobingiz admin tomonidan tasdiqlandi.\n\n🛍️ Endi botdan to'liq foydalanishingiz mumkin!\n\n📱 /start buyrug'ini bosing va xarid qilishni boshlang!",
+      description:
+        "User ochilganda yuboriladigan xabar. {ism} - user ismi bilan almashtiriladi",
+      type: "textarea",
+    },
+    {
       key: "last_debt_reminder_date",
       label: "Oxirgi eslatma yuborilgan sana",
       value: null,
