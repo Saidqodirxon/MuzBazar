@@ -191,7 +191,7 @@ const catalogHandler = {
 
       const quantityKeyboard = Keyboards.quantityInline(
         productId,
-        product.category._id
+        product.category?._id?.toString()
       );
 
       // Send image if available
