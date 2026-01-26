@@ -47,7 +47,7 @@ if (categories.length === 0) {
                                     '<span class="badge bg-danger">Nofaol</span>'}
                             </td>
                             <td>
-                                ${new Date(cat.createdAt).toLocaleDateString('uz-UZ')}
+                                ${new Date(cat.createdAt).toLocaleDateString('uz-UZ', { timeZone: 'Asia/Tashkent' })}
                             </td>
                             <td>
                                 <div class="btn-group" role="group">

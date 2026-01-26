@@ -5,7 +5,7 @@ const layout = '../layouts/layout.ejs';
 const formatDate = (date) => {
     if (!date) return '-';
     try {
-        return moment(date).format('DD/MM/YYYY');
+        return moment(date).utcOffset(5).format('DD/MM/YYYY');
     } catch (e) {
         return '-';
     }

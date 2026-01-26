@@ -227,7 +227,7 @@ bot.hears("💰 Qarzdorlik", async (ctx) => {
     message += `Boshlang'ich qoldiq: ${formatSum(totalSum)}.\n`;
     message += `To'lov summasi: ${formatSum(totalPaid)}.\n`;
     message += `Umumiy qoldiq: ${formatSum(totalDebt)}.\n\n`;
-    message += `Vaqti: ${new Date().toLocaleString("uz-UZ", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }).replace(",", "")}`;
+    message += `Vaqti: ${new Date().toLocaleString("uz-UZ", { timeZone: "Asia/Tashkent", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }).replace(",", "")}`;
 
     await ctx.reply(message);
   } catch (error) {

@@ -16,29 +16,31 @@ class TaskScheduler {
   init() {
     console.log("🕐 Initializing scheduled tasks...");
 
-    // Check low stock every day at 9 AM
+    const cronOptions = { timezone: "Asia/Tashkent" };
+
+    // Check low stock every day at 9 AM (Tashkent time)
     cron.schedule("0 9 * * *", async () => {
       console.log("📦 Running daily stock check...");
       await this.checkLowStockAndNotify();
-    });
+    }, cronOptions);
 
     // Send automated debt reminders (configurable from settings)
     cron.schedule("*/10 * * * *", async () => {
       // Check every 10 minutes if it's time to send reminders
       await this.checkAndSendDebtReminders();
-    });
+    }, cronOptions);
 
-    // Generate daily reports every day at 11 PM
+    // Generate daily reports every day at 11 PM (Tashkent time)
     cron.schedule("0 23 * * *", async () => {
       console.log("📊 Running daily reports...");
       await this.generateDailyReports();
-    });
+    }, cronOptions);
 
-    // Generate monthly reports on 1st day of month at 9 AM
+    // Generate monthly reports on 1st day of month at 9 AM (Tashkent time)
     cron.schedule("0 9 1 * *", async () => {
       console.log("📈 Running monthly reports...");
       await this.sendMonthlySummary();
-    });
+    }, cronOptions);
 
     console.log("✅ Scheduled tasks initialized");
   }

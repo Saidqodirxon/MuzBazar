@@ -145,11 +145,13 @@ class NotificationService {
 
       const now = new Date();
       const dateStr = now.toLocaleDateString("uz-UZ", {
+        timeZone: "Asia/Tashkent",
         day: "2-digit",
         month: "2-digit",
         year: "numeric",
       });
       const timeStr = now.toLocaleTimeString("uz-UZ", {
+        timeZone: "Asia/Tashkent",
         hour: "2-digit",
         minute: "2-digit",
         second: "2-digit",
@@ -219,7 +221,7 @@ class NotificationService {
       const totalSum = (populatedOrder.totalSum || 0)
         .toString()
         .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-      const timeStr = new Date().toLocaleString("uz-UZ");
+      const timeStr = new Date().toLocaleString("uz-UZ", { timeZone: "Asia/Tashkent" });
       const siteUrl =
         process.env.SITE_URL || `http://localhost:${process.env.PORT || 3000}`;
       const orderUrl = `${siteUrl}/admin/orders/${populatedOrder._id}`;
@@ -355,11 +357,13 @@ ${orderUrl}`;
 
       const now = new Date();
       const dateStr = now.toLocaleDateString("uz-UZ", {
+        timeZone: "Asia/Tashkent",
         day: "2-digit",
         month: "2-digit",
         year: "numeric",
       });
       const timeStr = now.toLocaleTimeString("uz-UZ", {
+        timeZone: "Asia/Tashkent",
         hour: "2-digit",
         minute: "2-digit",
         second: "2-digit",
@@ -421,7 +425,7 @@ ${orderUrl}`;
       "🧪 **Test xabari**",
       "",
       "Notification tizimi ishlayapti!",
-      `⏰ Vaqt: ${new Date().toLocaleString("uz-UZ")}`,
+      `⏰ Vaqt: ${new Date().toLocaleString("uz-UZ", { timeZone: "Asia/Tashkent" })}`,
       "",
       "✅ MUZ BAZAR Bot",
     ].join("\n");

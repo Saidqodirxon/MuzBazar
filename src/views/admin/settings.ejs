@@ -33,6 +33,7 @@ const body = `
                         if (setting.type === 'datetime') {
                             const dateValue = value ? new Date(value).toISOString().slice(0, 16) : '';
                             const displayDate = value ? new Date(value).toLocaleString('uz-UZ', { 
+                                timeZone: 'Asia/Tashkent',
                                 dateStyle: 'short', 
                                 timeStyle: 'short' 
                             }) : 'Hali yuborilmagan';

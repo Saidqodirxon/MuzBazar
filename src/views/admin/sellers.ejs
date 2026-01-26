@@ -30,7 +30,7 @@ if (!sellers || sellers.length === 0) {
             <td>
                 <span class="badge bg-${statusClass}">${statusText}</span>
             </td>
-            <td>${moment(seller.createdAt).format('DD/MM/YYYY')}</td>
+            <td>${moment(seller.createdAt).utcOffset(5).format('DD/MM/YYYY')}</td>
             <td>
                 <form method="POST" action="/admin/sellers/${seller._id}/toggle" class="d-inline">
                     <button type="submit" class="btn btn-sm btn-outline-${seller.isActive ? 'warning' : 'success'}" title="${seller.isActive ? 'Bloklash' : 'Aktivlashtirish'}">

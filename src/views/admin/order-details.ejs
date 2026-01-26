@@ -37,7 +37,7 @@ const body = `
                     </div>
                     <div class="col-md-6">
                         <p><strong>Status:</strong> <span class="badge bg-${statusClass}">${statusText}</span></p>
-                        <p><strong>Yaratilgan:</strong> ${moment(order.createdAt).format('DD/MM/YYYY HH:mm')}</p>
+                        <p><strong>Yaratilgan:</strong> ${moment(order.createdAt).utcOffset(5).format('DD/MM/YYYY HH:mm')}</p>
                     </div>
                 </div>
 
@@ -92,7 +92,7 @@ const body = `
                         <tbody>
                             ${payments.map(payment => `
                             <tr>
-                                <td>${moment(payment.createdAt).format('DD/MM/YYYY HH:mm')}</td>
+                                <td>${moment(payment.createdAt).utcOffset(5).format('DD/MM/YYYY HH:mm')}</td>
                                 <td>${(payment.amount || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</td>
                                 <td>${payment.seller ? (payment.seller.firstName + ' ' + payment.seller.lastName) : 'System'}</td>
                                 <td class="text-end">
@@ -267,7 +267,7 @@ Boshlang'ich qoldiq: ${(order.totalSum || 0).toString().replace(/\\B(?=(\\d{3})+
 To'lov summasi: ${(order.paidSum || 0).toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, ' ')} so'm
 Umumiy qoldiq: ${(order.debt || 0).toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, ' ')} so'm
 
-Vaqti: ${moment(order.createdAt).format('DD/MM/YYYY HH:mm:ss')}
+Vaqti: ${moment(order.createdAt).utcOffset(5).format('DD/MM/YYYY HH:mm:ss')}
 
 ${order.debt > 0 ? 'Iltimos, tolovni amalga oshiring.' : 'Rahmat! Tolovlar toliq amalga oshirilgan.'}
 
