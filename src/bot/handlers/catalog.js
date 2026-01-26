@@ -138,10 +138,26 @@ const catalogHandler = {
         products,
         categoryId
       );
-      await ctx.editMessageText(
-        `🛍️ <b>${category.name}</b>\n\n${productList}\n\nMahsulotni tanlang:`,
-        { parse_mode: "HTML", ...productsKeyboard }
-      );
+      
+      const message = `🛍️ <b>${category.name}</b>\n\n${productList}\n\nMahsulotni tanlang:`;
+      
+      try {
+        await ctx.editMessageText(message, {
+          parse_mode: "HTML",
+          ...productsKeyboard,
+        });
+      } catch (editError) {
+        // Agar message rasm bo'lsa yoki edit qilib bo'lmasa
+        if (editError.description?.includes("no text in the message")) {
+          await ctx.deleteMessage().catch(() => {});
+          await ctx.reply(message, {
+            parse_mode: "HTML",
+            ...productsKeyboard,
+          });
+        } else {
+          throw editError;
+        }
+      }
 
       try {
         await ctx.answerCbQuery();
@@ -189,11 +205,7 @@ const catalogHandler = {
         .filter(Boolean)
         .join("\n");
 
-      // Get category ID properly
-      const categoryId = product.category?._id
-        ? product.category._id.toString()
-        : product.category?.toString();
-
+      const categoryId = product.category._id.toString();
       const quantityKeyboard = Keyboards.quantityInline(productId, categoryId);
 
       // Send image if available
