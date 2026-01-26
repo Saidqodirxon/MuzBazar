@@ -189,9 +189,14 @@ const catalogHandler = {
         .filter(Boolean)
         .join("\n");
 
+      // Get category ID properly
+      const categoryId = product.category?._id 
+        ? product.category._id.toString() 
+        : product.category?.toString();
+
       const quantityKeyboard = Keyboards.quantityInline(
         productId,
-        product.category?._id?.toString()
+        categoryId
       );
 
       // Send image if available
