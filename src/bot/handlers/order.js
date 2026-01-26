@@ -48,77 +48,6 @@ const orderHandler = {
         }
       }
 
-      if (product.stock < qty) {
-        await ctx
-          .answerCbQuery(`❌ Faqat ${product.stock} ta mavjud`)
-          .catch(() => {});
-
-        // Re-show product details with error message
-        const catalogHandler = require("./catalog");
-        const populatedProduct =
-          await Product.findById(productId).populate("category");
-
-        const details = [
-          `⚠️ <b>Omborda yetarli mahsulot yo'q!</b>`,
-          ``,
-          `📋 Siz buyurtma qildingiz: <b>${qty} ta</b>`,
-          `📦 Omborda mavjud: <b>${product.stock} ta</b>`,
-          ``,
-          `💡 Iltimos, kamroq miqdor tanlang yoki kiriting.`,
-          ``,
-          `━━━━━━━━━━━━━━━━━━━━`,
-          ``,
-          `🛍️ <b>${populatedProduct.name}</b>`,
-          `📁 Kategoriya: ${populatedProduct.category.name}`,
-          `💰 Narxi: ${orderHandler.formatSum(populatedProduct.sellPrice)} so'm`,
-          `📦 Mavjud: ${populatedProduct.stock} ${populatedProduct.type}`,
-          `\n${populatedProduct.description || ""}`,
-        ]
-          .filter(Boolean)
-          .join("\n");
-
-        const Keyboards = require("../keyboards");
-        const quantityKeyboard = Keyboards.quantityInline(productId);
-
-        // Delete previous message and send with image
-        try {
-          await ctx.deleteMessage();
-        } catch (delErr) {}
-
-        if (populatedProduct.image) {
-          const imageSource = catalogHandler.getImageSource(
-            populatedProduct.image
-          );
-          if (imageSource) {
-            try {
-              await ctx.replyWithPhoto(imageSource, {
-                caption: details + "\n\n<b>Miqdorni tanlang:</b>",
-                parse_mode: "HTML",
-                ...quantityKeyboard,
-              });
-            } catch (imgError) {
-              console.error("Image send error:", imgError.message);
-              await ctx.reply(`${details}\n\n<b>Miqdorni tanlang:</b>`, {
-                parse_mode: "HTML",
-                ...quantityKeyboard,
-              });
-            }
-          } else {
-            await ctx.reply(`${details}\n\n<b>Miqdorni tanlang:</b>`, {
-              parse_mode: "HTML",
-              ...quantityKeyboard,
-            });
-          }
-        } else {
-          await ctx.reply(`${details}\n\n<b>Miqdorni tanlang:</b>`, {
-            parse_mode: "HTML",
-            ...quantityKeyboard,
-          });
-        }
-
-        return;
-      }
-
       // Get cart from session
       const cart = orderHandler.getCart(ctx);
 
@@ -263,69 +192,11 @@ const orderHandler = {
       );
     }
 
-    // Check stock before proceeding
+    // Get product info
     const product = await Product.findById(productId).populate("category");
     if (!product) {
       delete ctx.session.awaitingQuantity;
       return ctx.reply("❌ Mahsulot topilmadi.");
-    }
-
-    if (product.stock < quantity) {
-      // Show error with product image and quantity buttons
-      const catalogHandler = require("./catalog");
-      const details = [
-        `⚠️ <b>Omborda yetarli mahsulot yo'q!</b>`,
-        ``,
-        `📋 Siz buyurtma qildingiz: <b>${quantity} ta</b>`,
-        `📦 Omborda mavjud: <b>${product.stock} ta</b>`,
-        ``,
-        `💡 Iltimos, kamroq miqdor tanlang yoki kiriting.`,
-        ``,
-        `━━━━━━━━━━━━━━━━━━━━`,
-        ``,
-        `🛍️ <b>${product.name}</b>`,
-        `📁 Kategoriya: ${product.category.name}`,
-        `💰 Narxi: ${orderHandler.formatSum(product.sellPrice)} so'm`,
-        `📦 Mavjud: ${product.stock} ${product.type}`,
-        `\n${product.description || ""}`,
-      ]
-        .filter(Boolean)
-        .join("\n");
-
-      const Keyboards = require("../keyboards");
-      const quantityKeyboard = Keyboards.quantityInline(productId);
-
-      if (product.image) {
-        const imageSource = catalogHandler.getImageSource(product.image);
-        if (imageSource) {
-          try {
-            await ctx.replyWithPhoto(imageSource, {
-              caption: details + "\n\n<b>Miqdorni tanlang:</b>",
-              parse_mode: "HTML",
-              ...quantityKeyboard,
-            });
-          } catch (imgError) {
-            console.error("Image send error:", imgError.message);
-            await ctx.reply(`${details}\n\n<b>Miqdorni tanlang:</b>`, {
-              parse_mode: "HTML",
-              ...quantityKeyboard,
-            });
-          }
-        } else {
-          await ctx.reply(`${details}\n\n<b>Miqdorni tanlang:</b>`, {
-            parse_mode: "HTML",
-            ...quantityKeyboard,
-          });
-        }
-      } else {
-        await ctx.reply(`${details}\n\n<b>Miqdorni tanlang:</b>`, {
-          parse_mode: "HTML",
-          ...quantityKeyboard,
-        });
-      }
-
-      delete ctx.session.awaitingQuantity;
-      return;
     }
 
     delete ctx.session.awaitingQuantity;

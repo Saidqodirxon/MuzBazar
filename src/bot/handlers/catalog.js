@@ -130,7 +130,7 @@ const catalogHandler = {
       const productList = products
         .map(
           (p) =>
-            `• <b>${p.name}</b> - ${catalogHandler.formatSum(p.sellPrice)} so'm (${p.stock} ta)`
+            `• <b>${p.name}</b> - ${catalogHandler.formatSum(p.sellPrice)} so'm`
         )
         .join("\n");
 
@@ -184,13 +184,15 @@ const catalogHandler = {
         `🛍️ <b>${product.name}</b>`,
         `📁 Kategoriya: ${product.category.name}`,
         `💰 Narxi: ${catalogHandler.formatSum(product.sellPrice)} so'm`,
-        `📦 Mavjud: ${product.stock} ${product.type}`,
         `\n${product.description || ""}`,
       ]
         .filter(Boolean)
         .join("\n");
 
-      const quantityKeyboard = Keyboards.quantityInline(productId);
+      const quantityKeyboard = Keyboards.quantityInline(
+        productId,
+        product.category._id
+      );
 
       // Send image if available
       if (product.image) {

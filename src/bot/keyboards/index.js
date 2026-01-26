@@ -60,7 +60,7 @@ class Keyboards {
   }
 
   // Quantity selection
-  static quantityInline(productId) {
+  static quantityInline(productId, categoryId) {
     return Markup.inlineKeyboard([
       [
         Markup.button.callback("1", `qty_${productId}_1`),
@@ -79,7 +79,12 @@ class Keyboards {
         Markup.button.callback("50", `qty_${productId}_50`),
         Markup.button.callback("➕ Boshqa", `qty_${productId}_custom`),
       ],
-      [Markup.button.callback("🔙 Orqaga", `product_${productId}`)],
+      [
+        Markup.button.callback(
+          "🔙 Orqaga",
+          categoryId ? `category_${categoryId}` : "back_to_categories"
+        ),
+      ],
     ]);
   }
 
