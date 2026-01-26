@@ -221,7 +221,9 @@ class NotificationService {
       const totalSum = (populatedOrder.totalSum || 0)
         .toString()
         .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-      const timeStr = new Date().toLocaleString("uz-UZ", { timeZone: "Asia/Tashkent" });
+      const timeStr = new Date().toLocaleString("uz-UZ", {
+        timeZone: "Asia/Tashkent",
+      });
       const siteUrl =
         process.env.SITE_URL || `http://localhost:${process.env.PORT || 3000}`;
       const orderUrl = `${siteUrl}/admin/orders/${populatedOrder._id}`;
