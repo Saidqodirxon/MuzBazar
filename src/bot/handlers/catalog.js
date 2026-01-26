@@ -138,9 +138,9 @@ const catalogHandler = {
         products,
         categoryId
       );
-      
+
       const message = `🛍️ <b>${category.name}</b>\n\n${productList}\n\nMahsulotni tanlang:`;
-      
+
       try {
         await ctx.editMessageText(message, {
           parse_mode: "HTML",
