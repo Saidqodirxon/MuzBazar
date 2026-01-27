@@ -780,32 +780,33 @@ const adminController = {
 
       // Send notification to client if status changed
       if (oldStatus !== status && order.client?.telegramId) {
-        const NotificationService = require("../../utils/notificationService");
-        const notificationService = new NotificationService();
-        const { Settings } = require("../models");
+        try {
+          const NotificationService = require("../../utils/notificationService");
+          const notificationService = new NotificationService();
+          const { Settings } = require("../models");
 
-        // Get custom message for confirmed status
-        let statusText = "";
-        if (status === "confirmed") {
-          statusText = await Settings.get(
-            "order_confirmed_message",
-            "✅ Buyurtmangiz tasdiqlandi! Tez orada yetkazib beriladi."
-          );
-        } else {
-          const statusMessages = {
-            pending: "⏳ Sizning buyurtmangiz qabul qilindi va kutilmoqda.",
-            delivered: "🎉 Buyurtmangiz yetkazildi! Xaridingiz uchun rahmat!",
-            cancelled:
-              "❌ Buyurtmangiz bekor qilindi. Qarz hisobdan chiqarildi.",
-          };
-          statusText = statusMessages[status] || status;
-        }
+          // Get custom message for confirmed status
+          let statusText = "";
+          if (status === "confirmed") {
+            statusText = await Settings.get(
+              "order_confirmed_message",
+              "✅ Buyurtmangiz tasdiqlandi! Tez orada yetkazib beriladi."
+            );
+          } else {
+            const statusMessages = {
+              pending: "⏳ Sizning buyurtmangiz qabul qilindi va kutilmoqda.",
+              delivered: "🎉 Buyurtmangiz yetkazildi! Xaridingiz uchun rahmat!",
+              cancelled:
+                "❌ Buyurtmangiz bekor qilindi. Qarz hisobdan chiqarildi.",
+            };
+            statusText = statusMessages[status] || status;
+          }
 
-        const totalSum = (order.totalSum || 0)
-          .toString()
-          .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+          const totalSum = (order.totalSum || 0)
+            .toString()
+            .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 
-        const message = `📋 <b>Buyurtma yangilanishi</b>
+          const message = `📋 <b>Buyurtma yangilanishi</b>
 
 🆔 Buyurtma: <b>${order.orderNumber}</b>
 📊 Yangi holat: ${statusText}
@@ -813,17 +814,26 @@ const adminController = {
 
 📞 Savollar uchun: @muzbazar_admin`;
 
-        await notificationService.sendToUser(order.client.telegramId, message, {
-          parse_mode: "HTML",
-        });
+          await notificationService.sendToUser(
+            order.client.telegramId,
+            message,
+            {
+              parse_mode: "HTML",
+            }
+          );
 
-        console.log(
-          `📬 Status notification sent to user ${order.client.telegramId} for order ${order.orderNumber}`
-        );
+          console.log(
+            `📬 Status notification sent to user ${order.client.telegramId} for order ${order.orderNumber}`
+          );
+        } catch (notifError) {
+          console.error("❌ Failed to send user notification:", notifError);
+        }
       }
 
       // Send notification to admin group
       try {
+        const NotificationService = require("../../utils/notificationService");
+        const notificationService = new NotificationService();
         const adminName = req.session.adminUser?.name || "Admin";
         const statusLabels = {
           pending: "⏳ Kutilmoqda",
@@ -968,26 +978,26 @@ const adminController = {
             order._id,
             paymentAmount
           );
-        }
 
-        // Send notification to admin group
-        try {
-          const adminName = req.session.adminUser?.name || "Admin";
-          const groupMessage =
-            `💰 *To'lov qabul qilindi*\n\n` +
-            `👤 Sotuvchi: *${adminName}*\n` +
-            `👥 Mijoz: *${order.client.firstName} ${order.client.lastName || ""}*\n` +
-            `🆔 Buyurtma: *${order.orderNumber}*\n` +
-            `💵 To'lov: *${paymentAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*\n` +
-            `📊 Jami: *${order.totalSum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*\n` +
-            `✅ To'landi: *${order.paidSum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*\n` +
-            `🔴 Qarz: *${order.debt.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*`;
+          // Send notification to admin group
+          try {
+            const adminName = req.session.adminUser?.name || "Admin";
+            const groupMessage =
+              `💰 *To'lov qabul qilindi*\n\n` +
+              `👤 Sotuvchi: *${adminName}*\n` +
+              `👥 Mijoz: *${order.client.firstName} ${order.client.lastName || ""}*\n` +
+              `🆔 Buyurtma: *${order.orderNumber}*\n` +
+              `💵 To'lov: *${paymentAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*\n` +
+              `📊 Jami: *${order.totalSum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*\n` +
+              `✅ To'landi: *${order.paidSum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*\n` +
+              `🔴 Qarz: *${order.debt.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*`;
 
-          await notificationService.sendToGroup(groupMessage, {
-            parse_mode: "Markdown",
-          });
-        } catch (groupError) {
-          console.error("❌ Failed to send group notification:", groupError);
+            await notificationService.sendToGroup(groupMessage, {
+              parse_mode: "Markdown",
+            });
+          } catch (groupError) {
+            console.error("❌ Failed to send group notification:", groupError);
+          }
         }
       } else {
         // Qarzga qo'shish (narx berish)
@@ -1020,25 +1030,25 @@ const adminController = {
           } catch (err) {
             console.error("Failed to notify about debt increase:", err);
           }
-        }
 
-        // Send notification to admin group
-        try {
-          const adminName = req.session.adminUser?.name || "Admin";
-          const groupMessage =
-            `💳 *Qarz qo'shildi*\n\n` +
-            `👤 Sotuvchi: *${adminName}*\n` +
-            `👥 Mijoz: *${order.client.firstName} ${order.client.lastName || ""}*\n` +
-            `🆔 Buyurtma: *${order.orderNumber}*\n` +
-            `➕ Qo'shildi: *${paymentAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*\n` +
-            `📊 Jami: *${order.totalSum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*\n` +
-            `🔴 Yangi qarz: *${order.debt.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*`;
+          // Send notification to admin group
+          try {
+            const adminName = req.session.adminUser?.name || "Admin";
+            const groupMessage =
+              `💳 *Qarz qo'shildi*\n\n` +
+              `👤 Sotuvchi: *${adminName}*\n` +
+              `👥 Mijoz: *${order.client.firstName} ${order.client.lastName || ""}*\n` +
+              `🆔 Buyurtma: *${order.orderNumber}*\n` +
+              `➕ Qo'shildi: *${paymentAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*\n` +
+              `📊 Jami: *${order.totalSum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*\n` +
+              `🔴 Yangi qarz: *${order.debt.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*`;
 
-          await notificationService.sendToGroup(groupMessage, {
-            parse_mode: "Markdown",
-          });
-        } catch (groupError) {
-          console.error("❌ Failed to send group notification:", groupError);
+            await notificationService.sendToGroup(groupMessage, {
+              parse_mode: "Markdown",
+            });
+          } catch (groupError) {
+            console.error("❌ Failed to send group notification:", groupError);
+          }
         }
       }
 

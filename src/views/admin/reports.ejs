@@ -55,25 +55,55 @@ const body = `
     </div>
 </div>
 
+<!-- Bugungi statistika -->
+<div class="card mb-4 border-warning">
+    <div class="card-header bg-warning text-dark">
+        <h5 class="mb-0"><i class="fas fa-sun me-2"></i>Bugungi aylanma</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3 mb-3">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <i class="fas fa-calendar-day fa-2x mb-2 text-warning"></i>
+                        <h4>${stats.todayOrders || 0}</h4>
+                        <p class="text-muted mb-0">Buyurtmalar</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <i class="fas fa-dollar-sign fa-2x mb-2 text-primary"></i>
+                        <h4>${formatNumber(stats.todaySales)} so'm</h4>
+                        <p class="text-muted mb-0">Savdo (Jami)</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <i class="fas fa-coins fa-2x mb-2 text-success"></i>
+                        <h4>${formatNumber(stats.todayRevenue)} so'm</h4>
+                        <p class="text-muted mb-0">Daromad (To'langan)</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <i class="fas fa-chart-line fa-2x mb-2 text-info"></i>
+                        <h4>${formatNumber(stats.todayProfit)} so'm</h4>
+                        <p class="text-muted mb-0">Foyda</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Oylik statistika -->
 <div class="row mb-4">
-    <div class="col-md-3 mb-3">
-        <div class="card">
-            <div class="card-body text-center">
-                <i class="fas fa-calendar-day fa-2x mb-2 text-warning"></i>
-                <h4>${stats.todayOrders || 0}</h4>
-                <p class="text-muted mb-0">Bugungi buyurtmalar</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3 mb-3">
-        <div class="card">
-            <div class="card-body text-center">
-                <i class="fas fa-coins fa-2x mb-2 text-success"></i>
-                <h4>${formatNumber(stats.todayRevenue)} so'm</h4>
-                <p class="text-muted mb-0">Bugungi daromad</p>
-            </div>
-        </div>
-    </div>
     <div class="col-md-3 mb-3">
         <div class="card">
             <div class="card-body text-center">
@@ -89,6 +119,24 @@ const body = `
                 <i class="fas fa-chart-line fa-2x mb-2 text-info"></i>
                 <h4>${formatNumber(stats.monthlyRevenue)} so'm</h4>
                 <p class="text-muted mb-0">Oylik daromad</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-boxes fa-2x mb-2 text-secondary"></i>
+                <h4>${formatNumber(stats.totalSales)} so'm</h4>
+                <p class="text-muted mb-0">Umumiy savdo</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-percentage fa-2x mb-2 text-warning"></i>
+                <h4><%= stats.totalSales > 0 ? Math.round((stats.totalProfit / stats.totalSales) * 100) : 0 %>%</h4>
+                <p class="text-muted mb-0">Foyda foizi</p>
             </div>
         </div>
     </div>
