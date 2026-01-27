@@ -5,20 +5,24 @@
 ### 🔧 Tuzatish: To'lovlar tarixida "System" o'rniga seller nomi
 
 **Muammo:**
+
 - Order details sahifasida to'lovlar tarixida "System" ko'rsatilardi
 - Qaysi admin yoki seller to'lov qo'shganligini bilish qiyin edi
 
 **Yechim:**
+
 - ✅ Payment modeliga `adminName` maydoni qo'shildi
 - ✅ To'lov qo'shilganda seller yoki admin nomi saqlanadi
 - ✅ To'lovlar tarixida to'g'ri nom ko'rsatiladi
 
 **O'zgargan fayllar:**
+
 - `src/server/models/Payment.js` - adminName maydoni qo'shildi, seller Seller modeliga reference qiladi
 - `src/server/controllers/adminController.js` - addPayment funksiyasida seller/admin nomini saqlash
 - `src/views/admin/order-details.ejs` - seller/adminName ko'rsatish
 
 **Natija:**
+
 ```
 To'lovlar tarixi:
 Sana                 | Summa        | Kim qo'shdi
@@ -33,12 +37,14 @@ Sana                 | Summa        | Kim qo'shdi
 ### 🔔 Yangi xususiyat: Admin harakatlari uchun guruh xabarlari
 
 **Nimaga kerak:**
+
 - Barcha admin harakatlari real-time kuzatiladi
 - Qaysi seller, qanday harakat qilganligini bilish mumkin
 - Transparency va accountability oshadi
 - Tez javob berish imkoniyati
 
 **Xabar yuboriladigan harakatlar:**
+
 1. ✅ Buyurtma holati o'zgartirilganda
 2. ✅ To'lov qabul qilinganda
 3. ✅ Qarz qo'shilganda
@@ -50,6 +56,7 @@ Sana                 | Summa        | Kim qo'shdi
 9. ✅ User holati (active/inactive) o'zgartirilganda
 
 **Xabar formati:**
+
 ```
 💰 To'lov qabul qilindi
 
@@ -62,10 +69,12 @@ Sana                 | Summa        | Kim qo'shdi
 ```
 
 **Sozlash:**
+
 - `.env` faylida `NOTIFICATION_GROUP_ID` ni sozlang
 - Botni guruhga admin sifatida qo'shing
 
 **O'zgargan fayllar:**
+
 - `src/server/controllers/adminController.js` - barcha funksiyalarga guruh xabari qo'shildi
   - updateOrderStatus
   - addPayment (to'lov qo'shish)
@@ -77,9 +86,11 @@ Sana                 | Summa        | Kim qo'shdi
   - toggleUserBlock
 
 **Hujjatlar:**
+
 - ✅ `GROUP-NOTIFICATIONS.md` - To'liq yo'riqnoma va misolar
 
 **Xususiyatlar:**
+
 - Seller/Admin nomi ko'rsatiladi
 - To'liq ma'lumotlar (summa, mahsulot, user)
 - Emoji bilan tushunarli
@@ -95,17 +106,20 @@ Sana                 | Summa        | Kim qo'shdi
 #### 1. **Buyurtma bekor qilinganda qarz muammosi hal qilindi**
 
 **Muammo:**
+
 - Order statusini "cancelled" ga o'zgartirganda qarz user'da qolib ketardi
 - User hisobida noto'g'ri ma'lumotlar ko'rsatilardi
 - Qarzdorlik statistikasida bekor qilingan orderlar ham hisobga kiritilardi
 
 **Yechim:**
+
 - ✅ Order bekor qilinganda qarz 0 ga tenglashtiriladi
 - ✅ User'ning totalDebt maydoni avtomatik yangilanadi
 - ✅ Barcha aggregate query'larda cancelled orderlar istisno qilinadi
 - ✅ Order qayta faollashtirilganda qarz to'g'ri hisoblanadi
 
 **O'zgargan fayllar:**
+
 - `src/server/models/Order.js` - Post-save va post-delete middleware'lar qo'shildi
 - `src/server/models/User.js` - updateUserTotalDebt static metodi qo'shildi
 - `src/server/controllers/adminController.js` - updateOrderStatus, addPayment, deletePayment yangilandi
@@ -113,29 +127,34 @@ Sana                 | Summa        | Kim qo'shdi
 #### 2. **To'lov va qarz boshqaruvi yaxshilandi**
 
 **Yangi funksionallik:**
+
 - ✅ To'lov qo'shilganda user qarzidan avtomatik ayriladi
 - ✅ Qarz qo'shilganda user hisobiga avtomatik qo'shiladi
 - ✅ To'lov o'chirilganda user qarziga qaytariladi
 - ✅ Barcha o'zgarishlar real-time yangilanadi
 
 **O'zgargan fayllar:**
+
 - `src/server/controllers/adminController.js` - addPayment va deletePayment yangilandi
 
 #### 3. **Dashboard statistikalari kengaytirildi**
 
 **Yangi statistikalar:**
+
 - 📊 **Bugungi savdo** - bugungi barcha buyurtmalarning umumiy summasi
 - 💰 **Bugungi to'lovlar** - bugun qabul qilingan to'lovlar
 - 📈 **Bugungi foyda** - bugungi savdodan olingan foyda (sellPrice - costPrice)
 - 🔴 **Umumiy qarzdorlik** - faqat faol buyurtmalarning qarzi
 
 **O'zgargan fayllar:**
+
 - `src/server/controllers/adminController.js` - getStatistics va getDetailedStatistics yangilandi
 - `src/views/admin/dashboard.ejs` - yangi statistika ko'rsatkichlari qo'shildi
 
 #### 4. **Barcha qarzga oid query'lar yangilandi**
 
 Cancelled orderlar istisno qilindi:
+
 - ✅ Qarzdorlik bo'limi
 - ✅ Foydalanuvchilar ro'yxati
 - ✅ Hisobotlar
@@ -146,6 +165,7 @@ Cancelled orderlar istisno qilindi:
 - ✅ Notification service
 
 **O'zgargan fayllar:**
+
 - `src/server/controllers/adminController.js` - debts, users, userDetails, exportDebts va boshqalar
 - `src/server/services/index.js` - calculateUserDebt, generateSalesReport
 - `src/bot/index.js` - qarzdorlik ko'rsatish
@@ -178,6 +198,7 @@ Cancelled orderlar istisno qilindi:
 ### 🔄 Migratsiya
 
 Eski ma'lumotlarni yangilash uchun:
+
 ```bash
 node fix-all-user-debts.js
 ```

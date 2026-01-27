@@ -1,6 +1,6 @@
 /**
  * Barcha foydalanuvchilarning totalDebt maydonini qayta hisoblash
- * 
+ *
  * Bu script'ni ishlatish:
  * node fix-all-user-debts.js
  */
@@ -62,7 +62,9 @@ async function fixAllUserDebts() {
     console.log(`\n📊 Natijalar:`);
     console.log(`   ✅ To'g'irlandi: ${fixedCount} ta`);
     console.log(`   ❌ Xatolik: ${errorCount} ta`);
-    console.log(`   ℹ️ O'zgarishsiz: ${users.length - fixedCount - errorCount} ta`);
+    console.log(
+      `   ℹ️ O'zgarishsiz: ${users.length - fixedCount - errorCount} ta`
+    );
 
     // Summary statistics
     const totalDebtSum = users.reduce((sum, u) => sum + (u.totalDebt || 0), 0);

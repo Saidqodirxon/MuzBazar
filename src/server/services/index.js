@@ -116,7 +116,13 @@ class UserService {
       const { Order } = require("../server/models");
 
       const result = await Order.aggregate([
-        { $match: { client: userId, status: { $ne: "cancelled" }, debt: { $gt: 0 } } },
+        {
+          $match: {
+            client: userId,
+            status: { $ne: "cancelled" },
+            debt: { $gt: 0 },
+          },
+        },
         { $group: { _id: null, totalDebt: { $sum: "$debt" } } },
       ]);
 

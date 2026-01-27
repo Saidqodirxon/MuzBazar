@@ -319,13 +319,18 @@ const adminController = {
         const NotificationService = require("../../utils/notificationService");
         const notificationService = new NotificationService();
         const adminName = req.session.adminUser?.name || "Admin";
-        
-        const groupMessage = `🆕 *Yangi mahsulot qo'shildi*\n\n` +
+
+        const groupMessage =
+          `🆕 *Yangi mahsulot qo'shildi*\n\n` +
           `🔧 Admin: *${adminName}*\n` +
           `📦 Mahsulot: *${name}*\n` +
           `📊 Miqdor: *${stock} ta*\n` +
-          `💰 Narx: *${parseFloat(sellPrice).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*\n` +
-          `💵 Tan narx: *${parseFloat(costPrice).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*`;
+          `💰 Narx: *${parseFloat(sellPrice)
+            .toString()
+            .replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*\n` +
+          `💵 Tan narx: *${parseFloat(costPrice)
+            .toString()
+            .replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*`;
 
         await notificationService.sendToGroup(groupMessage, {
           parse_mode: "Markdown",
@@ -735,22 +740,22 @@ const adminController = {
       }
 
       const oldStatus = order.status;
-      
+
       // If changing to cancelled, handle debt properly
       if (status === "cancelled" && oldStatus !== "cancelled") {
         console.log(`⚠️ Cancelling order ${order.orderNumber}`);
         console.log(`   Previous debt: ${order.debt} so'm`);
-        
+
         // Set debt to 0 when cancelling
         order.debt = 0;
         order.status = status;
         await order.save();
-        
+
         // Update user's total debt
         if (order.client) {
           await User.updateUserTotalDebt(order.client._id);
         }
-        
+
         console.log(`   ✅ Order cancelled, debt cleared`);
       } else if (oldStatus === "cancelled" && status !== "cancelled") {
         // If reactivating a cancelled order, recalculate debt
@@ -758,13 +763,15 @@ const adminController = {
         order.status = status;
         order.debt = order.totalSum - order.paidSum;
         await order.save();
-        
+
         // Update user's total debt
         if (order.client) {
           await User.updateUserTotalDebt(order.client._id);
         }
-        
-        console.log(`   ✅ Order reactivated, debt restored: ${order.debt} so'm`);
+
+        console.log(
+          `   ✅ Order reactivated, debt restored: ${order.debt} so'm`
+        );
       } else {
         // Normal status change
         order.status = status;
@@ -824,8 +831,9 @@ const adminController = {
           delivered: "🎉 Yetkazilgan",
           cancelled: "❌ Bekor qilingan",
         };
-        
-        const groupMessage = `📋 *Buyurtma holati o'zgartirildi*
+
+        const groupMessage =
+          `📋 *Buyurtma holati o'zgartirildi*
 
 ` +
           `👤 Sotuvchi: *${adminName}*\n` +
@@ -965,7 +973,8 @@ const adminController = {
         // Send notification to admin group
         try {
           const adminName = req.session.adminUser?.name || "Admin";
-          const groupMessage = `💰 *To'lov qabul qilindi*\n\n` +
+          const groupMessage =
+            `💰 *To'lov qabul qilindi*\n\n` +
             `👤 Sotuvchi: *${adminName}*\n` +
             `👥 Mijoz: *${order.client.firstName} ${order.client.lastName || ""}*\n` +
             `🆔 Buyurtma: *${order.orderNumber}*\n` +
@@ -1016,7 +1025,8 @@ const adminController = {
         // Send notification to admin group
         try {
           const adminName = req.session.adminUser?.name || "Admin";
-          const groupMessage = `💳 *Qarz qo'shildi*\n\n` +
+          const groupMessage =
+            `💳 *Qarz qo'shildi*\n\n` +
             `👤 Sotuvchi: *${adminName}*\n` +
             `👥 Mijoz: *${order.client.firstName} ${order.client.lastName || ""}*\n` +
             `🆔 Buyurtma: *${order.orderNumber}*\n` +
@@ -1071,9 +1081,12 @@ const adminController = {
         const NotificationService = require("../../utils/notificationService");
         const notificationService = new NotificationService();
         const adminName = req.session.adminUser?.name || "Admin";
-        
-        const populatedOrder = await Order.findById(order._id).populate("client");
-        const groupMessage = `🗑️ *To'lov o'chirildi*\n\n` +
+
+        const populatedOrder = await Order.findById(order._id).populate(
+          "client"
+        );
+        const groupMessage =
+          `🗑️ *To'lov o'chirildi*\n\n` +
           `👤 Sotuvchi: *${adminName}*\n` +
           `👥 Mijoz: *${populatedOrder.client.firstName} ${populatedOrder.client.lastName || ""}*\n` +
           `🆔 Buyurtma: *${populatedOrder.orderNumber}*\n` +
@@ -1115,9 +1128,9 @@ const adminController = {
       const usersWithBalances = await Promise.all(
         users.map(async (user) => {
           const userObj = user.toObject();
-          const orders = await Order.find({ 
+          const orders = await Order.find({
             client: user._id,
-            status: { $ne: "cancelled" }
+            status: { $ne: "cancelled" },
           });
           userObj.orderCount = orders.length;
           userObj.totalSpent = orders.reduce(
@@ -1160,9 +1173,9 @@ const adminController = {
         return res.redirect("/admin/users?error=not_found");
       }
 
-      const orders = await Order.find({ 
+      const orders = await Order.find({
         client: user._id,
-        status: { $ne: "cancelled" }
+        status: { $ne: "cancelled" },
       })
         .populate("items.product", "name")
         .sort({ createdAt: -1 })
@@ -1198,7 +1211,7 @@ const adminController = {
     try {
       const { role } = req.body;
       const user = await User.findById(req.params.id);
-      
+
       if (!user) {
         return res.redirect("/admin/users?error=not_found");
       }
@@ -1212,14 +1225,15 @@ const adminController = {
           const NotificationService = require("../../utils/notificationService");
           const notificationService = new NotificationService();
           const adminName = req.session.adminUser?.name || "Admin";
-          
+
           const roleLabels = {
             admin: "🔑 Admin",
             seller: "👨\u200d💼 Sotuvchi",
             client: "👥 Mijoz",
           };
-          
-          const groupMessage = `🔄 *User roli o'zgartirildi*\n\n` +
+
+          const groupMessage =
+            `🔄 *User roli o'zgartirildi*\n\n` +
             `🔧 Admin: *${adminName}*\n` +
             `👤 User: *${user.firstName} ${user.lastName || ""}*\n` +
             `📞 Telefon: ${user.phone || "—"}\n` +
@@ -1257,8 +1271,9 @@ const adminController = {
         const notificationService = new NotificationService();
         const adminName = req.session.adminUser?.name || "Admin";
         const status = user.isActive ? "✅ faol" : "❌ nofaol";
-        
-        const groupMessage = `🔄 *User holati o'zgartirildi*\n\n` +
+
+        const groupMessage =
+          `🔄 *User holati o'zgartirildi*\n\n` +
           `🔧 Admin: *${adminName}*\n` +
           `👤 User: *${user.firstName} ${user.lastName || ""}*\n` +
           `📞 Telefon: ${user.phone || "—"}\n` +
@@ -1322,8 +1337,9 @@ const adminController = {
         const notificationService = new NotificationService();
         const adminName = req.session.adminUser?.name || "Admin";
         const action = user.isBlocked ? "🔒 bloklandi" : "✅ faollashtirildi";
-        
-        const groupMessage = `👤 *User holati o'zgartirildi*\n\n` +
+
+        const groupMessage =
+          `👤 *User holati o'zgartirildi*\n\n` +
           `🔧 Admin: *${adminName}*\n` +
           `👥 User: *${user.firstName} ${user.lastName || ""}*\n` +
           `📞 Telefon: ${user.phone || "—"}\n` +
@@ -1386,10 +1402,10 @@ const adminController = {
         return res.redirect("/admin/users?error=not_found");
       }
 
-      const orders = await Order.find({ 
-        client: user._id, 
+      const orders = await Order.find({
+        client: user._id,
         status: { $ne: "cancelled" },
-        debt: { $gt: 0 } 
+        debt: { $gt: 0 },
       })
         .populate("items.product")
         .sort({ createdAt: -1 });

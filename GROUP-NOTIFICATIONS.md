@@ -3,6 +3,7 @@
 ## Qanday harakatlar guruhga xabar yuboradi?
 
 ### 1. 📋 Buyurtma holati o'zgartirilganda
+
 ```
 📋 Buyurtma holati o'zgartirildi
 
@@ -15,11 +16,13 @@
 ```
 
 **Qachon yuboriladi:**
+
 - Status: pending, confirmed, delivered, cancelled ga o'zgartirilganda
 
 ---
 
 ### 2. 💰 To'lov qabul qilinganda
+
 ```
 💰 To'lov qabul qilindi
 
@@ -33,11 +36,13 @@
 ```
 
 **Qachon yuboriladi:**
+
 - Admin panel orqali to'lov qo'shilganda (qarzdan ayirish)
 
 ---
 
 ### 3. 💳 Qarz qo'shilganda
+
 ```
 💳 Qarz qo'shildi
 
@@ -50,11 +55,13 @@
 ```
 
 **Qachon yuboriladi:**
+
 - Admin panel orqali qarz qo'shilganda (narx berish)
 
 ---
 
 ### 4. 🗑️ To'lov o'chirilganda
+
 ```
 🗑️ To'lov o'chirildi
 
@@ -66,11 +73,13 @@
 ```
 
 **Qachon yuboriladi:**
+
 - Admin panel orqali to'lov o'chirilganda
 
 ---
 
 ### 5. 🆕 Yangi buyurtma kelganda
+
 ```
 🆕 Yangi buyurtma!
 
@@ -88,11 +97,13 @@
 ```
 
 **Qachon yuboriladi:**
+
 - Bot orqali yangi buyurtma yaratilganda
 
 ---
 
 ### 6. 🆕 Yangi mahsulot qo'shilganda
+
 ```
 🆕 Yangi mahsulot qo'shildi
 
@@ -104,11 +115,13 @@
 ```
 
 **Qachon yuboriladi:**
+
 - Admin panel orqali yangi mahsulot qo'shilganda
 
 ---
 
 ### 7. 👤 User blok holati o'zgartirilganda
+
 ```
 👤 User holati o'zgartirildi
 
@@ -117,17 +130,21 @@
 📞 Telefon: +998901234567
 📊 Holat: 🔒 bloklandi
 ```
+
 yoki
+
 ```
 📊 Holat: ✅ faollashtirildi
 ```
 
 **Qachon yuboriladi:**
+
 - User bloklanganda yoki faollashtirilganda
 
 ---
 
 ### 8. 🔄 User roli o'zgartirilganda
+
 ```
 🔄 User roli o'zgartirildi
 
@@ -138,11 +155,13 @@ yoki
 ```
 
 **Qachon yuboriladi:**
+
 - User roli o'zgartirilganda (client → seller → admin)
 
 ---
 
 ### 9. 🔄 User holati o'zgartirilganda
+
 ```
 🔄 User holati o'zgartirildi
 
@@ -151,12 +170,15 @@ yoki
 📞 Telefon: +998901234567
 📊 Holat: ✅ faol
 ```
+
 yoki
+
 ```
 📊 Holat: ❌ nofaol
 ```
 
 **Qachon yuboriladi:**
+
 - User isActive maydoni o'zgartirilganda
 
 ---
@@ -164,17 +186,20 @@ yoki
 ## Sozlash
 
 ### 1. .env faylida guruh ID ni ko'rsating:
+
 ```env
 NOTIFICATION_GROUP_ID=-1001234567890
 ```
 
 ### 2. Guruh ID ni topish:
+
 1. Botni guruhga qo'shing
 2. Guruhda biror xabar yuboring
 3. Browserda ochiq: `https://api.telegram.org/bot<BOT_TOKEN>/getUpdates`
 4. `chat.id` ni toping (manfiy raqam)
 
 ### 3. Botga guruhda admin huquqi bering:
+
 - Bot guruhga xabar yuborishi uchun admin bo'lishi shart
 
 ---
@@ -182,25 +207,32 @@ NOTIFICATION_GROUP_ID=-1001234567890
 ## Xatoliklarni bartaraf qilish
 
 ### Xabar yuborilmayapti?
+
 1. `NOTIFICATION_GROUP_ID` to'g'ri sozlanganligini tekshiring
 2. Bot guruhga qo'shilganligini tekshiring
 3. Botga admin huquqi berilganligini tekshiring
 4. Terminal loglarini tekshiring:
+
 ```
 ✅ Group notification sent
 ```
+
 yoki
+
 ```
 ❌ Failed to send group notification: ...
 ```
 
 ### Xabar formati noto'g'ri?
+
 - Markdown format ishlatiladi
 - Maxsus belgilar (`*`, `_`, `[`, `]`) avtomatik escape qilinadi
 
 ### Xabar yuborilmasligi kerak bo'lsa?
+
 - `NOTIFICATION_GROUP_ID` ni `.env` faylidan o'chiring
 - Yoki comment qiling:
+
 ```env
 # NOTIFICATION_GROUP_ID=-1001234567890
 ```

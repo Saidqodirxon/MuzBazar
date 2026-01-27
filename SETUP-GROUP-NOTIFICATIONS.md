@@ -22,12 +22,15 @@
 
 1. Guruhda biror xabar yuboring (masalan: "test")
 2. Browser'da quyidagi URL ni oching:
+
 ```
 https://api.telegram.org/bot<BOT_TOKEN>/getUpdates
 ```
+
 `<BOT_TOKEN>` ni o'z bot tokeningiz bilan almashtiring
 
 3. Natijada JSON ko'rinadi. Quyidagini qidiring:
+
 ```json
 "chat": {
   "id": -1001234567890,
@@ -92,9 +95,11 @@ nodemon index.js
 ## Xatoliklarni bartaraf qilish
 
 ### ❌ "Group ID not configured"
+
 **Sabab:** `NOTIFICATION_GROUP_ID` `.env` faylida yo'q
 
-**Yechim:** 
+**Yechim:**
+
 ```env
 NOTIFICATION_GROUP_ID=-1001234567890
 ```
@@ -102,27 +107,33 @@ NOTIFICATION_GROUP_ID=-1001234567890
 ---
 
 ### ❌ "Forbidden: bot is not a member of the supergroup chat"
+
 **Sabab:** Bot guruhga qo'shilmagan
 
 **Yechim:**
+
 1. Botni guruhga qo'shing
 2. Botga admin huquqi bering
 
 ---
 
 ### ❌ "Forbidden: bot was kicked from the supergroup chat"
+
 **Sabab:** Bot guruhdan o'chirilgan
 
 **Yechim:**
+
 1. Botni qaytadan guruhga qo'shing
 2. Botga admin huquqi bering
 
 ---
 
 ### ❌ "Bad Request: chat not found"
+
 **Sabab:** Guruh ID noto'g'ri
 
 **Yechim:**
+
 1. Guruh ID ni qaytadan tekshiring
 2. Manfiy belgini tekshiring
 3. getUpdates API orqali qaytadan oling
@@ -130,9 +141,11 @@ NOTIFICATION_GROUP_ID=-1001234567890
 ---
 
 ### ❌ Xabar yuborilmayapti, lekin xatolik yo'q
+
 **Sabab:** Bot admin emas yoki guruhda post qilish cheklangan
 
 **Yechim:**
+
 1. Botni admin qiling
 2. Guruh sozlamalarida "All Members" postga ruxsat berilganligini tekshiring
 

@@ -77,7 +77,7 @@ userSchema.methods.isSeller = function () {
 userSchema.statics.updateUserTotalDebt = async function (userId) {
   try {
     const Order = mongoose.model("Order");
-    
+
     // Calculate total debt from all non-cancelled orders
     const result = await Order.aggregate([
       {
