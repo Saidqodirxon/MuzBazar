@@ -282,7 +282,7 @@ const apiController = {
       }
 
       const salesData = await Order.aggregate([
-        { $match: matchDate },
+        { $match: { ...matchDate, status: { $ne: "cancelled" } } },
         {
           $group: {
             _id: groupBy,
@@ -311,7 +311,7 @@ const apiController = {
   async getDebtStats(req, res) {
     try {
       const debtStats = await Order.aggregate([
-        { $match: { debt: { $gt: 0 } } },
+        { $match: { status: { $ne: "cancelled" }, debt: { $gt: 0 } } },
         {
           $group: {
             _id: "$client",

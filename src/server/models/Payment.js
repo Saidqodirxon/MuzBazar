@@ -17,8 +17,13 @@ const paymentSchema = new mongoose.Schema(
     },
     seller: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // Can be User (bot) or Seller (admin panel)
+      ref: "Seller", // Seller model reference
       required: false,
+    },
+    adminName: {
+      type: String,
+      required: false,
+      default: null,
     },
     amount: {
       type: Number,

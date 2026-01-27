@@ -73,4 +73,39 @@ userSchema.methods.isSeller = function () {
   return this.role === "seller" || this.role === "admin";
 };
 
+// Static method to update user's total debt
+userSchema.statics.updateUserTotalDebt = async function (userId) {
+  try {
+    const Order = mongoose.model("Order");
+    
+    // Calculate total debt from all non-cancelled orders
+    const result = await Order.aggregate([
+      {
+        $match: {
+          client: userId,
+          status: { $ne: "cancelled" }, // Exclude cancelled orders
+          debt: { $gt: 0 },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalDebt: { $sum: "$debt" },
+        },
+      },
+    ]);
+
+    const totalDebt = result[0]?.totalDebt || 0;
+
+    // Update user's totalDebt field
+    await this.findByIdAndUpdate(userId, { totalDebt });
+
+    console.log(`✅ User ${userId} total debt updated: ${totalDebt} so'm`);
+    return totalDebt;
+  } catch (error) {
+    console.error("❌ Error in updateUserTotalDebt:", error);
+    throw error;
+  }
+};
+
 module.exports = mongoose.model("User", userSchema);

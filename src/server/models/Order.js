@@ -101,4 +101,26 @@ orderSchema.methods.isFullyPaid = function () {
   return this.debt <= 0;
 };
 
+// Post-save middleware to update user's total debt
+orderSchema.post("save", async function (doc) {
+  try {
+    const User = mongoose.model("User");
+    await User.updateUserTotalDebt(doc.client);
+  } catch (error) {
+    console.error("❌ Error updating user total debt:", error);
+  }
+});
+
+// Post-remove middleware to update user's total debt
+orderSchema.post("findOneAndDelete", async function (doc) {
+  try {
+    if (doc && doc.client) {
+      const User = mongoose.model("User");
+      await User.updateUserTotalDebt(doc.client);
+    }
+  } catch (error) {
+    console.error("❌ Error updating user total debt after delete:", error);
+  }
+});
+
 module.exports = mongoose.model("Order", orderSchema);

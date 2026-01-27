@@ -95,7 +95,7 @@ class TaskScheduler {
 
       // Find clients with debt
       const debts = await Order.aggregate([
-        { $match: { debt: { $gt: 0 } } },
+        { $match: { status: { $ne: "cancelled" }, debt: { $gt: 0 } } },
         {
           $group: {
             _id: "$client",
@@ -194,7 +194,7 @@ class TaskScheduler {
 
       // Find clients with debt
       const debts = await Order.aggregate([
-        { $match: { debt: { $gt: 0 } } },
+        { $match: { status: { $ne: "cancelled" }, debt: { $gt: 0 } } },
         {
           $group: {
             _id: "$client",

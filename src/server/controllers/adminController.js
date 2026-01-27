@@ -314,6 +314,26 @@ const adminController = {
 
       await product.save();
 
+      // Send notification to admin group
+      try {
+        const NotificationService = require("../../utils/notificationService");
+        const notificationService = new NotificationService();
+        const adminName = req.session.adminUser?.name || "Admin";
+        
+        const groupMessage = `🆕 *Yangi mahsulot qo'shildi*\n\n` +
+          `🔧 Admin: *${adminName}*\n` +
+          `📦 Mahsulot: *${name}*\n` +
+          `📊 Miqdor: *${stock} ta*\n` +
+          `💰 Narx: *${parseFloat(sellPrice).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*\n` +
+          `💵 Tan narx: *${parseFloat(costPrice).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*`;
+
+        await notificationService.sendToGroup(groupMessage, {
+          parse_mode: "Markdown",
+        });
+      } catch (groupError) {
+        console.error("❌ Failed to send group notification:", groupError);
+      }
+
       res.redirect("/admin/products?success=created");
     } catch (error) {
       console.error("❌ Create product error:", error);
@@ -715,8 +735,41 @@ const adminController = {
       }
 
       const oldStatus = order.status;
-      order.status = status;
-      await order.save();
+      
+      // If changing to cancelled, handle debt properly
+      if (status === "cancelled" && oldStatus !== "cancelled") {
+        console.log(`⚠️ Cancelling order ${order.orderNumber}`);
+        console.log(`   Previous debt: ${order.debt} so'm`);
+        
+        // Set debt to 0 when cancelling
+        order.debt = 0;
+        order.status = status;
+        await order.save();
+        
+        // Update user's total debt
+        if (order.client) {
+          await User.updateUserTotalDebt(order.client._id);
+        }
+        
+        console.log(`   ✅ Order cancelled, debt cleared`);
+      } else if (oldStatus === "cancelled" && status !== "cancelled") {
+        // If reactivating a cancelled order, recalculate debt
+        console.log(`🔄 Reactivating order ${order.orderNumber}`);
+        order.status = status;
+        order.debt = order.totalSum - order.paidSum;
+        await order.save();
+        
+        // Update user's total debt
+        if (order.client) {
+          await User.updateUserTotalDebt(order.client._id);
+        }
+        
+        console.log(`   ✅ Order reactivated, debt restored: ${order.debt} so'm`);
+      } else {
+        // Normal status change
+        order.status = status;
+        await order.save();
+      }
 
       // Send notification to client if status changed
       if (oldStatus !== status && order.client?.telegramId) {
@@ -736,7 +789,7 @@ const adminController = {
             pending: "⏳ Sizning buyurtmangiz qabul qilindi va kutilmoqda.",
             delivered: "🎉 Buyurtmangiz yetkazildi! Xaridingiz uchun rahmat!",
             cancelled:
-              "❌ Buyurtmangiz bekor qilindi. Batafsil ma'lumot uchun bog'laning.",
+              "❌ Buyurtmangiz bekor qilindi. Qarz hisobdan chiqarildi.",
           };
           statusText = statusMessages[status] || status;
         }
@@ -760,6 +813,33 @@ const adminController = {
         console.log(
           `📬 Status notification sent to user ${order.client.telegramId} for order ${order.orderNumber}`
         );
+      }
+
+      // Send notification to admin group
+      try {
+        const adminName = req.session.adminUser?.name || "Admin";
+        const statusLabels = {
+          pending: "⏳ Kutilmoqda",
+          confirmed: "✅ Tasdiqlangan",
+          delivered: "🎉 Yetkazilgan",
+          cancelled: "❌ Bekor qilingan",
+        };
+        
+        const groupMessage = `📋 *Buyurtma holati o'zgartirildi*
+
+` +
+          `👤 Sotuvchi: *${adminName}*\n` +
+          `👥 Mijoz: *${order.client.firstName} ${order.client.lastName || ""}*\n` +
+          `🆔 Buyurtma: *${order.orderNumber}*\n` +
+          `📊 Holat: ${oldStatus} → *${statusLabels[status] || status}*\n` +
+          `💰 Summa: *${(order.totalSum || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*\n` +
+          `🔴 Qarz: *${(order.debt || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*`;
+
+        await notificationService.sendToGroup(groupMessage, {
+          parse_mode: "Markdown",
+        });
+      } catch (groupError) {
+        console.error("❌ Failed to send group notification:", groupError);
       }
 
       res.redirect(`/admin/orders/${req.params.id}?success=status_updated`);
@@ -848,6 +928,11 @@ const adminController = {
         // Save order first
         await order.save();
 
+        // Update user's total debt
+        if (order.client) {
+          await User.updateUserTotalDebt(order.client._id);
+        }
+
         // Create Payment record
         const payment = new Payment({
           order: order._id,
@@ -857,8 +942,11 @@ const adminController = {
           notes: "Admin panel orqali to'lov qabul qilindi",
         });
 
-        if (req.session.role === "seller") {
+        // Add seller or admin info
+        if (req.session.role === "seller" && req.session.sellerId) {
           payment.seller = req.session.sellerId;
+        } else if (req.session.adminUser?.name) {
+          payment.adminName = req.session.adminUser.name;
         }
 
         await payment.save();
@@ -873,6 +961,25 @@ const adminController = {
             paymentAmount
           );
         }
+
+        // Send notification to admin group
+        try {
+          const adminName = req.session.adminUser?.name || "Admin";
+          const groupMessage = `💰 *To'lov qabul qilindi*\n\n` +
+            `👤 Sotuvchi: *${adminName}*\n` +
+            `👥 Mijoz: *${order.client.firstName} ${order.client.lastName || ""}*\n` +
+            `🆔 Buyurtma: *${order.orderNumber}*\n` +
+            `💵 To'lov: *${paymentAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*\n` +
+            `📊 Jami: *${order.totalSum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*\n` +
+            `✅ To'landi: *${order.paidSum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*\n` +
+            `🔴 Qarz: *${order.debt.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*`;
+
+          await notificationService.sendToGroup(groupMessage, {
+            parse_mode: "Markdown",
+          });
+        } catch (groupError) {
+          console.error("❌ Failed to send group notification:", groupError);
+        }
       } else {
         // Qarzga qo'shish (narx berish)
         order.totalSum = (order.totalSum || 0) + paymentAmount;
@@ -884,6 +991,11 @@ const adminController = {
 
         // Save order
         await order.save();
+
+        // Update user's total debt
+        if (order.client) {
+          await User.updateUserTotalDebt(order.client._id);
+        }
 
         // Send notification about debt increase
         if (order.client?.telegramId) {
@@ -899,6 +1011,24 @@ const adminController = {
           } catch (err) {
             console.error("Failed to notify about debt increase:", err);
           }
+        }
+
+        // Send notification to admin group
+        try {
+          const adminName = req.session.adminUser?.name || "Admin";
+          const groupMessage = `💳 *Qarz qo'shildi*\n\n` +
+            `👤 Sotuvchi: *${adminName}*\n` +
+            `👥 Mijoz: *${order.client.firstName} ${order.client.lastName || ""}*\n` +
+            `🆔 Buyurtma: *${order.orderNumber}*\n` +
+            `➕ Qo'shildi: *${paymentAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*\n` +
+            `📊 Jami: *${order.totalSum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*\n` +
+            `🔴 Yangi qarz: *${order.debt.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*`;
+
+          await notificationService.sendToGroup(groupMessage, {
+            parse_mode: "Markdown",
+          });
+        } catch (groupError) {
+          console.error("❌ Failed to send group notification:", groupError);
         }
       }
 
@@ -928,8 +1058,34 @@ const adminController = {
       order.debt = order.totalSum - order.paidSum;
       await order.save();
 
+      // Update user's total debt
+      if (order.client) {
+        await User.updateUserTotalDebt(order.client);
+      }
+
       // Delete payment
       await Payment.findByIdAndDelete(paymentId);
+
+      // Send notification to admin group
+      try {
+        const NotificationService = require("../../utils/notificationService");
+        const notificationService = new NotificationService();
+        const adminName = req.session.adminUser?.name || "Admin";
+        
+        const populatedOrder = await Order.findById(order._id).populate("client");
+        const groupMessage = `🗑️ *To'lov o'chirildi*\n\n` +
+          `👤 Sotuvchi: *${adminName}*\n` +
+          `👥 Mijoz: *${populatedOrder.client.firstName} ${populatedOrder.client.lastName || ""}*\n` +
+          `🆔 Buyurtma: *${populatedOrder.orderNumber}*\n` +
+          `💵 O'chirildi: *${payment.amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*\n` +
+          `🔴 Yangi qarz: *${order.debt.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*`;
+
+        await notificationService.sendToGroup(groupMessage, {
+          parse_mode: "Markdown",
+        });
+      } catch (groupError) {
+        console.error("❌ Failed to send group notification:", groupError);
+      }
 
       res.redirect(`/admin/orders/${order._id}?success=payment_deleted`);
     } catch (error) {
@@ -959,7 +1115,10 @@ const adminController = {
       const usersWithBalances = await Promise.all(
         users.map(async (user) => {
           const userObj = user.toObject();
-          const orders = await Order.find({ client: user._id });
+          const orders = await Order.find({ 
+            client: user._id,
+            status: { $ne: "cancelled" }
+          });
           userObj.orderCount = orders.length;
           userObj.totalSpent = orders.reduce(
             (sum, order) => sum + (order.totalSum || 0),
@@ -1001,7 +1160,10 @@ const adminController = {
         return res.redirect("/admin/users?error=not_found");
       }
 
-      const orders = await Order.find({ client: user._id })
+      const orders = await Order.find({ 
+        client: user._id,
+        status: { $ne: "cancelled" }
+      })
         .populate("items.product", "name")
         .sort({ createdAt: -1 })
         .limit(20);
@@ -1035,7 +1197,42 @@ const adminController = {
   async updateUserRole(req, res) {
     try {
       const { role } = req.body;
+      const user = await User.findById(req.params.id);
+      
+      if (!user) {
+        return res.redirect("/admin/users?error=not_found");
+      }
+
+      const oldRole = user.role;
       await User.findByIdAndUpdate(req.params.id, { role });
+
+      // Send notification to admin group
+      if (oldRole !== role) {
+        try {
+          const NotificationService = require("../../utils/notificationService");
+          const notificationService = new NotificationService();
+          const adminName = req.session.adminUser?.name || "Admin";
+          
+          const roleLabels = {
+            admin: "🔑 Admin",
+            seller: "👨\u200d💼 Sotuvchi",
+            client: "👥 Mijoz",
+          };
+          
+          const groupMessage = `🔄 *User roli o'zgartirildi*\n\n` +
+            `🔧 Admin: *${adminName}*\n` +
+            `👤 User: *${user.firstName} ${user.lastName || ""}*\n` +
+            `📞 Telefon: ${user.phone || "—"}\n` +
+            `📊 Rol: ${roleLabels[oldRole] || oldRole} → *${roleLabels[role] || role}*`;
+
+          await notificationService.sendToGroup(groupMessage, {
+            parse_mode: "Markdown",
+          });
+        } catch (groupError) {
+          console.error("❌ Failed to send group notification:", groupError);
+        }
+      }
+
       res.redirect(`/admin/users/${req.params.id}?success=role_updated`);
     } catch (error) {
       console.error("❌ Update user role error:", error);
@@ -1053,6 +1250,26 @@ const adminController = {
 
       user.isActive = !user.isActive;
       await user.save();
+
+      // Send notification to admin group
+      try {
+        const NotificationService = require("../../utils/notificationService");
+        const notificationService = new NotificationService();
+        const adminName = req.session.adminUser?.name || "Admin";
+        const status = user.isActive ? "✅ faol" : "❌ nofaol";
+        
+        const groupMessage = `🔄 *User holati o'zgartirildi*\n\n` +
+          `🔧 Admin: *${adminName}*\n` +
+          `👤 User: *${user.firstName} ${user.lastName || ""}*\n` +
+          `📞 Telefon: ${user.phone || "—"}\n` +
+          `📊 Holat: ${status}`;
+
+        await notificationService.sendToGroup(groupMessage, {
+          parse_mode: "Markdown",
+        });
+      } catch (groupError) {
+        console.error("❌ Failed to send group notification:", groupError);
+      }
 
       res.redirect("/admin/users?success=status_updated");
     } catch (error) {
@@ -1097,6 +1314,26 @@ const adminController = {
         } catch (notifError) {
           console.error("❌ Failed to send unblock notification:", notifError);
         }
+      }
+
+      // Send notification to admin group
+      try {
+        const NotificationService = require("../../utils/notificationService");
+        const notificationService = new NotificationService();
+        const adminName = req.session.adminUser?.name || "Admin";
+        const action = user.isBlocked ? "🔒 bloklandi" : "✅ faollashtirildi";
+        
+        const groupMessage = `👤 *User holati o'zgartirildi*\n\n` +
+          `🔧 Admin: *${adminName}*\n` +
+          `👥 User: *${user.firstName} ${user.lastName || ""}*\n` +
+          `📞 Telefon: ${user.phone || "—"}\n` +
+          `📊 Holat: ${action}`;
+
+        await notificationService.sendToGroup(groupMessage, {
+          parse_mode: "Markdown",
+        });
+      } catch (groupError) {
+        console.error("❌ Failed to send group notification:", groupError);
       }
 
       res.redirect("/admin/users?success=block_status_updated");
@@ -1149,7 +1386,11 @@ const adminController = {
         return res.redirect("/admin/users?error=not_found");
       }
 
-      const orders = await Order.find({ client: user._id, debt: { $gt: 0 } })
+      const orders = await Order.find({ 
+        client: user._id, 
+        status: { $ne: "cancelled" },
+        debt: { $gt: 0 } 
+      })
         .populate("items.product")
         .sort({ createdAt: -1 });
 
@@ -1416,7 +1657,7 @@ const adminController = {
   async debts(req, res) {
     try {
       const debts = await Order.aggregate([
-        { $match: { debt: { $gt: 0 } } },
+        { $match: { status: { $ne: "cancelled" }, debt: { $gt: 0 } } },
         {
           $group: {
             _id: "$client",
@@ -1487,6 +1728,7 @@ const adminController = {
         {
           $match: {
             client: { $in: objectIds },
+            status: { $ne: "cancelled" },
             debt: { $gt: 0 },
           },
         },
@@ -1568,7 +1810,7 @@ const adminController = {
 
       // Get debts data
       const debts = await Order.aggregate([
-        { $match: { debt: { $gt: 0 } } },
+        { $match: { status: { $ne: "cancelled" }, debt: { $gt: 0 } } },
         {
           $group: {
             _id: "$client",
@@ -1920,7 +2162,7 @@ const adminController = {
 
       // Find clients with debt
       const debts = await Order.aggregate([
-        { $match: { debt: { $gt: 0 } } },
+        { $match: { status: { $ne: "cancelled" }, debt: { $gt: 0 } } },
         {
           $group: {
             _id: "$client",
@@ -2036,6 +2278,11 @@ const adminController = {
 
   // Helper: Get basic statistics
   async getStatistics() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
     const [
       totalProducts,
       totalCategories,
@@ -2043,18 +2290,81 @@ const adminController = {
       totalUsers,
       totalDebt,
       todayOrders,
+      todayRevenue,
+      todayProfit,
+      todaySales,
     ] = await Promise.all([
       Product.countDocuments(),
       Category.countDocuments(),
-      Order.countDocuments(),
+      Order.countDocuments({ status: { $ne: "cancelled" } }),
       User.countDocuments(),
-      Order.aggregate([{ $group: { _id: null, total: { $sum: "$debt" } } }]),
+      // Total debt (excluding cancelled orders)
+      Order.aggregate([
+        { $match: { status: { $ne: "cancelled" }, debt: { $gt: 0 } } },
+        { $group: { _id: null, total: { $sum: "$debt" } } },
+      ]),
+      // Today's orders count
       Order.countDocuments({
-        createdAt: {
-          $gte: new Date().setHours(0, 0, 0, 0),
-          $lt: new Date().setHours(23, 59, 59, 999),
-        },
+        createdAt: { $gte: today, $lt: tomorrow },
+        status: { $ne: "cancelled" },
       }),
+      // Today's revenue (paid amount)
+      Order.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: today, $lt: tomorrow },
+            status: { $ne: "cancelled" },
+          },
+        },
+        { $group: { _id: null, total: { $sum: "$paidSum" } } },
+      ]),
+      // Today's profit
+      Order.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: today, $lt: tomorrow },
+            status: { $ne: "cancelled" },
+          },
+        },
+        { $unwind: "$items" },
+        {
+          $lookup: {
+            from: "products",
+            localField: "items.product",
+            foreignField: "_id",
+            as: "productInfo",
+          },
+        },
+        { $unwind: "$productInfo" },
+        {
+          $group: {
+            _id: null,
+            total: {
+              $sum: {
+                $multiply: [
+                  {
+                    $subtract: [
+                      "$productInfo.sellPrice",
+                      "$productInfo.costPrice",
+                    ],
+                  },
+                  "$items.quantity",
+                ],
+              },
+            },
+          },
+        },
+      ]),
+      // Today's total sales (totalSum)
+      Order.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: today, $lt: tomorrow },
+            status: { $ne: "cancelled" },
+          },
+        },
+        { $group: { _id: null, total: { $sum: "$totalSum" } } },
+      ]),
     ]);
 
     return {
@@ -2064,71 +2374,82 @@ const adminController = {
       totalUsers,
       totalDebt: totalDebt[0]?.total || 0,
       todayOrders,
+      todayRevenue: todayRevenue[0]?.total || 0,
+      todayProfit: todayProfit[0]?.total || 0,
+      todaySales: todaySales[0]?.total || 0,
     };
   },
 
   // Helper: Get detailed statistics
   async getDetailedStatistics() {
     try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const firstDayOfMonth = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        1
+      );
+
       const [
         totalRevenue,
         totalOrders,
         totalCustomers,
         todayOrders,
         todayRevenue,
+        todaySales,
+        todayProfit,
         monthlyOrders,
         monthlyRevenue,
         totalDebt,
         totalProfit,
+        totalSales,
       ] = await Promise.all([
-        // Total revenue (paid amount)
+        // Total revenue (paid amount) - excluding cancelled
         Order.aggregate([
+          { $match: { status: { $ne: "cancelled" } } },
           { $group: { _id: null, total: { $sum: "$paidSum" } } },
         ]),
-        // Total orders
-        Order.countDocuments(),
+        // Total orders - excluding cancelled
+        Order.countDocuments({ status: { $ne: "cancelled" } }),
         // Total customers
         User.countDocuments({ role: "client" }),
-        // Today orders
+        // Today orders - excluding cancelled
         Order.countDocuments({
-          createdAt: {
-            $gte: new Date().setHours(0, 0, 0, 0),
-          },
+          createdAt: { $gte: today, $lt: tomorrow },
+          status: { $ne: "cancelled" },
         }),
-        // Today revenue
+        // Today revenue - excluding cancelled
         Order.aggregate([
           {
             $match: {
-              createdAt: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) },
+              createdAt: { $gte: today, $lt: tomorrow },
+              status: { $ne: "cancelled" },
             },
           },
           { $group: { _id: null, total: { $sum: "$paidSum" } } },
         ]),
-        // Monthly orders
-        Order.countDocuments({
-          createdAt: {
-            $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-          },
-        }),
-        // Monthly revenue
+        // Today total sales (totalSum) - excluding cancelled
         Order.aggregate([
           {
             $match: {
-              createdAt: {
-                $gte: new Date(
-                  new Date().getFullYear(),
-                  new Date().getMonth(),
-                  1
-                ),
-              },
+              createdAt: { $gte: today, $lt: tomorrow },
+              status: { $ne: "cancelled" },
             },
           },
-          { $group: { _id: null, total: { $sum: "$paidSum" } } },
+          { $group: { _id: null, total: { $sum: "$totalSum" } } },
         ]),
-        // Total debt
-        Order.aggregate([{ $group: { _id: null, total: { $sum: "$debt" } } }]),
-        // Total profit (sellPrice - costPrice)
+        // Today profit - excluding cancelled
         Order.aggregate([
+          {
+            $match: {
+              createdAt: { $gte: today, $lt: tomorrow },
+              status: { $ne: "cancelled" },
+            },
+          },
           { $unwind: "$items" },
           {
             $lookup: {
@@ -2158,6 +2479,63 @@ const adminController = {
             },
           },
         ]),
+        // Monthly orders - excluding cancelled
+        Order.countDocuments({
+          createdAt: { $gte: firstDayOfMonth },
+          status: { $ne: "cancelled" },
+        }),
+        // Monthly revenue - excluding cancelled
+        Order.aggregate([
+          {
+            $match: {
+              createdAt: { $gte: firstDayOfMonth },
+              status: { $ne: "cancelled" },
+            },
+          },
+          { $group: { _id: null, total: { $sum: "$paidSum" } } },
+        ]),
+        // Total debt - excluding cancelled
+        Order.aggregate([
+          { $match: { status: { $ne: "cancelled" } } },
+          { $group: { _id: null, total: { $sum: "$debt" } } },
+        ]),
+        // Total profit (sellPrice - costPrice) - excluding cancelled
+        Order.aggregate([
+          { $match: { status: { $ne: "cancelled" } } },
+          { $unwind: "$items" },
+          {
+            $lookup: {
+              from: "products",
+              localField: "items.product",
+              foreignField: "_id",
+              as: "productInfo",
+            },
+          },
+          { $unwind: "$productInfo" },
+          {
+            $group: {
+              _id: null,
+              total: {
+                $sum: {
+                  $multiply: [
+                    {
+                      $subtract: [
+                        "$productInfo.sellPrice",
+                        "$productInfo.costPrice",
+                      ],
+                    },
+                    "$items.quantity",
+                  ],
+                },
+              },
+            },
+          },
+        ]),
+        // Total sales (totalSum) - excluding cancelled
+        Order.aggregate([
+          { $match: { status: { $ne: "cancelled" } } },
+          { $group: { _id: null, total: { $sum: "$totalSum" } } },
+        ]),
       ]);
 
       const averageOrder =
@@ -2167,11 +2545,14 @@ const adminController = {
 
       return {
         totalRevenue: totalRevenue[0]?.total || 0,
+        totalSales: totalSales[0]?.total || 0,
         totalOrders,
         totalCustomers,
         averageOrder,
         todayOrders,
         todayRevenue: todayRevenue[0]?.total || 0,
+        todaySales: todaySales[0]?.total || 0,
+        todayProfit: todayProfit[0]?.total || 0,
         monthlyOrders,
         monthlyRevenue: monthlyRevenue[0]?.total || 0,
         totalDebt: totalDebt[0]?.total || 0,
@@ -2181,11 +2562,14 @@ const adminController = {
       console.error("❌ Get detailed statistics error:", error);
       return {
         totalRevenue: 0,
+        totalSales: 0,
         totalOrders: 0,
         totalCustomers: 0,
         averageOrder: 0,
         todayOrders: 0,
         todayRevenue: 0,
+        todaySales: 0,
+        todayProfit: 0,
         monthlyOrders: 0,
         monthlyRevenue: 0,
         totalDebt: 0,

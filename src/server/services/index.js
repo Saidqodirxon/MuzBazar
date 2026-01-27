@@ -116,7 +116,7 @@ class UserService {
       const { Order } = require("../server/models");
 
       const result = await Order.aggregate([
-        { $match: { client: userId, debt: { $gt: 0 } } },
+        { $match: { client: userId, status: { $ne: "cancelled" }, debt: { $gt: 0 } } },
         { $group: { _id: null, totalDebt: { $sum: "$debt" } } },
       ]);
 
@@ -191,7 +191,7 @@ class ReportService {
               $gte: startDate,
               $lte: endDate,
             },
-            status: { $in: ["confirmed", "delivered"] },
+            status: { $ne: "cancelled" },
           },
         },
         {

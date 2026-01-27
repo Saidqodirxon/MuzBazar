@@ -208,6 +208,7 @@ bot.hears("💰 Qarzdorlik", async (ctx) => {
 
     const orders = await Order.find({
       client: ctx.user._id,
+      status: { $ne: "cancelled" },
       debt: { $gt: 0 },
     });
 

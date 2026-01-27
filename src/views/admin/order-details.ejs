@@ -94,7 +94,7 @@ const body = `
                             <tr>
                                 <td>${moment(payment.createdAt).utcOffset(5).format('DD/MM/YYYY HH:mm')}</td>
                                 <td>${(payment.amount || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</td>
-                                <td>${payment.seller ? (payment.seller.firstName + ' ' + payment.seller.lastName) : 'System'}</td>
+                                <td>${payment.seller ? (payment.seller.firstName + ' ' + (payment.seller.lastName || '')) : (payment.adminName || 'System')}</td>
                                 <td class="text-end">
                                     <form action="/admin/payments/${payment._id}/delete" method="POST" style="display: inline;" 
                                           onsubmit="if(!confirm('Tolovni ochirasizmi?')) return false;">

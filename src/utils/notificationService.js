@@ -94,9 +94,10 @@ class NotificationService {
         throw new Error("User not found");
       }
 
-      // Get user's debt with product details
+      // Get user's debt with product details (excluding cancelled orders)
       const orders = await Order.find({
         client: clientId,
+        status: { $ne: "cancelled" },
         debt: { $gt: 0 },
       }).populate("items.product");
 

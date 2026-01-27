@@ -1,5 +1,189 @@
 # MUZ BAZAR Bot - O'zgarishlar tarixi
 
+## 2026-01-27 - To'lovlar tarixida seller ko'rsatish
+
+### 🔧 Tuzatish: To'lovlar tarixida "System" o'rniga seller nomi
+
+**Muammo:**
+- Order details sahifasida to'lovlar tarixida "System" ko'rsatilardi
+- Qaysi admin yoki seller to'lov qo'shganligini bilish qiyin edi
+
+**Yechim:**
+- ✅ Payment modeliga `adminName` maydoni qo'shildi
+- ✅ To'lov qo'shilganda seller yoki admin nomi saqlanadi
+- ✅ To'lovlar tarixida to'g'ri nom ko'rsatiladi
+
+**O'zgargan fayllar:**
+- `src/server/models/Payment.js` - adminName maydoni qo'shildi, seller Seller modeliga reference qiladi
+- `src/server/controllers/adminController.js` - addPayment funksiyasida seller/admin nomini saqlash
+- `src/views/admin/order-details.ejs` - seller/adminName ko'rsatish
+
+**Natija:**
+```
+To'lovlar tarixi:
+Sana                 | Summa        | Kim qo'shdi
+27/01/2026 14:30    | 50 000 so'm  | Anvar Sotuvchi  ✅
+27/01/2026 15:45    | 30 000 so'm  | Admin           ✅
+```
+
+---
+
+## 2026-01-27 - Telegram Guruh Xabarlari qo'shildi
+
+### 🔔 Yangi xususiyat: Admin harakatlari uchun guruh xabarlari
+
+**Nimaga kerak:**
+- Barcha admin harakatlari real-time kuzatiladi
+- Qaysi seller, qanday harakat qilganligini bilish mumkin
+- Transparency va accountability oshadi
+- Tez javob berish imkoniyati
+
+**Xabar yuboriladigan harakatlar:**
+1. ✅ Buyurtma holati o'zgartirilganda
+2. ✅ To'lov qabul qilinganda
+3. ✅ Qarz qo'shilganda
+4. ✅ To'lov o'chirilganda
+5. ✅ Yangi buyurtma kelganda (allaqachon bor edi)
+6. ✅ Yangi mahsulot qo'shilganda
+7. ✅ User blok holati o'zgartirilganda
+8. ✅ User roli o'zgartirilganda
+9. ✅ User holati (active/inactive) o'zgartirilganda
+
+**Xabar formati:**
+```
+💰 To'lov qabul qilindi
+
+👤 Sotuvchi: Seller Ismi
+👥 Mijoz: Anvar Aliyev
+🆔 Buyurtma: ORD-001
+💵 To'lov: 50 000 so'm
+✅ To'landi: 100 000 so'm
+🔴 Qarz: 50 000 so'm
+```
+
+**Sozlash:**
+- `.env` faylida `NOTIFICATION_GROUP_ID` ni sozlang
+- Botni guruhga admin sifatida qo'shing
+
+**O'zgargan fayllar:**
+- `src/server/controllers/adminController.js` - barcha funksiyalarga guruh xabari qo'shildi
+  - updateOrderStatus
+  - addPayment (to'lov qo'shish)
+  - addPayment (qarz qo'shish)
+  - deletePayment
+  - createProduct
+  - updateUserRole
+  - toggleUserStatus
+  - toggleUserBlock
+
+**Hujjatlar:**
+- ✅ `GROUP-NOTIFICATIONS.md` - To'liq yo'riqnoma va misolar
+
+**Xususiyatlar:**
+- Seller/Admin nomi ko'rsatiladi
+- To'liq ma'lumotlar (summa, mahsulot, user)
+- Emoji bilan tushunarli
+- Xatoliklar ishni to'xtatmaydi
+- Real-time xabarlar
+
+---
+
+## 2026-01-27 - Qarzdorlik tizimi to'g'rilandi va statistikalar kengaytirildi
+
+### 🔥 Muhim tuzatishlar
+
+#### 1. **Buyurtma bekor qilinganda qarz muammosi hal qilindi**
+
+**Muammo:**
+- Order statusini "cancelled" ga o'zgartirganda qarz user'da qolib ketardi
+- User hisobida noto'g'ri ma'lumotlar ko'rsatilardi
+- Qarzdorlik statistikasida bekor qilingan orderlar ham hisobga kiritilardi
+
+**Yechim:**
+- ✅ Order bekor qilinganda qarz 0 ga tenglashtiriladi
+- ✅ User'ning totalDebt maydoni avtomatik yangilanadi
+- ✅ Barcha aggregate query'larda cancelled orderlar istisno qilinadi
+- ✅ Order qayta faollashtirilganda qarz to'g'ri hisoblanadi
+
+**O'zgargan fayllar:**
+- `src/server/models/Order.js` - Post-save va post-delete middleware'lar qo'shildi
+- `src/server/models/User.js` - updateUserTotalDebt static metodi qo'shildi
+- `src/server/controllers/adminController.js` - updateOrderStatus, addPayment, deletePayment yangilandi
+
+#### 2. **To'lov va qarz boshqaruvi yaxshilandi**
+
+**Yangi funksionallik:**
+- ✅ To'lov qo'shilganda user qarzidan avtomatik ayriladi
+- ✅ Qarz qo'shilganda user hisobiga avtomatik qo'shiladi
+- ✅ To'lov o'chirilganda user qarziga qaytariladi
+- ✅ Barcha o'zgarishlar real-time yangilanadi
+
+**O'zgargan fayllar:**
+- `src/server/controllers/adminController.js` - addPayment va deletePayment yangilandi
+
+#### 3. **Dashboard statistikalari kengaytirildi**
+
+**Yangi statistikalar:**
+- 📊 **Bugungi savdo** - bugungi barcha buyurtmalarning umumiy summasi
+- 💰 **Bugungi to'lovlar** - bugun qabul qilingan to'lovlar
+- 📈 **Bugungi foyda** - bugungi savdodan olingan foyda (sellPrice - costPrice)
+- 🔴 **Umumiy qarzdorlik** - faqat faol buyurtmalarning qarzi
+
+**O'zgargan fayllar:**
+- `src/server/controllers/adminController.js` - getStatistics va getDetailedStatistics yangilandi
+- `src/views/admin/dashboard.ejs` - yangi statistika ko'rsatkichlari qo'shildi
+
+#### 4. **Barcha qarzga oid query'lar yangilandi**
+
+Cancelled orderlar istisno qilindi:
+- ✅ Qarzdorlik bo'limi
+- ✅ Foydalanuvchilar ro'yxati
+- ✅ Hisobotlar
+- ✅ Export funksiyalari
+- ✅ Bot qarzdorlik ko'rsatish
+- ✅ Scheduler eslatmalari
+- ✅ API endpointlar
+- ✅ Notification service
+
+**O'zgargan fayllar:**
+- `src/server/controllers/adminController.js` - debts, users, userDetails, exportDebts va boshqalar
+- `src/server/services/index.js` - calculateUserDebt, generateSalesReport
+- `src/bot/index.js` - qarzdorlik ko'rsatish
+- `src/utils/scheduler.js` - sendWeeklyDebtReminders, sendAutomatedDebtReminders
+- `src/utils/notificationService.js` - sendDebtNotification
+- `src/server/controllers/apiController.js` - getSalesStats, getDebtStats
+
+### 🛠️ Yangi xususiyatlar
+
+1. **Avtomatik qarz yangilanishi**
+   - Order save bo'lganda user totalDebt avtomatik yangilanadi
+   - Order o'chirilganda user totalDebt avtomatik yangilanadi
+   - Middleware orqali real-time yangilanish
+
+2. **Qarzlarni qayta hisoblash skripti**
+   - `fix-all-user-debts.js` - barcha userlarning qarzini qayta hisoblaydi
+   - Xatoliklarni tuzatish uchun
+   - Migratsiya uchun
+
+### 📚 Hujjatlar
+
+- ✅ `DEBT-FIX-GUIDE.md` - To'liq hujjat va test qilish yo'riqnomasi
+- ✅ `fix-all-user-debts.js` - Qarzlarni qayta hisoblash skripti
+
+### ⚠️ Breaking Changes
+
+- Cancelled buyurtmalar endi qarz hisobiga kirmaydi
+- User.totalDebt maydoni avtomatik yangilanadi (qo'lda yangilash kerak emas)
+
+### 🔄 Migratsiya
+
+Eski ma'lumotlarni yangilash uchun:
+```bash
+node fix-all-user-debts.js
+```
+
+---
+
 ## 2024 - Oxirgi yangilanishlar
 
 ### ✅ Bajarilgan ishlar
