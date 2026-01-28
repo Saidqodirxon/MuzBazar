@@ -227,69 +227,6 @@ const body = `
                     </button>
                 </div>
             </form>
-            
-            <script>
-            (function() {
-                var orderDebt = ${order.debt || 0};
-                
-                // Update hint text and validation when radio changes
-                document.querySelectorAll('input[name="type"]').forEach(function(radio) {
-                    radio.addEventListener('change', function() {
-                        var hint = document.getElementById('typeHint');
-                        var amountInput = document.getElementById('amount');
-                        
-                        if (this.value === 'subtract') {
-                            hint.textContent = "To'lov qabul qilish uchun";
-                            hint.className = 'text-success d-block mt-2';
-                            amountInput.max = orderDebt;
-                            if (orderDebt > 0) {
-                                amountInput.value = orderDebt;
-                            }
-                        } else {
-                            hint.textContent = "Qarzga qo'shish uchun";
-                            hint.className = 'text-warning d-block mt-2';
-                            amountInput.removeAttribute('max');
-                            amountInput.value = '';
-                        }
-                    });
-                });
-                
-                window.handlePaymentSubmit = function(event) {
-                    var btn = document.getElementById('paymentSubmitBtn');
-                    var spinner = document.getElementById('paymentSpinner');
-                    var btnText = document.getElementById('paymentBtnText');
-                    var typeSubtract = document.getElementById('typeSubtract');
-                    var amount = parseFloat(document.getElementById('amount').value);
-                    
-                    // Validate amount for payment (subtract)
-                    if (typeSubtract.checked) {
-                        if (orderDebt <= 0) {
-                            alert("⚠️ Bu buyurtmada qarz yo'q. To'lov qabul qilinmaydi.");
-                            event.preventDefault();
-                            return false;
-                        }
-                        if (amount > orderDebt) {
-                            alert("⚠️ To'lov miqdori qarzdan ko'p bo'lishi mumkin emas!\\n\\nJoriy qarz: " + orderDebt.toLocaleString('uz-UZ') + " so'm\\nKiritilgan: " + amount.toLocaleString('uz-UZ') + " so'm");
-                            event.preventDefault();
-                            return false;
-                        }
-                    }
-                    
-                    // Prevent double submission
-                    if (btn.disabled) {
-                        event.preventDefault();
-                        return false;
-                    }
-                    
-                    // Disable button and show loading
-                    btn.disabled = true;
-                    spinner.classList.remove('d-none');
-                    btnText.textContent = 'Yuklanmoqda...';
-                    
-                    return true;
-                };
-            })();
-            </script>
         </div>
     </div>
 </div>
@@ -345,3 +282,66 @@ MUZ BAZAR</textarea>
 `;
 -%>
 <%- include(layout, { body, title }) %>
+
+<script>
+(function() {
+    var orderDebt = <%= order.debt || 0 %>;
+    
+    // Update hint text and validation when radio changes
+    document.querySelectorAll('input[name="type"]').forEach(function(radio) {
+        radio.addEventListener('change', function() {
+            var hint = document.getElementById('typeHint');
+            var amountInput = document.getElementById('amount');
+            
+            if (this.value === 'subtract') {
+                hint.textContent = "To'lov qabul qilish uchun";
+                hint.className = 'text-success d-block mt-2';
+                amountInput.max = orderDebt;
+                if (orderDebt > 0) {
+                    amountInput.value = orderDebt;
+                }
+            } else {
+                hint.textContent = "Qarzga qo'shish uchun";
+                hint.className = 'text-warning d-block mt-2';
+                amountInput.removeAttribute('max');
+                amountInput.value = '';
+            }
+        });
+    });
+    
+    window.handlePaymentSubmit = function(event) {
+        var btn = document.getElementById('paymentSubmitBtn');
+        var spinner = document.getElementById('paymentSpinner');
+        var btnText = document.getElementById('paymentBtnText');
+        var typeSubtract = document.getElementById('typeSubtract');
+        var amount = parseFloat(document.getElementById('amount').value);
+        
+        // Validate amount for payment (subtract)
+        if (typeSubtract.checked) {
+            if (orderDebt <= 0) {
+                alert("⚠️ Bu buyurtmada qarz yo'q. To'lov qabul qilinmaydi.");
+                event.preventDefault();
+                return false;
+            }
+            if (amount > orderDebt) {
+                alert("⚠️ To'lov miqdori qarzdan ko'p bo'lishi mumkin emas!\n\nJoriy qarz: " + orderDebt.toLocaleString('uz-UZ') + " so'm\nKiritilgan: " + amount.toLocaleString('uz-UZ') + " so'm");
+                event.preventDefault();
+                return false;
+            }
+        }
+        
+        // Prevent double submission
+        if (btn.disabled) {
+            event.preventDefault();
+            return false;
+        }
+        
+        // Disable button and show loading
+        btn.disabled = true;
+        spinner.classList.remove('d-none');
+        btnText.textContent = 'Yuklanmoqda...';
+        
+        return true;
+    };
+})();
+</script>
