@@ -10,7 +10,53 @@ switch (order.status) {
     case 'cancelled': statusClass = 'danger'; statusText = 'Bekor qilingan'; break;
 }
 
-const body = `
+const formatNumber = (num) => (num || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+const orderDebtValue = order.debt || 0;
+
+let itemsRows = '';
+if (order.items && order.items.length > 0) {
+    order.items.forEach(item => {
+        itemsRows += '<tr>';
+        itemsRows += '<td>' + (item.product?.name || '-') + '</td>';
+        itemsRows += '<td>' + item.quantity + '</td>';
+        itemsRows += '<td>' + formatNumber(item.pricePerUnit) + " so'm</td>";
+        itemsRows += '<td>' + formatNumber(item.totalPrice) + " so'm</td>";
+        itemsRows += '</tr>';
+    });
+}
+
+let paymentsHtml = '';
+if (payments && payments.length > 0) {
+    let paymentRows = '';
+    payments.forEach(payment => {
+        const sellerName = payment.seller ? (payment.seller.firstName + ' ' + (payment.seller.lastName || '')) : (payment.adminName || 'System');
+        paymentRows += '<tr>';
+        paymentRows += '<td>' + moment(payment.createdAt).utcOffset(5).format('DD/MM/YYYY HH:mm') + '</td>';
+        paymentRows += '<td>' + formatNumber(payment.amount) + " so'm</td>";
+        paymentRows += '<td>' + sellerName + '</td>';
+        paymentRows += '<td class="text-end">';
+        paymentRows += `<form action="/admin/payments/${payment._id}/delete" method="POST" style="display: inline;" onsubmit="return confirm('Tolovni ochirasizmi?')">`;
+        paymentRows += '<button type="submit" class="btn btn-sm btn-danger" title="Tolovni ochirish"><i class="fas fa-minus"></i></button>';
+        paymentRows += '</form></td>';
+        paymentRows += '</tr>';
+    });
+    
+    paymentsHtml = '<hr class="my-3"><h6 class="mb-3">Tolovlar tarixi:</h6>';
+    paymentsHtml += '<div class="table-responsive"><table class="table table-sm">';
+    paymentsHtml += '<thead><tr><th>Sana</th><th>Summa</th><th>Kim qoshdi</th><th></th></tr></thead>';
+    paymentsHtml += '<tbody>' + paymentRows + '</tbody></table></div>';
+}
+
+const clientName = (order.client?.firstName || '') + ' ' + (order.client?.lastName || '');
+const clientPhone = order.client?.phone ? '<a href="tel:' + order.client.phone + '">' + order.client.phone + '</a>' : '<span class="text-muted">Kiritilmagan</span>';
+const clientUsername = order.client?.username ? '<p><strong>Username:</strong> @' + order.client.username + '</p>' : '';
+const notifyDisabled = order.client?.telegramId ? '' : 'disabled';
+const debtAlertHtml = order.debt <= 0 ? '<div class="alert alert-info"><i class="fas fa-info-circle me-2"></i>Bu buyurtmada qarz yoq. Agar qarz bermoqchi bolsangiz, "Qarzga qoshish" tugmasini tanlang.</div>' : '';
+const debtPaidHtml = order.debt <= 0 ? '<br><span class="text-success">✓ Qarz tolangan</span>' : '';
+
+const notifyMessage = 'Hurmatli mijoz!\n\nSizning buyurtmangiz: ' + order.orderNumber + '\n\nJami summa: ' + formatNumber(order.totalSum) + " so'm\nTo'langan: " + formatNumber(order.paidSum) + " so'm\nQoldiq: " + formatNumber(order.debt) + " so'm\n\n" + (order.debt > 0 ? 'Iltimos, tolovni amalga oshiring.' : 'Rahmat! Tolovlar toliq amalga oshirilgan.') + '\n\nMUZ BAZAR';
+-%>
+<%- include(layout, { body: `
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
     <h1 class="h2">
         <i class="fas fa-receipt me-2"></i>Buyurtma #${order.orderNumber}
@@ -21,41 +67,19 @@ const body = `
         </a>
     </div>
 </div>
-<!-- Success/Error Messages -->
-<script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const error = urlParams.get('error');
-    const success = urlParams.get('success');
-    
-    if (error === 'no_debt') {
-        const msg = urlParams.get('message') || "Bu buyurtmada qarz yo'q, to'lov qabul qilinmaydi";
-        setTimeout(() => alert('⚠️ ' + msg), 100);
-    } else if (error === 'amount_exceeds_debt') {
-        const debt = urlParams.get('debt') || '0';
-        setTimeout(() => alert("⚠️ To'lov miqdori qarzdan ko'p!\\n\\nJoriy qarz: " + parseFloat(debt).toLocaleString('uz-UZ') + " so'm"), 100);
-    } else if (error === 'invalid_amount') {
-        setTimeout(() => alert("⚠️ Noto'g'ri summa kiritildi"), 100);
-    } else if (success === 'payment_added') {
-        setTimeout(() => {
-            const alertDiv = document.createElement('div');
-            alertDiv.className = 'alert alert-success alert-dismissible fade show';
-            alertDiv.innerHTML = "<i class='fas fa-check-circle me-2'></i><strong>Muvaffaqiyatli!</strong> To'lov qabul qilindi.<button type='button' class='btn-close' data-bs-dismiss='alert'></button>";
-            document.querySelector('.row').insertAdjacentElement('beforebegin', alertDiv);
-        }, 100);
-    }
-</script>
+
 <div class="row">
     <div class="col-lg-8">
         <div class="card mb-4">
             <div class="card-header">
-                <h5>Buyurtma ma'lumotlari</h5>
+                <h5>Buyurtma malumotlari</h5>
             </div>
             <div class="card-body">
                 <div class="row mb-3">
                     <div class="col-md-6">
-                        <p><strong>Klient:</strong> ${order.client?.firstName} ${order.client?.lastName}</p>
-                        <p><strong>Telefon:</strong> ${order.client?.phone ? '<a href="tel:' + order.client.phone + '">' + order.client.phone + '</a>' : '<span class="text-muted">Kiritilmagan</span>'}</p>
-                        ${order.client?.username ? '<p><strong>Username:</strong> @' + order.client.username + '</p>' : ''}
+                        <p><strong>Klient:</strong> ${clientName}</p>
+                        <p><strong>Telefon:</strong> ${clientPhone}</p>
+                        ${clientUsername}
                     </div>
                     <div class="col-md-6">
                         <p><strong>Status:</strong> <span class="badge bg-${statusClass}">${statusText}</span></p>
@@ -75,14 +99,7 @@ const body = `
                             </tr>
                         </thead>
                         <tbody>
-                            ${order.items.map(item => `
-                            <tr>
-                                <td>${item.product?.name}</td>
-                                <td>${item.quantity}</td>
-                                <td>${(item.pricePerUnit || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</td>
-                                <td>${(item.totalPrice || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</td>
-                            </tr>
-                            `).join('')}
+                            ${itemsRows}
                         </tbody>
                     </table>
                 </div>
@@ -91,46 +108,13 @@ const body = `
 
         <div class="card">
             <div class="card-header">
-                <h5>To'lov ma'lumotlari</h5>
+                <h5>Tolov malumotlari</h5>
             </div>
             <div class="card-body">
-                <p><strong>Jami summa:</strong> ${(order.totalSum || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</p>
-                <p><strong>To'landi:</strong> ${(order.paidSum || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</p>
-                <p><strong>Qarzdorlik:</strong> ${(order.debt || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</p>
-                
-                ${payments && payments.length > 0 ? `
-                <hr class="my-3">
-                <h6 class="mb-3">To'lovlar tarixi:</h6>
-                <div class="table-responsive">
-                    <table class="table table-sm">
-                        <thead>
-                            <tr>
-                                <th>Sana</th>
-                                <th>Summa</th>
-                                <th>Kim qo'shdi</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${payments.map(payment => `
-                            <tr>
-                                <td>${moment(payment.createdAt).utcOffset(5).format('DD/MM/YYYY HH:mm')}</td>
-                                <td>${(payment.amount || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</td>
-                                <td>${payment.seller ? (payment.seller.firstName + ' ' + (payment.seller.lastName || '')) : (payment.adminName || 'System')}</td>
-                                <td class="text-end">
-                                    <form action="/admin/payments/${payment._id}/delete" method="POST" style="display: inline;" 
-                                          onsubmit="if(!confirm('Tolovni ochirasizmi?')) return false;">
-                                        <button type="submit" class="btn btn-sm btn-danger" title="Tolovni ochirish">
-                                            <i class="fas fa-minus"></i>
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-                ` : ''}
+                <p><strong>Jami summa:</strong> ${formatNumber(order.totalSum)} som</p>
+                <p><strong>Tolandi:</strong> ${formatNumber(order.paidSum)} som</p>
+                <p><strong>Qarzdorlik:</strong> ${formatNumber(order.debt)} som</p>
+                ${paymentsHtml}
             </div>
         </div>
     </div>
@@ -143,12 +127,12 @@ const body = `
             <div class="card-body">
                 <div class="d-grid gap-2">
                     <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#statusModal">
-                        <i class="fas fa-edit me-2"></i>Statusni o'zgartirish
+                        <i class="fas fa-edit me-2"></i>Statusni ozgartirish
                     </button>
                     <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#paymentModal">
-                        <i class="fas fa-money-bill me-2"></i>To'lov qayd qilish
+                        <i class="fas fa-money-bill me-2"></i>Tolov qayd qilish
                     </button>
-                    <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#notifyModal" ${order.client?.telegramId ? '' : 'disabled'}>
+                    <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#notifyModal" ${notifyDisabled}>
                         <i class="fas fa-bell me-2"></i>Eslatma yuborish
                     </button>
                 </div>
@@ -162,7 +146,7 @@ const body = `
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Statusni o'zgartirish</h5>
+                <h5 class="modal-title">Statusni ozgartirish</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form action="/admin/orders/${order._id}/status" method="POST">
@@ -189,35 +173,35 @@ const body = `
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">To'lov/Qarz boshqaruvi</h5>
+                <h5 class="modal-title">Tolov/Qarz boshqaruvi</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form action="/admin/orders/${order._id}/payment" method="POST" onsubmit="return handlePaymentSubmit(event)">
+            <form action="/admin/orders/${order._id}/payment" method="POST" id="paymentForm">
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Amal turi</label>
                         <div class="btn-group w-100" role="group">
                             <input type="radio" class="btn-check" name="type" id="typeSubtract" value="subtract" checked>
                             <label class="btn btn-outline-success" for="typeSubtract">
-                                <i class="fas fa-minus-circle me-1"></i>Qarzdan ayirish (To'lov)
+                                <i class="fas fa-minus-circle me-1"></i>Qarzdan ayirish (Tolov)
                             </label>
                             <input type="radio" class="btn-check" name="type" id="typeAdd" value="add">
                             <label class="btn btn-outline-warning" for="typeAdd">
-                                <i class="fas fa-plus-circle me-1"></i>Qarzga qo'shish (Narx berish)
+                                <i class="fas fa-plus-circle me-1"></i>Qarzga qoshish
                             </label>
                         </div>
-                        <small class="text-muted d-block mt-2" id="typeHint">To'lov qabul qilish uchun</small>
+                        <small class="text-muted d-block mt-2" id="typeHint">Tolov qabul qilish uchun</small>
                     </div>
                     <div class="mb-3">
-                        <label for="amount" class="form-label">Miqdor (so'm)</label>
+                        <label for="amount" class="form-label">Miqdor (som)</label>
                         <input type="number" class="form-control" id="amount" name="amount" 
                                value="${order.debt > 0 ? order.debt : ''}" placeholder="0" required min="1" step="1">
                         <small class="text-muted" id="currentDebtInfo">
-                            Joriy qarz: <strong>${(order.debt || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</strong>
-                            ${order.debt <= 0 ? '<br><span class="text-success">✓ Qarz to\'langan</span>' : ''}
+                            Joriy qarz: <strong>${formatNumber(order.debt)} som</strong>
+                            ${debtPaidHtml}
                         </small>
                     </div>
-                    ${order.debt <= 0 ? '<div class="alert alert-info"><i class="fas fa-info-circle me-2"></i>Bu buyurtmada qarz yo\'q. Agar qarz bermoqchi bo\'lsangiz, "Qarzga qo\'shish" tugmasini tanlang.</div>' : ''}
+                    ${debtAlertHtml}
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor qilish</button>
@@ -236,34 +220,18 @@ const body = `
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-bell me-2"></i>Eslatma yuborish
-                </h5>
+                <h5 class="modal-title"><i class="fas fa-bell me-2"></i>Eslatma yuborish</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="/admin/orders/${order._id}/notify">
                 <div class="modal-body">
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle me-2"></i>
-                        <strong>${order.client?.firstName} ${order.client?.lastName}</strong> ga eslatma yuboriladi
+                        <strong>${clientName}</strong> ga eslatma yuboriladi
                     </div>
                     <div class="mb-3">
                         <label for="notifyMessage" class="form-label">Xabar matni:</label>
-                        <textarea class="form-control" id="notifyMessage" name="message" rows="8" required>Hurmatli mijoz!
-
-<i>${order.client?.firstName || ''} ${order.client?.lastName || ''}</i>
-
-📦 Sizning buyurtmangiz: ${order.orderNumber}
-
-Boshlang'ich qoldiq: ${(order.totalSum || 0).toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, ' ')} so'm
-To'lov summasi: ${(order.paidSum || 0).toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, ' ')} so'm
-Umumiy qoldiq: ${(order.debt || 0).toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, ' ')} so'm
-
-Vaqti: ${moment(order.createdAt).utcOffset(5).format('DD/MM/YYYY HH:mm:ss')}
-
-${order.debt > 0 ? 'Iltimos, tolovni amalga oshiring.' : 'Rahmat! Tolovlar toliq amalga oshirilgan.'}
-
-MUZ BAZAR</textarea>
+                        <textarea class="form-control" id="notifyMessage" name="message" rows="8" required>${notifyMessage}</textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -279,69 +247,56 @@ MUZ BAZAR</textarea>
     </div>
 </div>
 
-`;
--%>
-<%- include(layout, { body, title }) %>
-
 <script>
 (function() {
-    var orderDebt = <%= order.debt || 0 %>;
+    var orderDebt = ` + orderDebtValue + `;
     
-    // Update hint text and validation when radio changes
     document.querySelectorAll('input[name="type"]').forEach(function(radio) {
         radio.addEventListener('change', function() {
             var hint = document.getElementById('typeHint');
             var amountInput = document.getElementById('amount');
             
             if (this.value === 'subtract') {
-                hint.textContent = "To'lov qabul qilish uchun";
+                hint.textContent = "Tolov qabul qilish uchun";
                 hint.className = 'text-success d-block mt-2';
-                amountInput.max = orderDebt;
-                if (orderDebt > 0) {
-                    amountInput.value = orderDebt;
-                }
+                if (orderDebt > 0) amountInput.value = orderDebt;
             } else {
-                hint.textContent = "Qarzga qo'shish uchun";
+                hint.textContent = "Qarzga qoshish uchun";
                 hint.className = 'text-warning d-block mt-2';
-                amountInput.removeAttribute('max');
                 amountInput.value = '';
             }
         });
     });
     
-    window.handlePaymentSubmit = function(event) {
+    document.getElementById('paymentForm').addEventListener('submit', function(e) {
         var btn = document.getElementById('paymentSubmitBtn');
         var spinner = document.getElementById('paymentSpinner');
         var btnText = document.getElementById('paymentBtnText');
         var typeSubtract = document.getElementById('typeSubtract');
         var amount = parseFloat(document.getElementById('amount').value);
         
-        // Validate amount for payment (subtract)
         if (typeSubtract.checked) {
             if (orderDebt <= 0) {
-                alert("⚠️ Bu buyurtmada qarz yo'q. To'lov qabul qilinmaydi.");
-                event.preventDefault();
+                alert("Bu buyurtmada qarz yoq.");
+                e.preventDefault();
                 return false;
             }
             if (amount > orderDebt) {
-                alert("⚠️ To'lov miqdori qarzdan ko'p bo'lishi mumkin emas!\n\nJoriy qarz: " + orderDebt.toLocaleString('uz-UZ') + " so'm\nKiritilgan: " + amount.toLocaleString('uz-UZ') + " so'm");
-                event.preventDefault();
+                alert("Tolov miqdori qarzdan kop!");
+                e.preventDefault();
                 return false;
             }
         }
         
-        // Prevent double submission
         if (btn.disabled) {
-            event.preventDefault();
+            e.preventDefault();
             return false;
         }
         
-        // Disable button and show loading
         btn.disabled = true;
         spinner.classList.remove('d-none');
         btnText.textContent = 'Yuklanmoqda...';
-        
-        return true;
-    };
+    });
 })();
 </script>
+`, title }) %>
