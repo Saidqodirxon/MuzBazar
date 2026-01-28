@@ -21,7 +21,29 @@ const body = `
         </a>
     </div>
 </div>
-
+<!-- Success/Error Messages -->
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const error = urlParams.get('error');
+    const success = urlParams.get('success');
+    
+    if (error === 'no_debt') {
+        const msg = urlParams.get('message') || "Bu buyurtmada qarz yo'q, to'lov qabul qilinmaydi";
+        setTimeout(() => alert('⚠️ ' + msg), 100);
+    } else if (error === 'amount_exceeds_debt') {
+        const debt = urlParams.get('debt') || '0';
+        setTimeout(() => alert("⚠️ To'lov miqdori qarzdan ko'p!\\n\\nJoriy qarz: " + parseFloat(debt).toLocaleString('uz-UZ') + " so'm"), 100);
+    } else if (error === 'invalid_amount') {
+        setTimeout(() => alert("⚠️ Noto'g'ri summa kiritildi"), 100);
+    } else if (success === 'payment_added') {
+        setTimeout(() => {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-success alert-dismissible fade show';
+            alertDiv.innerHTML = "<i class='fas fa-check-circle me-2'></i><strong>Muvaffaqiyatli!</strong> To'lov qabul qilindi.<button type='button' class='btn-close' data-bs-dismiss='alert'></button>";
+            document.querySelector('.row').insertAdjacentElement('beforebegin', alertDiv);
+        }, 100);
+    }
+</script>
 <div class="row">
     <div class="col-lg-8">
         <div class="card mb-4">
@@ -189,9 +211,13 @@ const body = `
                     <div class="mb-3">
                         <label for="amount" class="form-label">Miqdor (so'm)</label>
                         <input type="number" class="form-control" id="amount" name="amount" 
-                               value="${order.debt}" placeholder="0" required>
-                        <small class="text-muted">Joriy qarz: <strong>${(order.debt || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</strong></small>
+                               value="${order.debt > 0 ? order.debt : ''}" placeholder="0" required min="1" step="1">
+                        <small class="text-muted" id="currentDebtInfo">
+                            Joriy qarz: <strong>${(order.debt || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</strong>
+                            ${order.debt <= 0 ? '<br><span class="text-success">✓ Qarz to\'langan</span>' : ''}
+                        </small>
                     </div>
+                    ${order.debt <= 0 ? '<div class="alert alert-info"><i class="fas fa-info-circle me-2"></i>Bu buyurtmada qarz yo\'q. Agar qarz bermoqchi bo\'lsangiz, "Qarzga qo\'shish" tugmasini tanlang.</div>' : ''}
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor qilish</button>
@@ -201,39 +227,68 @@ const body = `
                     </button>
                 </div>
             </form>
+            <%# Payment Modal Script %>
             <script>
-            // Update hint text when radio changes
-            document.querySelectorAll('input[name="type"]').forEach(radio => {
-                radio.addEventListener('change', function() {
-                    const hint = document.getElementById('typeHint');
-                    if (this.value === 'subtract') {
-                        hint.textContent = 'To\'lov qabul qilish uchun';
-                        hint.className = 'text-success d-block mt-2';
-                    } else {
-                        hint.textContent = 'Qarzga qo\'shish uchun';
-                        hint.className = 'text-warning d-block mt-2';
-                    }
+            (function() {
+                var orderDebt = <%= order.debt || 0 %>;
+                
+                // Update hint text and validation when radio changes
+                document.querySelectorAll('input[name="type"]').forEach(function(radio) {
+                    radio.addEventListener('change', function() {
+                        var hint = document.getElementById('typeHint');
+                        var amountInput = document.getElementById('amount');
+                        
+                        if (this.value === 'subtract') {
+                            hint.textContent = "To'lov qabul qilish uchun";
+                            hint.className = 'text-success d-block mt-2';
+                            amountInput.max = orderDebt;
+                            if (orderDebt > 0) {
+                                amountInput.value = orderDebt;
+                            }
+                        } else {
+                            hint.textContent = "Qarzga qo'shish uchun";
+                            hint.className = 'text-warning d-block mt-2';
+                            amountInput.removeAttribute('max');
+                            amountInput.value = '';
+                        }
+                    });
                 });
-            });
-            
-            function handlePaymentSubmit(event) {
-                const btn = document.getElementById('paymentSubmitBtn');
-                const spinner = document.getElementById('paymentSpinner');
-                const btnText = document.getElementById('paymentBtnText');
                 
-                // Prevent double submission
-                if (btn.disabled) {
-                    event.preventDefault();
-                    return false;
-                }
-                
-                // Disable button and show loading
-                btn.disabled = true;
-                spinner.classList.remove('d-none');
-                btnText.textContent = 'Yuklanmoqda...';
-                
-                return true;
-            }
+                window.handlePaymentSubmit = function(event) {
+                    var btn = document.getElementById('paymentSubmitBtn');
+                    var spinner = document.getElementById('paymentSpinner');
+                    var btnText = document.getElementById('paymentBtnText');
+                    var typeSubtract = document.getElementById('typeSubtract');
+                    var amount = parseFloat(document.getElementById('amount').value);
+                    
+                    // Validate amount for payment (subtract)
+                    if (typeSubtract.checked) {
+                        if (orderDebt <= 0) {
+                            alert("⚠️ Bu buyurtmada qarz yo'q. To'lov qabul qilinmaydi.");
+                            event.preventDefault();
+                            return false;
+                        }
+                        if (amount > orderDebt) {
+                            alert("⚠️ To'lov miqdori qarzdan ko'p bo'lishi mumkin emas!\\n\\nJoriy qarz: " + orderDebt.toLocaleString('uz-UZ') + " so'm\\nKiritilgan: " + amount.toLocaleString('uz-UZ') + " so'm");
+                            event.preventDefault();
+                            return false;
+                        }
+                    }
+                    
+                    // Prevent double submission
+                    if (btn.disabled) {
+                        event.preventDefault();
+                        return false;
+                    }
+                    
+                    // Disable button and show loading
+                    btn.disabled = true;
+                    spinner.classList.remove('d-none');
+                    btnText.textContent = 'Yuklanmoqda...';
+                    
+                    return true;
+                };
+            })();
             </script>
         </div>
     </div>

@@ -83,17 +83,42 @@ const orderSchema = new mongoose.Schema(
 
 // Pre-save middleware to calculate debt
 orderSchema.pre("save", async function (next) {
-  // Calculate debt
-  this.debt = this.totalSum - this.paidSum;
+  // Calculate debt, ensure it's not negative
+  this.debt = Math.max(0, this.totalSum - this.paidSum);
+
+  // Ensure paidSum doesn't exceed totalSum
+  if (this.paidSum > this.totalSum) {
+    this.paidSum = this.totalSum;
+    this.debt = 0;
+  }
 
   next();
 });
 
 // Method to add payment
 orderSchema.methods.addPayment = function (amount) {
-  this.paidSum += amount;
+  // Calculate new paidSum
+  const newPaidSum = this.paidSum + amount;
+
+  // Limit paidSum to totalSum (can't pay more than the total)
+  if (newPaidSum > this.totalSum) {
+    const actualPayment = this.totalSum - this.paidSum;
+    this.paidSum = this.totalSum;
+    this.debt = 0;
+    return {
+      accepted: actualPayment,
+      rejected: amount - actualPayment,
+      remaining: 0,
+    };
+  }
+
+  this.paidSum = newPaidSum;
   this.debt = this.totalSum - this.paidSum;
-  return this.debt;
+  return {
+    accepted: amount,
+    rejected: 0,
+    remaining: this.debt,
+  };
 };
 
 // Method to check if order is fully paid

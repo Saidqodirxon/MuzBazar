@@ -930,17 +930,28 @@ const adminController = {
       // Add payment to order
       if (type === "subtract") {
         // Qarzdan ayirish (to'lov qabul qilish)
-        if (paymentAmount > order.debt) {
+
+        // Check if there's any debt to pay
+        if (order.debt <= 0) {
           return res.redirect(
-            `/admin/orders/${req.params.id}?error=amount_exceeds_debt`
+            `/admin/orders/${req.params.id}?error=no_debt&message=Buyurtmada qarz yo'q, to'lov qabul qilinmaydi`
           );
         }
 
-        order.paidSum = (order.paidSum || 0) + paymentAmount;
-        order.debt = order.totalSum - order.paidSum;
+        // Check if payment exceeds debt
+        if (paymentAmount > order.debt) {
+          return res.redirect(
+            `/admin/orders/${req.params.id}?error=amount_exceeds_debt&debt=${order.debt}`
+          );
+        }
+
+        // Add payment
+        const previousPaidSum = order.paidSum || 0;
+        order.paidSum = previousPaidSum + paymentAmount;
+        order.debt = Math.max(0, order.totalSum - order.paidSum);
 
         console.log(
-          `✅ After payment - Total: ${order.totalSum}, Paid: ${order.paidSum}, Debt: ${order.debt}`
+          `✅ After payment - Total: ${order.totalSum}, Paid: ${order.paidSum} (was: ${previousPaidSum}), Debt: ${order.debt}`
         );
 
         // Save order first
