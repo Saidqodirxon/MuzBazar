@@ -230,7 +230,7 @@ const body = `
             
             <script>
             (function() {
-                var orderDebt = <%= order.debt || 0 %>;
+                var orderDebt = ${order.debt || 0};
                 
                 // Update hint text and validation when radio changes
                 document.querySelectorAll('input[name="type"]').forEach(function(radio) {
