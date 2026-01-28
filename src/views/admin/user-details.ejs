@@ -48,8 +48,8 @@ if (user.orders && user.orders.length > 0) {
     }
     ordersTableHtml = '<div class="table-responsive"><table class="table table-sm"><thead><tr><th>Buyurtma №</th><th>Boshlang\'ich qoldiq</th><th>To\'lov summasi</th><th>Umumiy qoldiq</th><th>Status</th><th>Sana</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
 }
--%>
-<%- include(layout, { body: `
+
+const body = `
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
     <h1 class="h2">
         <i class="fas fa-user me-2"></i>${userName}
@@ -154,4 +154,6 @@ if (user.orders && user.orders.length > 0) {
         </div>
     </div>
 </div>
-`, title }) %>
+`;
+-%>
+<%- include(layout, { body, title }) %>
