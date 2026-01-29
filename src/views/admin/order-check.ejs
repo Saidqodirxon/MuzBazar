@@ -43,11 +43,10 @@
         }
         
         .logo {
-            width: 55mm;
+            width: 60mm;
             height: auto;
-            margin: 0 auto 8px;
+            margin: 0 auto 5px;
             display: block;
-            border-radius: 8px;
         }
         
         .shop-name {
@@ -211,42 +210,41 @@
     <div class="check-container">
         <!-- Header -->
         <div class="header">
-            <img src="/logo.jpg" class="logo" alt="MUZBAZAR">
-            <div class="shop-name">MUZLATILGAN MAHSULOTLAR</div>
+            <img src="/logo.png" class="logo" alt="MUZBAZAR">
         </div>
         
         <!-- Check Info -->
         <div class="check-info">
             <div class="info-row">
-                <span class="info-label">📅 Sana:</span>
+                <span class="info-label">Sana:</span>
                 <span><%= moment(order.createdAt).utcOffset(5).format('DD.MM.YYYY') %></span>
             </div>
             <div class="info-row">
-                <span class="info-label">🕐 Vaqt:</span>
+                <span class="info-label">Vaqt:</span>
                 <span><%= moment(order.createdAt).utcOffset(5).format('HH:mm') %></span>
             </div>
             <div class="info-row">
-                <span class="info-label">🧾 Check №:</span>
+                <span class="info-label">Check №:</span>
                 <span><%= order.orderNumber %></span>
             </div>
         </div>
         
         <!-- Client Info -->
         <div class="client-section">
-            <div class="section-title">👤 Mijoz ma'lumotlari:</div>
+            <div class="section-title">Mijoz ma'lumotlari:</div>
             <div class="info-row">
                 <span class="info-label">Ism:</span>
                 <span><%= (order.client?.firstName || '') + ' ' + (order.client?.lastName || '') %></span>
             </div>
             <% if (order.client?.phone) { %>
             <div class="info-row">
-                <span class="info-label">📞 Tel:</span>
+                <span class="info-label">Tel:</span>
                 <span><%= order.client.phone %></span>
             </div>
             <% } %>
             <% if (order.client?.username) { %>
             <div class="info-row">
-                <span class="info-label">💬 Username:</span>
+                <span class="info-label">Username:</span>
                 <span>@<%= order.client.username %></span>
             </div>
             <% } %>
@@ -254,7 +252,7 @@
         
         <!-- Items -->
         <div class="items-section">
-            <div class="section-title">🛒 Mahsulotlar:</div>
+            <div class="section-title">Mahsulotlar:</div>
             <% 
             const formatNumber = (num) => (num || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
             if (order.items && order.items.length > 0) {
@@ -276,21 +274,21 @@
         <!-- Totals -->
         <div class="totals section">
             <div class="total-row main">
-                <span>💰 JAMI:</span>
+                <span>JAMI:</span>
                 <span class="amount"><%= formatNumber(order.totalSum) %> so'm</span>
             </div>
             <div class="total-row">
-                <span>✅ To'langan:</span>
+                <span>To'langan:</span>
                 <span class="amount"><%= formatNumber(order.paidSum) %> so'm</span>
             </div>
             <% if (order.debt > 0) { %>
             <div class="total-row debt">
-                <span>⚠️ Qarz:</span>
+                <span>Qarz:</span>
                 <span class="amount"><%= formatNumber(order.debt) %> so'm</span>
             </div>
             <% } else { %>
             <div class="total-row">
-                <span>💵 Qoldiq:</span>
+                <span>Qoldiq:</span>
                 <span class="amount">0 so'm</span>
             </div>
             <% } %>
@@ -298,13 +296,13 @@
         
         <!-- Footer -->
         <div class="footer">
-            <div class="thank-you">⭐ Haridingiz uchun RAHMAT! ⭐</div>
+            <div class="thank-you">Haridingiz uchun RAHMAT!</div>
             <div style="margin: 8px 0; padding: 5px 0; border-top: 1px dashed #666; border-bottom: 1px dashed #666;">
                 <div class="contact" style="margin-top: 5px;">
-                    📞 Murojaat uchun: <%= shopPhone %>
+                    Murojaat uchun: <%= shopPhone %>
                 </div>
                 <div class="contact" style="margin-top: 5px; font-size: 10px; color: #666;">
-                    ⏰ <%= moment(order.createdAt).utcOffset(5).format('DD.MM.YYYY HH:mm:ss') %>
+                    <%= moment(order.createdAt).utcOffset(5).format('DD.MM.YYYY HH:mm:ss') %>
                 </div>
             </div>
             <div style="margin-top: 8px; font-size: 11px; font-style: italic; color: #555;">
@@ -316,10 +314,10 @@
     <!-- Print Controls (Hidden on print) -->
     <div class="no-print" style="text-align: center; margin-top: 20px; padding: 20px;">
         <button onclick="window.print()" style="padding: 10px 30px; font-size: 16px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 5px; margin-right: 10px;">
-            🖨️ Chop etish
+            Chop etish
         </button>
         <button onclick="window.close()" style="padding: 10px 30px; font-size: 16px; cursor: pointer; background: #6c757d; color: white; border: none; border-radius: 5px;">
-            ✖️ Yopish
+            Yopish
         </button>
     </div>
     
