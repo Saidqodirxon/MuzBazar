@@ -284,9 +284,19 @@
     </div>
     
     <script>
-        // Sahifa yuklanishi bilanoq avtomatik chop etish oynasini ochish
+        // Faqat desktop/laptop da avtomatik print qilish
+        // Telefonda emas (ekran kengligi 768px dan katta bo'lsa)
         window.onload = function() {
-            window.print();
+            // Mobil qurilmalarni aniqlash
+            var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            var isSmallScreen = window.innerWidth < 768;
+            
+            // Faqat desktop da avtomatik print
+            if (!isMobile && !isSmallScreen) {
+                setTimeout(function() {
+                    window.print();
+                }, 100);
+            }
         };
         
         // Chop etishdan keyin oynani avtomatik yopish (ixtiyoriy)

@@ -10,6 +10,9 @@ router.get("/", adminController.showLogin);
 router.post("/login", adminController.login);
 router.get("/logout", adminController.logout);
 
+// Public routes (no auth required)
+router.get("/orders/:id/check", adminController.printOrderCheck);
+
 // Protected routes
 router.use(authMiddleware);
 
@@ -20,7 +23,6 @@ router.get("/dashboard", adminController.dashboard);
 router.get("/orders", adminController.orders);
 router.get("/orders/export", adminController.exportOrders);
 router.get("/orders/:id", adminController.orderDetails);
-router.get("/orders/:id/check", adminController.printOrderCheck);
 router.post("/orders/:id/status", adminController.updateOrderStatus);
 router.post("/orders/:id/notify", adminController.sendOrderNotification);
 router.post("/orders/:id/payment", adminController.addPayment);
