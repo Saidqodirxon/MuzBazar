@@ -37,23 +37,33 @@
         
         .header {
             text-align: center;
-            margin-bottom: 8px;
-            padding-bottom: 8px;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
             border-bottom: 2px dashed #000;
         }
         
-        .shop-name {
-            font-size: 20px;
-            font-weight: bold;
-            margin-bottom: 5px;
-            letter-spacing: 2px;
-            color: #000;
+        .logo {
+            width: 55mm;
+            height: auto;
+            margin: 0 auto 8px;
+            display: block;
+            border-radius: 8px;
         }
         
-        .shop-info {
-            font-size: 12px;
-            margin: 2px 0;
+        .shop-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+            color: #000;
+            text-transform: uppercase;
+        }
+        
+        .shop-slogan {
+            font-size: 11px;
+            margin: 3px 0;
             font-weight: 600;
+            color: #333;
         }
         
         .check-info {
@@ -164,9 +174,10 @@
         }
         
         .thank-you {
-            font-size: 15px;
+            font-size: 16px;
             font-weight: bold;
             margin: 8px 0;
+            color: #000;
         }
         
         .contact {
@@ -200,41 +211,42 @@
     <div class="check-container">
         <!-- Header -->
         <div class="header">
-            <div class="shop-name"><%= shopName %></div>
+            <img src="/logo.jpg" class="logo" alt="MUZBAZAR">
+            <div class="shop-name">MUZLATILGAN MAHSULOTLAR</div>
         </div>
         
         <!-- Check Info -->
         <div class="check-info">
             <div class="info-row">
-                <span class="info-label">Sana:</span>
+                <span class="info-label">📅 Sana:</span>
                 <span><%= moment(order.createdAt).utcOffset(5).format('DD.MM.YYYY') %></span>
             </div>
             <div class="info-row">
-                <span class="info-label">Vaqt:</span>
+                <span class="info-label">🕐 Vaqt:</span>
                 <span><%= moment(order.createdAt).utcOffset(5).format('HH:mm') %></span>
             </div>
             <div class="info-row">
-                <span class="info-label">Check №:</span>
+                <span class="info-label">🧾 Check №:</span>
                 <span><%= order.orderNumber %></span>
             </div>
         </div>
         
         <!-- Client Info -->
         <div class="client-section">
-            <div class="section-title">Mijoz ma'lumotlari:</div>
+            <div class="section-title">👤 Mijoz ma'lumotlari:</div>
             <div class="info-row">
                 <span class="info-label">Ism:</span>
                 <span><%= (order.client?.firstName || '') + ' ' + (order.client?.lastName || '') %></span>
             </div>
             <% if (order.client?.phone) { %>
             <div class="info-row">
-                <span class="info-label">Tel:</span>
+                <span class="info-label">📞 Tel:</span>
                 <span><%= order.client.phone %></span>
             </div>
             <% } %>
             <% if (order.client?.username) { %>
             <div class="info-row">
-                <span class="info-label">Username:</span>
+                <span class="info-label">💬 Username:</span>
                 <span>@<%= order.client.username %></span>
             </div>
             <% } %>
@@ -242,7 +254,7 @@
         
         <!-- Items -->
         <div class="items-section">
-            <div class="section-title">Mahsulotlar:</div>
+            <div class="section-title">🛒 Mahsulotlar:</div>
             <% 
             const formatNumber = (num) => (num || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
             if (order.items && order.items.length > 0) {
@@ -262,23 +274,23 @@
         </div>
         
         <!-- Totals -->
-        <div class="totals-section">
+        <div class="totals section">
             <div class="total-row main">
-                <span>JAMI:</span>
+                <span>💰 JAMI:</span>
                 <span class="amount"><%= formatNumber(order.totalSum) %> so'm</span>
             </div>
             <div class="total-row">
-                <span>To'langan:</span>
+                <span>✅ To'langan:</span>
                 <span class="amount"><%= formatNumber(order.paidSum) %> so'm</span>
             </div>
             <% if (order.debt > 0) { %>
             <div class="total-row debt">
-                <span>Qarz:</span>
+                <span>⚠️ Qarz:</span>
                 <span class="amount"><%= formatNumber(order.debt) %> so'm</span>
             </div>
             <% } else { %>
             <div class="total-row">
-                <span>Qoldiq:</span>
+                <span>💵 Qoldiq:</span>
                 <span class="amount">0 so'm</span>
             </div>
             <% } %>
@@ -286,13 +298,17 @@
         
         <!-- Footer -->
         <div class="footer">
-            <div class="thank-you">Haridingiz uchun RAHMAT!</div>
-            <!-- <div class="contact"></div> -->
-            <div class="contact" style="margin-top: 10px;">
-                Murojaat uchun: <%= shopPhone %>
+            <div class="thank-you">⭐ Haridingiz uchun RAHMAT! ⭐</div>
+            <div style="margin: 8px 0; padding: 5px 0; border-top: 1px dashed #666; border-bottom: 1px dashed #666;">
+                <div class="contact" style="margin-top: 5px;">
+                    📞 Murojaat uchun: <%= shopPhone %>
+                </div>
+                <div class="contact" style="margin-top: 5px; font-size: 10px; color: #666;">
+                    ⏰ <%= moment(order.createdAt).utcOffset(5).format('DD.MM.YYYY HH:mm:ss') %>
+                </div>
             </div>
-            <div class="contact" style="margin-top: 5px; font-size: 10px;">
-                <%= moment(order.createdAt).utcOffset(5).format('DD.MM.YYYY HH:mm:ss') %>
+            <div style="margin-top: 8px; font-size: 11px; font-style: italic; color: #555;">
+                Sifatli muzlatilgan mahsulotlar bilan xizmatdamiz!
             </div>
         </div>
     </div>
@@ -309,7 +325,6 @@
     
     <script>
         // Faqat desktop/laptop da avtomatik print qilish
-        // Telefonda emas (ekran kengligi 768px dan katta bo'lsa)
         window.onload = function() {
             // Mobil qurilmalarni aniqlash
             var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
