@@ -126,6 +126,9 @@ const notifyMessage = 'Hurmatli mijoz!\n\nSizning buyurtmangiz: ' + order.orderN
             </div>
             <div class="card-body">
                 <div class="d-grid gap-2">
+                    <a href="/admin/orders/${order._id}/check" target="_blank" class="btn btn-success">
+                        <i class="fas fa-print me-2"></i>Check chiqarish
+                    </a>
                     <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#statusModal">
                         <i class="fas fa-edit me-2"></i>Statusni ozgartirish
                     </button>

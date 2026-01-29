@@ -729,6 +729,37 @@ const adminController = {
     }
   },
 
+  // Print order check/receipt
+  async printOrderCheck(req, res) {
+    try {
+      const order = await Order.findById(req.params.id)
+        .populate("client")
+        .populate("seller")
+        .populate("items.product");
+
+      if (!order) {
+        return res.status(404).send("Buyurtma topilmadi");
+      }
+
+      // Get shop settings
+      const { Settings } = require("../models");
+      const shopName = await Settings.get("shop_name", "MUZ BAZAR");
+      const shopPhone = await Settings.get("shop_phone", "+998 90 123 45 67");
+      const shopAddress = await Settings.get("shop_address", "Toshkent shahar");
+
+      res.render("admin/order-check", {
+        order,
+        shopName,
+        shopPhone,
+        shopAddress,
+        moment,
+      });
+    } catch (error) {
+      console.error("❌ Print check error:", error);
+      res.status(500).send("Check chiqarishda xatolik yuz berdi");
+    }
+  },
+
   // Update order status
   async updateOrderStatus(req, res) {
     try {

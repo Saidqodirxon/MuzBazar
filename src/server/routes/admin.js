@@ -20,6 +20,7 @@ router.get("/dashboard", adminController.dashboard);
 router.get("/orders", adminController.orders);
 router.get("/orders/export", adminController.exportOrders);
 router.get("/orders/:id", adminController.orderDetails);
+router.get("/orders/:id/check", adminController.printOrderCheck);
 router.post("/orders/:id/status", adminController.updateOrderStatus);
 router.post("/orders/:id/notify", adminController.sendOrderNotification);
 router.post("/orders/:id/payment", adminController.addPayment);
