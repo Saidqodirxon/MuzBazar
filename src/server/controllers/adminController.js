@@ -1229,13 +1229,49 @@ const adminController = {
         client: user._id,
         status: { $ne: "cancelled" },
       })
-        .populate("items.product", "name")
+        .populate("items.product", "name costPrice sellPrice stock")
         .sort({ createdAt: -1 })
         .limit(20);
 
       const totalDebt = orders.reduce((sum, order) => sum + order.debt, 0);
       const totalPaid = orders.reduce((sum, order) => sum + order.paidSum, 0);
       const totalSpent = orders.reduce((sum, order) => sum + order.totalSum, 0);
+
+      // Get all payments for this user's orders
+      const orderIds = orders.map((o) => o._id);
+      const payments = await Payment.find({ order: { $in: orderIds } })
+        .populate("seller", "firstName lastName")
+        .sort({ createdAt: -1 });
+
+      // Get all products summary
+      const products = await Product.find({ isActive: true })
+        .populate("category", "name")
+        .sort({ name: 1 });
+
+      // Calculate products totals
+      const productsStats = {
+        totalProducts: products.length,
+        totalStock: products.reduce((sum, p) => sum + (p.stock || 0), 0),
+        totalCostValue: products.reduce(
+          (sum, p) => sum + (p.costPrice || 0) * (p.stock || 0),
+          0
+        ),
+        totalSellValue: products.reduce(
+          (sum, p) => sum + (p.sellPrice || 0) * (p.stock || 0),
+          0
+        ),
+        products: products.map((p) => ({
+          _id: p._id,
+          name: p.name,
+          category: p.category?.name || "Noma'lum",
+          stock: p.stock || 0,
+          costPrice: p.costPrice || 0,
+          sellPrice: p.sellPrice || 0,
+          totalCost: (p.costPrice || 0) * (p.stock || 0),
+          totalSell: (p.sellPrice || 0) * (p.stock || 0),
+          profit: ((p.sellPrice || 0) - (p.costPrice || 0)) * (p.stock || 0),
+        })),
+      };
 
       // Add orders and stats to user object for template
       user.orders = orders;
@@ -1245,6 +1281,8 @@ const adminController = {
       res.render("admin/user-details", {
         title: `Foydalanuvchi: ${user.fullName}`,
         user,
+        payments,
+        productsStats,
         stats: {
           totalDebt,
           totalPaid,
@@ -1441,6 +1479,339 @@ const adminController = {
     } catch (error) {
       console.error("❌ Send user notification error:", error);
       res.redirect("/admin/users?error=send_failed");
+    }
+  },
+
+  // Add payment to user (directly, not to specific order)
+  async addUserPayment(req, res) {
+    try {
+      const { amount, type, orderId } = req.body;
+      const user = await User.findById(req.params.id);
+
+      if (!user) {
+        return res.redirect("/admin/users?error=not_found");
+      }
+
+      const paymentAmount = parseFloat(amount);
+      if (isNaN(paymentAmount) || paymentAmount <= 0) {
+        return res.redirect(
+          `/admin/users/${req.params.id}?error=invalid_amount`
+        );
+      }
+
+      // Find the order to apply payment to
+      let order;
+      if (orderId) {
+        order = await Order.findById(orderId).populate("client");
+      } else {
+        // Find first order with debt (oldest first)
+        order = await Order.findOne({
+          client: user._id,
+          status: { $ne: "cancelled" },
+          debt: { $gt: 0 },
+        })
+          .sort({ createdAt: 1 })
+          .populate("client");
+      }
+
+      if (!order && type === "subtract") {
+        return res.redirect(`/admin/users/${req.params.id}?error=no_debt`);
+      }
+
+      // If adding debt and no order with debt exists, find any active order
+      if (!order && type === "add") {
+        order = await Order.findOne({
+          client: user._id,
+          status: { $ne: "cancelled" },
+        })
+          .sort({ createdAt: -1 })
+          .populate("client");
+
+        if (!order) {
+          return res.redirect(`/admin/users/${req.params.id}?error=no_orders`);
+        }
+      }
+
+      console.log(
+        `💰 User payment: ${type}, Amount: ${paymentAmount}, Order: ${order.orderNumber}`
+      );
+
+      if (type === "subtract") {
+        // To'lov qabul qilish
+        if (order.debt <= 0) {
+          return res.redirect(`/admin/users/${req.params.id}?error=no_debt`);
+        }
+
+        if (paymentAmount > order.debt) {
+          return res.redirect(
+            `/admin/users/${req.params.id}?error=amount_exceeds_debt&debt=${order.debt}`
+          );
+        }
+
+        order.paidSum = (order.paidSum || 0) + paymentAmount;
+        order.debt = Math.max(0, order.totalSum - order.paidSum);
+        await order.save();
+
+        // Update user's total debt
+        await User.updateUserTotalDebt(user._id);
+
+        // Create Payment record
+        const payment = new Payment({
+          order: order._id,
+          client: user._id,
+          amount: paymentAmount,
+          paymentMethod: "cash",
+          notes: "Foydalanuvchi sahifasi orqali to'lov qabul qilindi",
+        });
+
+        if (req.session.role === "seller" && req.session.sellerId) {
+          payment.seller = req.session.sellerId;
+        } else if (req.session.adminUser?.name) {
+          payment.adminName = req.session.adminUser.name;
+        }
+
+        await payment.save();
+
+        // Send notifications
+        if (user.telegramId) {
+          try {
+            const NotificationService = require("../../utils/notificationService");
+            const notificationService = new NotificationService();
+            await notificationService.notifyPaymentReceived(
+              order._id,
+              paymentAmount
+            );
+          } catch (err) {
+            console.error("Failed to send payment notification:", err);
+          }
+        }
+
+        // Group notification
+        try {
+          const NotificationService = require("../../utils/notificationService");
+          const notificationService = new NotificationService();
+          const adminName = req.session.adminUser?.name || "Admin";
+          const groupMessage =
+            `💰 *To'lov qabul qilindi*\n\n` +
+            `👤 Sotuvchi: *${adminName}*\n` +
+            `👥 Mijoz: *${user.firstName} ${user.lastName || ""}*\n` +
+            `🆔 Buyurtma: *${order.orderNumber}*\n` +
+            `💵 To'lov: *${paymentAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*\n` +
+            `🔴 Qolgan qarz: *${order.debt.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*`;
+          await notificationService.sendToGroup(groupMessage, {
+            parse_mode: "Markdown",
+          });
+        } catch (groupError) {
+          console.error("❌ Failed to send group notification:", groupError);
+        }
+      } else {
+        // Qarzga qo'shish
+        order.totalSum = (order.totalSum || 0) + paymentAmount;
+        order.debt = order.totalSum - order.paidSum;
+        await order.save();
+
+        // Update user's total debt
+        await User.updateUserTotalDebt(user._id);
+
+        // Send notifications
+        if (user.telegramId) {
+          try {
+            const NotificationService = require("../../utils/notificationService");
+            const notificationService = new NotificationService();
+            await notificationService.sendToUser(
+              user.telegramId,
+              `📋 Buyurtma: <b>${order.orderNumber}</b>\n\n💰 Qarz yangilandi: +${paymentAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm\n🔴 Jami qarz: <b>${order.debt.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm</b>`,
+              { parse_mode: "HTML" }
+            );
+          } catch (err) {
+            console.error("Failed to notify about debt increase:", err);
+          }
+        }
+
+        // Group notification
+        try {
+          const NotificationService = require("../../utils/notificationService");
+          const notificationService = new NotificationService();
+          const adminName = req.session.adminUser?.name || "Admin";
+          const groupMessage =
+            `💳 *Qarz qo'shildi*\n\n` +
+            `👤 Sotuvchi: *${adminName}*\n` +
+            `👥 Mijoz: *${user.firstName} ${user.lastName || ""}*\n` +
+            `🆔 Buyurtma: *${order.orderNumber}*\n` +
+            `➕ Qo'shildi: *${paymentAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*\n` +
+            `🔴 Yangi qarz: *${order.debt.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*`;
+          await notificationService.sendToGroup(groupMessage, {
+            parse_mode: "Markdown",
+          });
+        } catch (groupError) {
+          console.error("❌ Failed to send group notification:", groupError);
+        }
+      }
+
+      res.redirect(`/admin/users/${req.params.id}?success=payment_added`);
+    } catch (error) {
+      console.error("❌ Add user payment error:", error);
+      res.redirect(`/admin/users/${req.params.id}?error=payment_failed`);
+    }
+  },
+
+  // Delete user payment
+  async deleteUserPayment(req, res) {
+    try {
+      const { paymentId } = req.params;
+      const userId = req.params.id;
+      const payment = await Payment.findById(paymentId);
+
+      if (!payment) {
+        return res.redirect(`/admin/users/${userId}?error=payment_not_found`);
+      }
+
+      const order = await Order.findById(payment.order).populate("client");
+      if (!order) {
+        return res.redirect(`/admin/users/${userId}?error=order_not_found`);
+      }
+
+      // Update order payment info
+      order.paidSum = Math.max(0, (order.paidSum || 0) - payment.amount);
+      order.debt = order.totalSum - order.paidSum;
+      await order.save();
+
+      // Update user's total debt
+      await User.updateUserTotalDebt(userId);
+
+      // Delete payment
+      await Payment.findByIdAndDelete(paymentId);
+
+      // Send notification to admin group
+      try {
+        const NotificationService = require("../../utils/notificationService");
+        const notificationService = new NotificationService();
+        const adminName = req.session.adminUser?.name || "Admin";
+        const user = await User.findById(userId);
+
+        const groupMessage =
+          `🗑️ *To'lov o'chirildi*\n\n` +
+          `👤 Sotuvchi: *${adminName}*\n` +
+          `👥 Mijoz: *${user.firstName} ${user.lastName || ""}*\n` +
+          `🆔 Buyurtma: *${order.orderNumber}*\n` +
+          `💵 O'chirildi: *${payment.amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*\n` +
+          `🔴 Yangi qarz: *${order.debt.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*`;
+
+        await notificationService.sendToGroup(groupMessage, {
+          parse_mode: "Markdown",
+        });
+      } catch (groupError) {
+        console.error("❌ Failed to send group notification:", groupError);
+      }
+
+      res.redirect(`/admin/users/${userId}?success=payment_deleted`);
+    } catch (error) {
+      console.error("❌ Delete user payment error:", error);
+      res.redirect(`/admin/users/${req.params.id}?error=delete_failed`);
+    }
+  },
+
+  // Export user products summary to Excel
+  async exportUserProducts(req, res) {
+    try {
+      const ExcelJS = require("exceljs");
+      const user = await User.findById(req.params.id);
+
+      if (!user) {
+        return res.redirect("/admin/users?error=not_found");
+      }
+
+      // Get all products summary
+      const products = await Product.find({ isActive: true })
+        .populate("category", "name")
+        .sort({ name: 1 });
+
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Mahsulotlar hisoboti");
+
+      worksheet.columns = [
+        { header: "Mahsulot nomi", key: "name", width: 30 },
+        { header: "Kategoriya", key: "category", width: 20 },
+        { header: "Qolgan soni", key: "stock", width: 15 },
+        { header: "Tannarxi", key: "costPrice", width: 15 },
+        { header: "Sotish narxi", key: "sellPrice", width: 15 },
+        { header: "Jami tannarx", key: "totalCost", width: 18 },
+        { header: "Jami sotish", key: "totalSell", width: 18 },
+        { header: "Foyda", key: "profit", width: 18 },
+      ];
+
+      // Style header
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.getRow(1).fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF17A2B8" }, // Info color
+      };
+      worksheet.getRow(1).font.color = { argb: "FFFFFFFF" };
+
+      let totalStock = 0;
+      let totalCostValue = 0;
+      let totalSellValue = 0;
+
+      products.forEach((p) => {
+        const stock = p.stock || 0;
+        const costPrice = p.costPrice || 0;
+        const sellPrice = p.sellPrice || 0;
+        const totalCost = costPrice * stock;
+        const totalSell = sellPrice * stock;
+        const profit = totalSell - totalCost;
+
+        worksheet.addRow({
+          name: p.name,
+          category: p.category?.name || "Noma'lum",
+          stock: stock,
+          costPrice: costPrice,
+          sellPrice: sellPrice,
+          totalCost: totalCost,
+          totalSell: totalSell,
+          profit: profit,
+        });
+
+        totalStock += stock;
+        totalCostValue += totalCost;
+        totalSellValue += totalSell;
+      });
+
+      // Add totals row
+      worksheet.addRow({});
+      const totalRow = worksheet.addRow({
+        name: "JAMI",
+        category: "",
+        stock: totalStock,
+        costPrice: "",
+        sellPrice: "",
+        totalCost: totalCostValue,
+        totalSell: totalSellValue,
+        profit: totalSellValue - totalCostValue,
+      });
+      totalRow.font = { bold: true };
+      totalRow.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFFFD700" },
+      };
+
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=mahsulotlar-hisoboti-${Date.now()}.xlsx`
+      );
+
+      await workbook.xlsx.write(res);
+      res.end();
+
+      console.log("✅ Products export completed successfully");
+    } catch (error) {
+      console.error("❌ Export products error:", error);
+      res.redirect(`/admin/users/${req.params.id}?error=export_failed`);
     }
   },
 

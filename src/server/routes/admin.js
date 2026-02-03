@@ -57,10 +57,16 @@ router.get("/users", adminController.users);
 router.get("/users/:id", adminController.userDetails);
 router.get("/users/:id/export", adminController.exportUserDebt);
 router.get("/users/:id/export-orders", adminController.exportUserOrders);
+router.get("/users/:id/export-products", adminController.exportUserProducts);
 router.post("/users/:id/notify", adminController.sendUserNotification);
 router.post("/users/:id/role", adminController.updateUserRole);
 router.post("/users/:id/toggle-status", adminController.toggleUserStatus);
 router.post("/users/:id/toggle-block", adminController.toggleUserBlock);
+router.post("/users/:id/payment", adminController.addUserPayment);
+router.post(
+  "/users/:id/payments/:paymentId/delete",
+  adminController.deleteUserPayment
+);
 
 // Sellers Management
 router.get("/sellers", adminController.sellers);

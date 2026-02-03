@@ -1,66 +1,104 @@
 <%
 const layout = '../layouts/layout.ejs';
 
-// Prepare variables
+// Helper function
+function formatNum(num) {
+    return (num || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+}
+
+// User info
 const userName = (user.firstName || '') + ' ' + (user.lastName || '');
 const userUsername = user.username ? '@' + user.username : "Yo'q";
 const userPhone = user.phone || 'Kiritilmagan';
 const userCreatedAt = moment(user.createdAt).utcOffset(5).format('DD/MM/YYYY HH:mm');
-const userOrderCount = user.orderCount || 0;
-const userTotalSpent = (user.totalSpent || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-const userStatusBadge = user.isActive ? 'success' : 'danger';
-const userStatusText = user.isActive ? 'Aktiv' : 'Nofaol';
-const userRoleBadge = user.role === 'admin' ? 'danger' : user.role === 'seller' ? 'warning' : 'info';
-const userRoleText = user.role === 'admin' ? 'Admin' : user.role === 'seller' ? 'Sotuvchi' : 'Klient';
-const toggleBtnClass = user.isActive ? 'warning' : 'success';
-const toggleIcon = user.isActive ? 'ban' : 'check';
-const toggleText = user.isActive ? 'Bloklash' : 'Aktivlashtirish';
-const roleClientSelected = user.role === 'client' ? 'selected' : '';
-const roleSellerSelected = user.role === 'seller' ? 'selected' : '';
-const roleAdminSelected = user.role === 'admin' ? 'selected' : '';
-const exportOrdersDisabled = !user.orders || user.orders.length === 0 ? 'disabled' : '';
-const exportDebtDisabled = stats.totalDebt === 0 ? 'disabled' : '';
-const notifyDisabled = user.telegramId ? '' : 'disabled';
 
-// Build orders table
-let ordersTableHtml = '<p class="text-muted">Buyurtmalar yoq</p>';
+// Build orders table rows
+let ordersRows = '';
 if (user.orders && user.orders.length > 0) {
-    let rows = '';
-    for (const order of user.orders) {
+    user.orders.forEach(function(order) {
         let statusClass = 'secondary';
         let statusText = order.status;
-        switch (order.status) {
-            case 'pending': statusClass = 'warning'; statusText = 'Kutilmoqda'; break;
-            case 'confirmed': statusClass = 'info'; statusText = 'Tasdiqlangan'; break;
-            case 'delivered': statusClass = 'success'; statusText = 'Yetkazilgan'; break;
-            case 'cancelled': statusClass = 'danger'; statusText = 'Bekor qilingan'; break;
-        }
-        const orderSum = (order.totalSum || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-        const orderPaid = (order.paidSum || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-        const orderDebt = (order.debt || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-        const orderDate = moment(order.createdAt).utcOffset(5).format('DD/MM/YYYY');
-        rows += '<tr><td><a href="/admin/orders/' + order._id + '">#' + order.orderNumber + '</a></td>';
-        rows += '<td>' + orderSum + " so'm</td>";
-        rows += '<td>' + orderPaid + " so'm</td>";
-        rows += '<td class="' + (order.debt > 0 ? 'text-danger fw-bold' : 'text-success') + '">' + orderDebt + " so'm</td>";
-        rows += '<td><span class="badge bg-' + statusClass + '">' + statusText + '</span></td>';
-        rows += '<td>' + orderDate + '</td></tr>';
-    }
-    ordersTableHtml = '<div class="table-responsive"><table class="table table-sm"><thead><tr><th>Buyurtma №</th><th>Boshlang\'ich qoldiq</th><th>To\'lov summasi</th><th>Umumiy qoldiq</th><th>Status</th><th>Sana</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+        if (order.status === 'pending') { statusClass = 'warning'; statusText = 'Kutilmoqda'; }
+        else if (order.status === 'confirmed') { statusClass = 'info'; statusText = 'Tasdiqlangan'; }
+        else if (order.status === 'delivered') { statusClass = 'success'; statusText = 'Yetkazilgan'; }
+        else if (order.status === 'cancelled') { statusClass = 'danger'; statusText = 'Bekor qilingan'; }
+        
+        ordersRows += '<tr>';
+        ordersRows += '<td><a href="/admin/orders/' + order._id + '">#' + order.orderNumber + '</a></td>';
+        ordersRows += '<td>' + formatNum(order.totalSum) + " so'm</td>";
+        ordersRows += '<td>' + formatNum(order.paidSum) + " so'm</td>";
+        ordersRows += '<td class="' + (order.debt > 0 ? 'text-danger fw-bold' : 'text-success') + '">' + formatNum(order.debt) + " so'm</td>";
+        ordersRows += '<td><span class="badge bg-' + statusClass + '">' + statusText + '</span></td>';
+        ordersRows += '<td>' + moment(order.createdAt).utcOffset(5).format('DD/MM/YYYY') + '</td>';
+        ordersRows += '</tr>';
+    });
 }
 
-const body = `
+// Build payments table rows
+let paymentsRows = '';
+if (payments && payments.length > 0) {
+    payments.forEach(function(payment) {
+        const sellerName = payment.seller ? (payment.seller.firstName + ' ' + (payment.seller.lastName || '')) : (payment.adminName || 'System');
+        paymentsRows += '<tr>';
+        paymentsRows += '<td>' + moment(payment.createdAt).utcOffset(5).format('DD/MM/YYYY HH:mm') + '</td>';
+        paymentsRows += '<td class="text-success fw-bold">' + formatNum(payment.amount) + " so'm</td>";
+        paymentsRows += '<td>' + sellerName + '</td>';
+        paymentsRows += '<td>' + (payment.notes || '-') + '</td>';
+        paymentsRows += '<td class="text-end">';
+        paymentsRows += '<form action="/admin/users/' + user._id + '/payments/' + payment._id + '/delete" method="POST" style="display:inline">';
+        paymentsRows += '<button type="submit" class="btn btn-sm btn-danger" onclick="return confirm(String.fromCharCode(84,111,108,111,118,110,105,32,111,99,104,105,114,97,115,105,122,109,105,63))"><i class="fas fa-trash"></i></button>';
+        paymentsRows += '</form>';
+        paymentsRows += '</td>';
+        paymentsRows += '</tr>';
+    });
+}
+
+// Build products table rows
+let productsRows = '';
+if (productsStats && productsStats.products && productsStats.products.length > 0) {
+    productsStats.products.forEach(function(p) {
+        const stockClass = p.stock <= 5 ? 'text-danger' : p.stock <= 10 ? 'text-warning' : 'text-success';
+        productsRows += '<tr>';
+        productsRows += '<td>' + p.name + '</td>';
+        productsRows += '<td><span class="badge bg-secondary">' + p.category + '</span></td>';
+        productsRows += '<td class="' + stockClass + ' fw-bold">' + p.stock + '</td>';
+        productsRows += '<td>' + formatNum(p.costPrice) + '</td>';
+        productsRows += '<td>' + formatNum(p.sellPrice) + '</td>';
+        productsRows += '<td class="text-primary">' + formatNum(p.totalCost) + '</td>';
+        productsRows += '<td class="text-success">' + formatNum(p.totalSell) + '</td>';
+        productsRows += '<td class="text-info fw-bold">' + formatNum(p.profit) + '</td>';
+        productsRows += '</tr>';
+    });
+}
+
+// Build order options for payment modal
+let orderOptions = '';
+if (user.orders && user.orders.length > 0) {
+    user.orders.forEach(function(order) {
+        if (order.debt > 0) {
+            orderOptions += '<option value="' + order._id + '">#' + order.orderNumber + ' - Qarz: ' + formatNum(order.debt) + " so'm</option>";
+        }
+    });
+}
+
+const hasDebt = stats.totalDebt > 0;
+const hasOrders = user.orders && user.orders.length > 0;
+const hasPayments = payments && payments.length > 0;
+const hasProducts = productsStats && productsStats.products && productsStats.products.length > 0;
+const profitValue = (productsStats ? productsStats.totalSellValue : 0) - (productsStats ? productsStats.totalCostValue : 0);
+-%>
+
+<%- include('../layouts/layout', { title: title, body: `
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
     <h1 class="h2">
         <i class="fas fa-user me-2"></i>${userName}
     </h1>
     <div class="btn-toolbar mb-2 mb-md-0">
-        <!-- <a href="/admin/users/${user._id}/export-orders" class="btn btn-primary me-2" ${exportOrdersDisabled}>
-            <i class="fas fa-file-excel me-2"></i>Buyurtmalar Excel
-        </a>
-        <a href="/admin/users/${user._id}/export" class="btn btn-success me-2" ${exportDebtDisabled}>
-            <i class="fas fa-file-excel me-2"></i>Qarzdorlik Excel
-        </a> -->
+        <div class="btn-group me-2">
+            ${hasProducts ? '<a href="/admin/users/' + user._id + '/export-products" class="btn btn-sm btn-success"><i class="fas fa-file-excel me-1"></i>Mahsulotlar Excel</a>' : ''}
+            ${hasOrders ? '<a href="/admin/users/' + user._id + '/export-orders" class="btn btn-sm btn-primary ms-1"><i class="fas fa-file-excel me-1"></i>Buyurtmalar Excel</a>' : ''}
+            ${hasDebt ? '<a href="/admin/users/' + user._id + '/export" class="btn btn-sm btn-warning ms-1"><i class="fas fa-file-excel me-1"></i>Qarzdorlik Excel</a>' : ''}
+        </div>
         <a href="/admin/users" class="btn btn-outline-secondary">
             <i class="fas fa-arrow-left me-2"></i>Orqaga
         </a>
@@ -69,46 +107,60 @@ const body = `
 
 <div class="row">
     <div class="col-lg-4">
+        <!-- User Info Card -->
         <div class="card mb-3">
             <div class="card-header">
-                <h5>Foydalanuvchi malumotlari</h5>
+                <h5 class="mb-0">Foydalanuvchi malumotlari</h5>
             </div>
             <div class="card-body">
                 <p><strong>Ism:</strong> ${userName}</p>
                 <p><strong>Username:</strong> ${userUsername}</p>
-                <p><strong>Telegram ID:</strong> ${user.telegramId}</p>
+                <p><strong>Telegram ID:</strong> ${user.telegramId || '-'}</p>
                 <p><strong>Telefon:</strong> ${userPhone}</p>
                 <p><strong>Qayd qilingan:</strong> ${userCreatedAt}</p>
-                <p><strong>Buyurtmalar soni:</strong> ${userOrderCount}</p>
-                <p><strong>Umumiy summa:</strong> ${userTotalSpent} so'm</p>
-                <p><strong>To'landi:</strong> ${(stats.totalPaid || 0).toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, ' ')} so'm</p>
-                <p><strong>Qarzdorlik:</strong> ${(stats.totalDebt || 0).toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, ' ')} so'm</p>
+                <p><strong>Buyurtmalar soni:</strong> ${user.orderCount || 0}</p>
+                <p><strong>Umumiy summa:</strong> ${formatNum(user.totalSpent)} som</p>
+                <p><strong>Tolandi:</strong> ${formatNum(stats.totalPaid)} som</p>
+                <p><strong>Qarzdorlik:</strong> <span class="${hasDebt ? 'text-danger fw-bold' : 'text-success'}">${formatNum(stats.totalDebt)} som</span></p>
                 <p><strong>Status:</strong> 
-                    <span class="badge bg-${userStatusBadge}">
-                        ${userStatusText}
+                    <span class="badge bg-${user.isActive ? 'success' : 'danger'}">
+                        ${user.isActive ? 'Aktiv' : 'Nofaol'}
                     </span>
                 </p>
                 <p><strong>Rol:</strong> 
-                    <span class="badge bg-${userRoleBadge}">
-                        ${userRoleText}
+                    <span class="badge bg-${user.role === 'admin' ? 'danger' : user.role === 'seller' ? 'warning' : 'info'}">
+                        ${user.role === 'admin' ? 'Admin' : user.role === 'seller' ? 'Sotuvchi' : 'Klient'}
                     </span>
                 </p>
             </div>
         </div>
 
+        <!-- Payment Control Card -->
+        <div class="card mb-3">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-money-bill-wave me-2"></i>Tolov boshqaruvi</h5>
+            </div>
+            <div class="card-body">
+                <button type="button" class="btn btn-success w-100 mb-2" data-bs-toggle="modal" data-bs-target="#paymentModal" ${(hasDebt || hasOrders) ? '' : 'disabled'}>
+                    <i class="fas fa-plus-circle me-2"></i>Tolov qoshish / Qarz boshqarish
+                </button>
+                ${hasDebt ? '<small class="text-muted">Jami qarzdorlik: <span class="text-danger fw-bold">' + formatNum(stats.totalDebt) + ' som</span></small>' : '<small class="text-success"><i class="fas fa-check-circle me-1"></i>Qarz yoq</small>'}
+            </div>
+        </div>
+
+        <!-- Control Card -->
         <div class="card">
             <div class="card-header">
-                <h5>Boshqaruv</h5>
+                <h5 class="mb-0">Boshqaruv</h5>
             </div>
             <div class="card-body">
                 <form method="POST" action="/admin/users/${user._id}/toggle-status" class="mb-3">
-                    <button type="submit" class="btn btn-${toggleBtnClass} btn-sm w-100">
-                        <i class="fas fa-${toggleIcon} me-2"></i>
-                        ${toggleText}
+                    <button type="submit" class="btn btn-${user.isActive ? 'warning' : 'success'} btn-sm w-100">
+                        <i class="fas fa-${user.isActive ? 'ban' : 'check'} me-2"></i>
+                        ${user.isActive ? 'Bloklash' : 'Aktivlashtirish'}
                     </button>
                 </form>
-
-                <button type="button" class="btn btn-info btn-sm w-100" data-bs-toggle="modal" data-bs-target="#notifyModal" ${notifyDisabled}>
+                <button type="button" class="btn btn-info btn-sm w-100" data-bs-toggle="modal" data-bs-target="#notifyModal" ${user.telegramId ? '' : 'disabled'}>
                     <i class="fas fa-bell me-2"></i>Xabar yuborish
                 </button>
             </div>
@@ -116,13 +168,70 @@ const body = `
     </div>
 
     <div class="col-lg-8">
-        <div class="card">
+        <!-- Payments History -->
+        ${hasPayments ? '<div class="card mb-4"><div class="card-header bg-success text-white"><h5 class="mb-0"><i class="fas fa-history me-2"></i>Tolovlar tarixi</h5></div><div class="card-body"><div class="table-responsive"><table class="table table-sm table-hover"><thead><tr><th>Sana</th><th>Summa</th><th>Kim qoshdi</th><th>Izoh</th><th></th></tr></thead><tbody>' + paymentsRows + '</tbody></table></div></div></div>' : ''}
+
+        <!-- Orders History -->
+        <div class="card mb-4">
             <div class="card-header">
-                <h5>Buyurtma tarixi</h5>
+                <h5 class="mb-0">Buyurtma tarixi</h5>
             </div>
             <div class="card-body">
-                ${ordersTableHtml}
+                ${hasOrders ? '<div class="table-responsive"><table class="table table-sm"><thead><tr><th>Buyurtma №</th><th>Jami summa</th><th>Tolangan</th><th>Qarz</th><th>Status</th><th>Sana</th></tr></thead><tbody>' + ordersRows + '</tbody></table></div>' : '<p class="text-muted">Buyurtmalar yoq</p>'}
             </div>
+        </div>
+
+        <!-- Products Report -->
+        ${hasProducts ? '<div class="card mb-4"><div class="card-header bg-info text-white d-flex justify-content-between align-items-center"><h5 class="mb-0"><i class="fas fa-boxes me-2"></i>Mahsulotlar hisoboti</h5><span class="badge bg-light text-dark">' + productsStats.totalProducts + ' ta mahsulot</span></div><div class="card-body"><div class="row mb-3"><div class="col-md-3"><div class="border rounded p-2 text-center"><small class="text-muted">Jami soni</small><h5 class="mb-0 text-primary">' + formatNum(productsStats.totalStock) + '</h5></div></div><div class="col-md-3"><div class="border rounded p-2 text-center"><small class="text-muted">Tannarxi (jami)</small><h5 class="mb-0 text-warning">' + formatNum(productsStats.totalCostValue) + ' som</h5></div></div><div class="col-md-3"><div class="border rounded p-2 text-center"><small class="text-muted">Sotish narxi (jami)</small><h5 class="mb-0 text-success">' + formatNum(productsStats.totalSellValue) + ' som</h5></div></div><div class="col-md-3"><div class="border rounded p-2 text-center"><small class="text-muted">Kutilayotgan foyda</small><h5 class="mb-0 text-info">' + formatNum(profitValue) + ' som</h5></div></div></div><div class="table-responsive" style="max-height:400px;overflow-y:auto"><table class="table table-sm table-hover"><thead class="sticky-top bg-light"><tr><th>Mahsulot</th><th>Kategoriya</th><th>Qolgan soni</th><th>Tannarxi</th><th>Sotish narxi</th><th>Jami tannarx</th><th>Jami sotish</th><th>Foyda</th></tr></thead><tbody>' + productsRows + '</tbody><tfoot class="table-light fw-bold"><tr><td colspan="2">JAMI:</td><td>' + formatNum(productsStats.totalStock) + '</td><td>-</td><td>-</td><td class="text-primary">' + formatNum(productsStats.totalCostValue) + '</td><td class="text-success">' + formatNum(productsStats.totalSellValue) + '</td><td class="text-info">' + formatNum(profitValue) + '</td></tr></tfoot></table></div></div></div>' : ''}
+    </div>
+</div>
+
+<!-- Payment Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-money-bill-wave me-2"></i>Tolov/Qarz boshqaruvi</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="/admin/users/${user._id}/payment">
+                <div class="modal-body">
+                    ${orderOptions ? '<div class="mb-3"><label for="orderId" class="form-label">Buyurtma tanlang (ixtiyoriy)</label><select class="form-select" id="orderId" name="orderId"><option value="">Avtomatik (eng eski qarz)</option>' + orderOptions + '</select></div>' : ''}
+                    <div class="mb-3">
+                        <label class="form-label">Amal turi</label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="type" id="userTypeSubtract" value="subtract" checked>
+                            <label class="btn btn-outline-success" for="userTypeSubtract">
+                                <i class="fas fa-minus-circle me-1"></i>Qarzdan ayirish (Tolov)
+                            </label>
+                            <input type="radio" class="btn-check" name="type" id="userTypeAdd" value="add">
+                            <label class="btn btn-outline-warning" for="userTypeAdd">
+                                <i class="fas fa-plus-circle me-1"></i>Qarzga qoshish
+                            </label>
+                        </div>
+                        <small class="text-muted d-block mt-2" id="userTypeHint">Tolov qabul qilish uchun</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="userAmount" class="form-label">Miqdor (som)</label>
+                        <input type="number" class="form-control form-control-lg" id="userAmount" name="amount" min="1" required placeholder="Summani kiriting">
+                    </div>
+                    <div class="alert alert-info mb-0">
+                        <small>
+                            <i class="fas fa-info-circle me-1"></i>
+                            <strong>Qarzdan ayirish:</strong> Mijoz tolov qilganda<br>
+                            <strong>Qarzga qoshish:</strong> Yangi qarz qoshganda
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Bekor qilish
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Saqlash
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -154,6 +263,19 @@ const body = `
         </div>
     </div>
 </div>
-`;
--%>
-<%- include(layout, { body, title }) %>
+` }) %>
+<script>
+(function() {
+    var radios = document.querySelectorAll('input[name="type"]');
+    for (var i = 0; i < radios.length; i++) {
+        radios[i].addEventListener('change', function() {
+            var hint = document.getElementById('userTypeHint');
+            if (this.value === 'subtract') {
+                hint.textContent = 'Tolov qabul qilish uchun';
+            } else {
+                hint.textContent = 'Qarz qoshish uchun';
+            }
+        });
+    }
+})();
+</script>
