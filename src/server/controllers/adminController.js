@@ -777,6 +777,24 @@ const adminController = {
         console.log(`⚠️ Cancelling order ${order.orderNumber}`);
         console.log(`   Previous debt: ${order.debt} so'm`);
 
+        // Return products to stock
+        console.log("   📦 Returning items to stock...");
+        for (const item of order.items) {
+          try {
+            await Product.findByIdAndUpdate(item.product, {
+              $inc: { stock: item.quantity },
+            });
+            console.log(
+              `      + Returned ${item.quantity} to stock for product ${item.product}`
+            );
+          } catch (err) {
+            console.error(
+              `      ❌ Failed to return stock for product ${item.product}:`,
+              err
+            );
+          }
+        }
+
         // Set debt to 0 when cancelling
         order.debt = 0;
         order.status = status;
@@ -791,6 +809,25 @@ const adminController = {
       } else if (oldStatus === "cancelled" && status !== "cancelled") {
         // If reactivating a cancelled order, recalculate debt
         console.log(`🔄 Reactivating order ${order.orderNumber}`);
+
+        // Deduct products from stock
+        console.log("   📦 Deducting items from stock...");
+        for (const item of order.items) {
+          try {
+            await Product.findByIdAndUpdate(item.product, {
+              $inc: { stock: -item.quantity },
+            });
+            console.log(
+              `      - Deducted ${item.quantity} from stock for product ${item.product}`
+            );
+          } catch (err) {
+            console.error(
+              `      ❌ Failed to deduct stock for product ${item.product}:`,
+              err
+            );
+          }
+        }
+
         order.status = status;
         order.debt = order.totalSum - order.paidSum;
         await order.save();
