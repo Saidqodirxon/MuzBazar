@@ -72,8 +72,8 @@ class Keyboards {
         Markup.button.callback("3", `qty_${productId}_3`),
         Markup.button.callback("4", `qty_${productId}_4`),
         Markup.button.callback("5", `qty_${productId}_5`),
-        Markup.button.callback("➕ Boshqa", `qty_${productId}_custom`),
       ],
+      [Markup.button.callback("➕ Boshqa", `qty_${productId}_custom`)],
       // [
       //   Markup.button.callback("10", `qty_${productId}_10`),
       //   Markup.button.callback("20", `qty_${productId}_20`),
