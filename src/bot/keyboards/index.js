@@ -73,12 +73,11 @@ class Keyboards {
         Markup.button.callback("4", `qty_${productId}_4`),
         Markup.button.callback("5", `qty_${productId}_5`),
       ],
-      [Markup.button.callback("➕ Boshqa", `qty_${productId}_custom`)],
-      // [
-      //   Markup.button.callback("10", `qty_${productId}_10`),
-      //   Markup.button.callback("20", `qty_${productId}_20`),
-      //   Markup.button.callback("30", `qty_${productId}_30`),
-      // ],
+      [
+        Markup.button.callback("10", `qty_${productId}_10`),
+        Markup.button.callback("20", `qty_${productId}_20`),
+        Markup.button.callback("➕ Boshqa", `qty_${productId}_custom`)
+      ],
       // [
       //   Markup.button.callback("40", `qty_${productId}_40`),
       //   Markup.button.callback("50", `qty_${productId}_50`),
