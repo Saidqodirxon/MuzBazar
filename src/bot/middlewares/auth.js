@@ -19,7 +19,7 @@ const authMiddleware = async (ctx, next) => {
         lastName: ctx.from.last_name || "",
         username: ctx.from.username || "",
         role: "client",
-        isBlocked: true, // Default holatda blokli
+        isBlocked: false, // Default holatda ochiq
       });
 
       await user.save();

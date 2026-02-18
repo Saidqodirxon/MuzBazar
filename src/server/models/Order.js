@@ -81,12 +81,21 @@ const orderSchema = new mongoose.Schema(
   }
 );
 
-// Pre-save middleware to calculate debt
-orderSchema.pre("save", async function (next) {
-  // Calculate debt, ensure it's not negative
-  this.debt = Math.max(0, this.totalSum - this.paidSum);
+// Pre-save middleware to calculate debt and generate order number (fallback)
+orderSchema.pre("save", function (next) {
+  // Fallback: Generate order number if somehow missing
+  if (!this.orderNumber) {
+    const date = new Date(this.createdAt || Date.now());
+    const dateStr =
+      date.getFullYear().toString().slice(-2) +
+      (date.getMonth() + 1).toString().padStart(2, "0") +
+      date.getDate().toString().padStart(2, "0");
+    const random = Math.floor(1000 + Math.random() * 9000);
+    this.orderNumber = `ORD-${dateStr}-${random}`;
+  }
 
-  // Ensure paidSum doesn't exceed totalSum
+  // Calculate debt
+  this.debt = Math.max(0, this.totalSum - this.paidSum);
   if (this.paidSum > this.totalSum) {
     this.paidSum = this.totalSum;
     this.debt = 0;

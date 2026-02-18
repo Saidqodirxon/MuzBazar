@@ -1,0 +1,44 @@
+<%- include('partials/header') %>
+  <div class="login-screen">
+    <div class="card" style="max-width: 400px; margin: 0 auto; width: 100%;">
+      <h1 style="margin-bottom: 0.5rem; color: var(--primary);">Xush kelibsiz!</h1>
+      <p style="margin-bottom: 2rem; color: var(--text-muted);">Avtorizatsiya jarayoni...</p>
+
+      <% if (error) { %>
+        <div class="alert alert-error">
+          <% if (error==='user_not_found' ) { %>
+            Foydalanuvchi topilmadi.
+            <% } else if (error==='account_inactive' ) { %>
+              Sizning hisobingiz faol emas.
+              <% } else if (error==='account_blocked' ) { %>
+                Sizning hisobingiz bloklangan.
+                <% } else { %>
+                  Xatolik yuz berdi.
+                  <% } %>
+        </div>
+        <% } %>
+
+          <div id="loading" style="text-align:center; padding: 2rem;">
+            <i class="fas fa-circle-notch fa-spin fa-3x" style="color:var(--primary); margin-bottom:1rem;"></i>
+            <h2 style="font-size:1.2rem; margin-bottom:0.5rem;">Tizimga kirilmoqda...</h2>
+            <p style="color:var(--text-muted);">Iltimos kuting</p>
+          </div>
+
+          <div id="not-telegram" style="display:none; text-align:center; padding: 2rem;">
+            <i class="fab fa-telegram fa-4x" style="color:#229ED9; margin-bottom:1rem;"></i>
+            <h2 style="font-size:1.2rem; margin-bottom:0.5rem;">Faqat Telegram orqali</h2>
+            <p style="color:var(--text-muted); margin-bottom:1.5rem;">
+              Bu do'konga kirish uchun iltimos <b>@muzbazar_bot</b> ga kiring va "Web Do'kon" tugmasini bosing.
+            </p>
+            <a href="https://t.me/muzbazar_bot" class="btn btn-primary" target="_blank">
+              <i class="fab fa-telegram-plane"></i> Botga o'tish
+            </a>
+          </div>
+
+
+    </div>
+  </div>
+  <script src="/js/shop.js"></script>
+  </body>
+
+  </html>

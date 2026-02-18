@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title><%= typeof title !== 'undefined' ? title : 'MuzBazar' %></title>
+  <link rel="stylesheet" href="/css/shop.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://kit.fontawesome.com/b1f5e8f47e.js" crossorigin="anonymous"></script>
+</head>
+<body>
+  <% if (typeof user !== 'undefined') { %>
+  <header>
+    <a href="/shop" class="brand"><i class="fas fa-store"></i> MuzBazar</a>
+    <nav>
+      <a href="/shop/my-orders" class="btn btn-sm"><i class="fas fa-history"></i> Buyurtmalar</a>
+      <a href="/shop/logout" class="btn btn-sm" style="margin-left: 0.5rem;"><i class="fas fa-sign-out-alt"></i></a>
+    </nav>
+  </header>
+  <% } %>
+
+  <main class="container">
+    <%- body %>
+  </main>
+
+  <!-- Cart Modal Template (will be populated by JS) -->
+  <div id="cartModal" class="modal">
+    <div class="modal-content">
+      <div style="display:flex; justify-content:space-between; margin-bottom:1rem;">
+        <h2>Savat</h2>
+        <button onclick="toggleCart()" style="background:none; font-size:1.5rem;">&times;</button>
+      </div>
+      <div id="cartItems"></div>
+      <div style="border-top:1px solid var(--border); margin-top:1rem; padding-top:1rem;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:1rem; font-weight:700; font-size:1.2rem;">
+          <span>Jami:</span>
+          <span id="cartTotalDisplay">0 so'm</span>
+        </div>
+        <textarea id="orderNotes" class="input-field" placeholder="Izoh qoldiring..." rows="2" style="margin-bottom:1rem;"></textarea>
+        <button onclick="submitOrder()" class="btn btn-primary" id="checkoutBtn">Buyurtma berish</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/shop.js"></script>
+</body>
+</html>

@@ -9,6 +9,7 @@ class Keyboards {
   static mainMenu() {
     return Markup.keyboard([
       ["🛍️ Mahsulotlar", "🛒 Savat"],
+      [Markup.button.webApp("🌐 Web Do'kon", process.env.SITE_URL + "/shop")], // Web App Button
       ["📦 Buyurtmalarim", "💰 Qarzdorlik"],
       ["ℹ️ Biz haqimizda", "📞 Aloqa"],
     ]).resize();
@@ -76,7 +77,7 @@ class Keyboards {
       [
         Markup.button.callback("10", `qty_${productId}_10`),
         Markup.button.callback("20", `qty_${productId}_20`),
-        Markup.button.callback("➕ Boshqa", `qty_${productId}_custom`)
+        Markup.button.callback("➕ Boshqa", `qty_${productId}_custom`),
       ],
       // [
       //   Markup.button.callback("40", `qty_${productId}_40`),

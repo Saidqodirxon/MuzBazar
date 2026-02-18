@@ -1,0 +1,101 @@
+<%- include('partials/header') %>
+  <div style="margin-top: 1rem;">
+    <!-- Search -->
+    <form action="/shop" method="GET" style="margin-bottom: 1rem;">
+      <div style="position: relative;">
+        <i class="fas fa-search"
+          style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+        <input type="text" name="search" class="input-field" placeholder="Mahsulot qidirish..."
+          value="<%= searchQuery %>" style="padding-left: 2.5rem; border-radius: 50px;">
+        <% if (currentCategory) { %>
+          <input type="hidden" name="category" value="<%= currentCategory %>">
+          <% } %>
+      </div>
+    </form>
+
+    <!-- Categories -->
+    <div class="categories-wrapper">
+      <a href="/shop" class="cat-pill <%= !currentCategory ? 'active' : '' %>">Barchasi</a>
+      <% categories.forEach(cat=> { %>
+        <a href="/shop?category=<%= cat._id %><%= searchQuery ? '&search=' + searchQuery : '' %>"
+          class="cat-pill <%= currentCategory == cat._id ? 'active' : '' %>">
+          <%= cat.name %>
+        </a>
+        <% }); %>
+    </div>
+
+    <!-- Products -->
+    <% if (products.length===0) { %>
+      <div style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
+        <i class="fas fa-box-open" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+        <p>Mahsulotlar topilmadi</p>
+      </div>
+      <% } else { %>
+        <div class="products-grid">
+          <% products.forEach(product=> { %>
+            <div class="card product-card">
+              <div class="product-img-wrapper">
+                <% if (product.image) { %>
+                  <img
+                    src="<%= product.image.startsWith('http') ? product.image : (product.image.startsWith('/') ? product.image : '/uploads/products/' + product.image) %>"
+                    alt="<%= product.name %>" class="product-img" onerror="this.src='/logo.png'">
+                  <% } else { %>
+                    <div class="product-img"
+                      style="display:flex; align-items:center; justify-content:center; background:#f3f4f6;">
+                      <img src="/logo.png" style="width:50%; opacity:0.5;">
+                    </div>
+                    <% } %>
+
+                      <!-- Example badges (optional logic) -->
+                      <!-- <div class="product-badges">
+                  <span class="badge badge-new">Yangi</span>
+                </div> -->
+              </div>
+
+              <div class="product-content">
+                <div class="product-title">
+                  <%= product.name %>
+                </div>
+                <div class="product-desc">
+                  <%= product.description || 'Mazali muzqaymoq' %>
+                </div>
+
+                <div class="product-footer">
+                  <div class="product-price">
+                    <%= product.sellPrice.toLocaleString() %> <small>so'm</small>
+                  </div>
+
+                  <button class="add-btn-icon" data-id="<%= product._id %>" data-name="<%= product.name || '' %>"
+                    data-price="<%= product.sellPrice || 0 %>"
+                    onclick="addToCart(this.dataset.id, this.dataset.name, Number(this.dataset.price))">
+                    <i class="fas fa-plus"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <% }); %>
+        </div>
+        <% } %>
+  </div>
+
+  <!-- Floating Cart Button -->
+  <div id="cartFloating" class="cart-floating" style="display: none;" onclick="toggleCart()">
+    <div class="cart-icon-wrapper">
+      <i class="fas fa-shopping-cart" style="font-size: 1.5rem; color: var(--primary);"></i>
+      <div id="cartCountBadge" class="cart-badge">0</div>
+    </div>
+
+    <div style="display:flex; flex-direction:column;">
+      <span style="font-size: 0.75rem; font-weight:600; color:var(--text-muted);">Jami summa</span>
+      <span id="cartSum" style="font-weight: 800; font-size:1.1rem; color:var(--text);">0 so'm</span>
+    </div>
+
+    <div class="btn-icon" style="background:var(--primary-light); color:var(--primary);">
+      <i class="fas fa-chevron-up"></i>
+    </div>
+  </div>
+
+  <script>
+    window.CURRENT_USER_ID = '<%= user._id %>';
+  </script>
+  <%- include('partials/footer') %>

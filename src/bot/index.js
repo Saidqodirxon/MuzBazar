@@ -136,6 +136,12 @@ bot.start(async (ctx) => {
 
   welcomeMessage += welcomeText;
 
+  await ctx.setChatMenuButton({
+    type: "web_app",
+    text: "🌐 Web Do'kon",
+    web_app: { url: process.env.SITE_URL + "/shop" },
+  });
+
   await ctx.reply(welcomeMessage, {
     parse_mode: "Markdown",
     ...Keyboards.mainMenu(),

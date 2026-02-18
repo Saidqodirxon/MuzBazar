@@ -1,0 +1,32 @@
+</main>
+
+<!-- Cart Modal Template (will be populated by JS) -->
+<div id="cartModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 style="font-size:1.25rem;">Savat</h2>
+      <button onclick="toggleCart()" class="close-btn"><i class="fas fa-times"></i></button>
+    </div>
+
+    <div id="cartItems" style="margin-bottom:1.5rem;"></div>
+
+    <div style="border-top:1px solid var(--border); padding-top:1rem;">
+      <div
+        style="display:flex; justify-content:space-between; margin-bottom:1.25rem; font-weight:800; font-size:1.2rem; color:var(--primary);">
+        <span>Jami:</span>
+        <span id="cartTotalDisplay">0 so'm</span>
+      </div>
+
+
+
+      <button onclick="submitOrder()" class="btn btn-primary" id="checkoutBtn" style="padding:1rem;">
+        <i class="fas fa-check-circle"></i> Buyurtmani tasdiqlash
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/shop.js"></script>
+</body>
+
+</html>
