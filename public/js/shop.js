@@ -136,9 +136,6 @@ if (USER_ID) {
   const CART_KEY = `cart_${USER_ID}`;
   let cart = JSON.parse(localStorage.getItem(CART_KEY) || "[]");
 
-  // Check if Main Button is available
-  const mainButton = tg.MainButton;
-
   function updateCartUI() {
     const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
     const totalSum = cart.reduce(
@@ -155,15 +152,10 @@ if (USER_ID) {
       if (cartFloating) cartFloating.style.display = "flex";
       if (cartCountBadge) cartCountBadge.textContent = totalItems;
       if (cartSum) cartSum.textContent = `${totalSum.toLocaleString()} so'm`;
-
-      // Update Main Button (Telegram Style)
-      mainButton.text = `SAVAT (${totalSum.toLocaleString()} so'm)`;
-      mainButton.isVisible = true;
     } else {
       if (cartFloating) cartFloating.style.display = "none";
       if (document.getElementById("cartModal"))
         document.getElementById("cartModal").style.display = "none";
-      mainButton.isVisible = false;
     }
 
     if (cartTotalDisplay)
@@ -299,17 +291,7 @@ if (USER_ID) {
     }
   };
 
-  // Handle Main Button click
-  mainButton.onClick(() => {
-    toggleCart();
-  });
-
-  // Init
   document.addEventListener("DOMContentLoaded", () => {
     updateCartUI();
-    // Ensure MainButton is set up if cart has items
-    if (cart.length > 0) {
-      mainButton.show();
-    }
   });
 }
