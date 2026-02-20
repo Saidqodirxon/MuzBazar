@@ -176,12 +176,19 @@ body += '</div></div>' +
     '<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>' +
     '<form method="POST" action="/admin/users/' + user._id + '/payment">' +
     '<div class="modal-body p-4">' +
-    '<div class="mb-3"><label class="form-label fw-bold small">Tolov miqdori</label>' +
+    '<div class="mb-3"><label class="form-label fw-bold small">Amal turi</label>' +
+    '<div class="d-flex gap-2">' +
+    '<input type="radio" class="btn-check" name="type" id="typePay" value="subtract" checked>' +
+    '<label class="btn btn-outline-success w-50" for="typePay"><i class="fas fa-hand-holding-usd me-1"></i>To\'lov</label>' +
+    '<input type="radio" class="btn-check" name="type" id="typeDebt" value="add">' +
+    '<label class="btn btn-outline-danger w-50" for="typeDebt"><i class="fas fa-file-invoice-dollar me-1"></i>Xarajat</label>' +
+    '</div></div>' +
+    '<div class="mb-3"><label class="form-label fw-bold small">Summa (so\'m)</label>' +
     '<input type="number" class="form-control form-control-lg bg-light border-0 shadow-sm" name="amount" required min="100" step="100" placeholder="0"></div>' +
     '<div class="mb-3"><label class="form-label fw-bold small text-muted">Izoh (ixtiyoriy)</label>' +
-    '<input type="text" class="form-control bg-light border-0 shadow-sm" name="notes" placeholder="Tolov haqida malumot"></div>' +
-    (hasOrders ? '<div class="mb-3"><label class="form-label fw-bold small text-muted">Buyurtmani yopish (ixtiyoriy)</label>' +
-    '<select class="form-select bg-light border-0 shadow-sm" name="orderId"><option value="">Umumiy hisobga</option>' + orderOptionsHTML + '</select></div>' : '') +
+    '<input type="text" class="form-control bg-light border-0 shadow-sm" name="notes" placeholder="To\'lov/Xarajat haqida malumot"></div>' +
+    (hasOrders ? '<div class="mb-3"><label class="form-label fw-bold small text-muted">Aynan bir buyurtma uchun (ixtiyoriy)</label>' +
+    '<select class="form-select bg-light border-0 shadow-sm" name="orderId"><option value="">Avtomatik (Eski qarzlardan)</option>' + orderOptionsHTML + '</select></div>' : '') +
     '</div><div class="modal-footer border-top-0 px-4 pb-4">' +
     '<button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Bekor qilish</button>' +
     '<button type="submit" class="btn btn-primary px-4 shadow">Saqlash</button>' +

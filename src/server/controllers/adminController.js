@@ -1586,10 +1586,10 @@ const adminController = {
     }
   },
 
-  // Add payment to user with automatic debt distribution
+  // Add payment to user with automatic debt distribution and surplus handling
   async addUserPayment(req, res) {
     try {
-      const { amount, type, orderId } = req.body;
+      let { amount, type, orderId, notes } = req.body;
       const user = await User.findById(req.params.id);
 
       if (!user) {
@@ -1603,173 +1603,167 @@ const adminController = {
         );
       }
 
+      // Default to 'subtract' (Payment received) if not specified
+      if (!type) type = "subtract";
+
       console.log(
         `💰 User payment: ${type}, Amount: ${paymentAmount}, OrderId: ${
           orderId || "Auto"
         }`
       );
 
-      // Handle debt payment (receiving money)
       if (type === "subtract") {
-        let ordersToPay = [];
-
-        if (orderId) {
-          // Pay specific order
-          const order = await Order.findById(orderId).populate("client");
-          if (!order) {
-            return res.redirect(
-              `/admin/users/${req.params.id}?error=order_not_found`
-            );
-          }
-          if (paymentAmount > order.debt) {
-            // Allow overpayment on specific order? Or error?
-            // The user complained about error. Let's allow overpayment on specific order if they explicitly chose it?
-            // "Avtomatik (eng eski qarz) ni belgilab... xatolik yuz bermoqda" implies Auto mode error.
-            // On specific order, maybe strict check is fine. Or maybe not.
-            // Let's keep strict check for specific order to avoid confusion, or relax it.
-            // For now, I'll keep strict behavior for SPECIFIC order, but fix AUTO mode.
-            return res.redirect(
-              `/admin/users/${req.params.id}?error=amount_exceeds_debt&debt=${order.debt}`
-            );
-          }
-          ordersToPay.push(order);
-        } else {
-          // Automatic mode: Find all orders with debt, oldest first
-          ordersToPay = await Order.find({
-            client: user._id,
-            status: { $ne: "cancelled" },
-            debt: { $gt: 0 },
-          })
-            .sort({ createdAt: 1 }) // Oldest first
-            .populate("client");
-
-          if (ordersToPay.length === 0) {
-            return res.redirect(`/admin/users/${req.params.id}?error=no_debt`);
-          }
-        }
-
+        // RECEIVING PAYMENT (Reduces debt)
         let remainingAmount = paymentAmount;
         let processedOrders = [];
 
-        // Distribute payment
+        // 1. Get all eligible orders (FIFO - oldest first)
+        let ordersToPay = await Order.find({
+          client: user._id,
+          status: { $ne: "cancelled" },
+          debt: { $gt: 0 },
+        }).sort({ createdAt: 1 });
+
+        // 2. If orderId is provided, prepand it to pay first
+        if (orderId) {
+          const specificOrder = await Order.findById(orderId);
+          if (specificOrder && specificOrder.status !== "cancelled") {
+            // Remove from list if already there to avoid double payment
+            ordersToPay = ordersToPay.filter(
+              (o) => o._id.toString() !== orderId
+            );
+            ordersToPay.unshift(specificOrder);
+          }
+        }
+
+        // 3. If no orders with debt, find ANY latest order to apply surplus to
+        if (ordersToPay.length === 0) {
+          let lastOrder = await Order.findOne({
+            client: user._id,
+            status: { $ne: "cancelled" },
+          }).sort({ createdAt: -1 });
+
+          if (!lastOrder) {
+            // Create a generic "Balans" order if no orders at all
+            lastOrder = new Order({
+              client: user._id,
+              orderNumber: "B-" + Date.now().toString().slice(-6),
+              items: [],
+              totalSum: 0,
+              paidSum: 0,
+              debt: 0,
+              status: "confirmed",
+            });
+            await lastOrder.save();
+          }
+          ordersToPay.push(lastOrder);
+        }
+
+        // 4. Distribute payment
         for (const order of ordersToPay) {
           if (remainingAmount <= 0) break;
 
-          const debt = order.debt;
-          const payAmount = Math.min(remainingAmount, debt);
+          // If it's the last eligible order, it takes the rest (surplus)
+          let payAmount;
+          const isLastInList =
+            ordersToPay.indexOf(order) === ordersToPay.length - 1;
 
-          // Update order
-          order.paidSum = (order.paidSum || 0) + payAmount;
-          order.debt = order.totalSum - order.paidSum;
-          await order.save();
-
-          // Create payment record
-          const payment = new Payment({
-            order: order._id,
-            client: user._id,
-            amount: payAmount,
-            paymentMethod: "cash",
-            notes:
-              ordersToPay.length > 1
-                ? "Admin panel (Avtomatik)"
-                : "Admin panel orqali",
-          });
-
-          if (req.session.role === "seller" && req.session.sellerId) {
-            payment.seller = req.session.sellerId;
-          } else if (req.session.adminUser?.name) {
-            payment.adminName = req.session.adminUser.name;
+          if (isLastInList) {
+            // Take all remaining money, potentially making debt negative (surplus)
+            payAmount = remainingAmount;
+          } else {
+            // Standard FIFO: only pay what is owed
+            payAmount = Math.min(remainingAmount, Math.max(0, order.debt));
           }
 
-          await payment.save();
-          processedOrders.push({ order, amount: payAmount });
+          if (payAmount !== 0) {
+            order.paidSum = (order.paidSum || 0) + payAmount;
+            order.debt = (order.totalSum || 0) - order.paidSum;
+            await order.save();
 
-          remainingAmount -= payAmount;
+            const payment = new Payment({
+              order: order._id,
+              client: user._id,
+              amount: payAmount,
+              paymentMethod: "cash",
+              notes: notes || (orderId ? "Aniq buyurtma" : "Avtomatik (FIFO)"),
+            });
+
+            if (req.session.role === "seller" && req.session.sellerId) {
+              payment.seller = req.session.sellerId;
+            } else if (req.session.adminUser?.name) {
+              payment.adminName = req.session.adminUser.name;
+            }
+
+            await payment.save();
+            processedOrders.push({ order, amount: payAmount });
+            remainingAmount -= payAmount;
+          }
         }
-
-        // If amount still remains (overpayment in auto mode),
-        // we could either error earlier or credit the last order.
-        // But for now, let's just leave it as is (money returned to customer essentially).
-        // Or if the user wanted to pay MORE than total debt?
-        // Let's assume they entered correct amount or we stop at 0 debt.
 
         // Update user total debt
         await User.updateUserTotalDebt(user._id);
 
-        // Send notifications
-        if (user.telegramId && processedOrders.length > 0) {
-          const NotificationService = require("../../utils/notificationService");
-          const notificationService = new NotificationService();
-
-          // Notify user (total paid)
-          await notificationService.sendToUser(
-            user.telegramId,
-            `💰 <b>To'lov qabul qilindi</b>\n\nJami summa: ${paymentAmount
-              .toString()
-              .replace(
-                /\B(?=(\d{3})+(?!\d))/g,
-                " "
-              )} so'm\n\n${processedOrders.length} ta buyurtma bo'yicha qarz yopildi.`,
-            { parse_mode: "HTML" }
-          );
-
-          // Notify group
-          try {
-            const adminName = req.session.adminUser?.name || "Admin";
-            const groupMessage =
-              `💰 *To'lov qabul qilindi (Admin)*\n\n` +
-              `👤 Admin: *${adminName}*\n` +
-              `👥 Mijoz: *${user.firstName} ${user.lastName || ""}*\n` +
-              `💵 Summa: *${paymentAmount
-                .toString()
-                .replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*\n` +
-              `info: ${processedOrders.length} ta buyurtma yopildi`;
-
-            await notificationService.sendToGroup(groupMessage, {
-              parse_mode: "Markdown",
-            });
-          } catch (err) {
-            console.error(err);
-          }
-        }
-      } else {
-        // Debt Increase (Add to order)
-        let order;
-        if (orderId) {
-          order = await Order.findById(orderId).populate("client");
-        } else {
-          // Find newest active order to add debt to
-          order = await Order.findOne({
-            client: user._id,
-            status: { $ne: "cancelled" },
-          }).sort({ createdAt: -1 });
-        }
-
-        if (!order) {
-          // Create a dummy order if no order exists?
-          // Or strictly require an order?
-          // Existing logic redirected if no orders.
-          // But maybe we should create a "Qarz" order?
-          // For now, adhere to existing logic: require an order to attach debt to.
-          return res.redirect(
-            `/admin/users/${req.params.id}?error=no_orders_to_add_debt`
-          );
-        }
-
-        order.totalSum = (order.totalSum || 0) + paymentAmount;
-        order.debt = order.totalSum - (order.paidSum || 0);
-        await order.save();
-        await User.updateUserTotalDebt(user._id);
-
-        // Notification logic (simplified from existing)
-        // ... (keep existing notification logic or simplified)
+        // Notify user
         if (user.telegramId) {
           const NotificationService = require("../../utils/notificationService");
           const notificationService = new NotificationService();
           try {
+            const fmt = (n) =>
+              n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
             await notificationService.sendToUser(
               user.telegramId,
-              `📋 Buyurtma: <b>${order.orderNumber}</b>\n\n💰 Qarz oshirildi: +${paymentAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm`,
+              `💰 <b>To'lov qabul qilindi</b>\n\n` +
+                `💵 Summa: <b>${fmt(paymentAmount)} so'm</b>\n` +
+                `📊 Holat: ${processedOrders.length} ta buyurtma yangilandi.`,
+              { parse_mode: "HTML" }
+            );
+          } catch (e) {}
+        }
+      } else {
+        // RECORDING NEW DEBT / EXPENSE (Increases debt)
+        let order;
+        if (orderId) {
+          order = await Order.findById(orderId);
+        } else {
+          // Find newest active order
+          order = await Order.findOne({
+            client: user._id,
+            status: { $ne: "cancelled" },
+          }).sort({ createdAt: -1 });
+
+          if (!order) {
+            // Create a Balans order if none exist
+            order = new Order({
+              client: user._id,
+              orderNumber: "B-" + Date.now().toString().slice(-6),
+              items: [],
+              totalSum: 0,
+              paidSum: 0,
+              debt: 0,
+              status: "confirmed",
+            });
+          }
+        }
+
+        order.totalSum = (order.totalSum || 0) + paymentAmount;
+        order.debt = order.totalSum - (order.paidSum || 0);
+        if (notes) order.notes = (order.notes || "") + "\n" + notes;
+        await order.save();
+
+        await User.updateUserTotalDebt(user._id);
+
+        if (user.telegramId) {
+          const NotificationService = require("../../utils/notificationService");
+          const notificationService = new NotificationService();
+          try {
+            const fmt = (n) =>
+              n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+            await notificationService.sendToUser(
+              user.telegramId,
+              `📋 <b>Qarz yozildi</b>\n\n` +
+                `➕ Summa: <b>+${fmt(paymentAmount)} so'm</b>\n` +
+                `🆔 Buyurtma: #${order.orderNumber}`,
               { parse_mode: "HTML" }
             );
           } catch (e) {}

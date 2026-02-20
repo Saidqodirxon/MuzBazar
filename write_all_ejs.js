@@ -560,7 +560,24 @@ function buildUserDetailsEjs() {
   );
   lines.push("    '<div class=\"modal-body p-4\">' +");
   lines.push(
-    '    \'<div class="mb-3"><label class="form-label fw-bold small">Tolov miqdori</label>\' +'
+    '    \'<div class="mb-3"><label class="form-label fw-bold small">Amal turi</label>\' +'
+  );
+  lines.push("    '<div class=\"d-flex gap-2\">' +");
+  lines.push(
+    '    \'<input type="radio" class="btn-check" name="type" id="typePay" value="subtract" checked>\' +'
+  );
+  lines.push(
+    '    \'<label class="btn btn-outline-success w-50" for="typePay"><i class="fas fa-hand-holding-usd me-1"></i>To\\\'lov</label>\' +'
+  );
+  lines.push(
+    '    \'<input type="radio" class="btn-check" name="type" id="typeDebt" value="add">\' +'
+  );
+  lines.push(
+    '    \'<label class="btn btn-outline-danger w-50" for="typeDebt"><i class="fas fa-file-invoice-dollar me-1"></i>Xarajat</label>\' +'
+  );
+  lines.push("    '</div></div>' +");
+  lines.push(
+    '    \'<div class="mb-3"><label class="form-label fw-bold small">Summa (so\\\'m)</label>\' +'
   );
   lines.push(
     '    \'<input type="number" class="form-control form-control-lg bg-light border-0 shadow-sm" name="amount" required min="100" step="100" placeholder="0"></div>\' +'
@@ -569,13 +586,13 @@ function buildUserDetailsEjs() {
     '    \'<div class="mb-3"><label class="form-label fw-bold small text-muted">Izoh (ixtiyoriy)</label>\' +'
   );
   lines.push(
-    '    \'<input type="text" class="form-control bg-light border-0 shadow-sm" name="notes" placeholder="Tolov haqida malumot"></div>\' +'
+    '    \'<input type="text" class="form-control bg-light border-0 shadow-sm" name="notes" placeholder="To\\\'lov/Xarajat haqida malumot"></div>\' +'
   );
   lines.push(
-    '    (hasOrders ? \'<div class="mb-3"><label class="form-label fw-bold small text-muted">Buyurtmani yopish (ixtiyoriy)</label>\' +'
+    '    (hasOrders ? \'<div class="mb-3"><label class="form-label fw-bold small text-muted">Aynan bir buyurtma uchun (ixtiyoriy)</label>\' +'
   );
   lines.push(
-    "    '<select class=\"form-select bg-light border-0 shadow-sm\" name=\"orderId\"><option value=\"\">Umumiy hisobga</option>' + orderOptionsHTML + '</select></div>' : '') +"
+    "    '<select class=\"form-select bg-light border-0 shadow-sm\" name=\"orderId\"><option value=\"\">Avtomatik (Eski qarzlardan)</option>' + orderOptionsHTML + '</select></div>' : '') +"
   );
   lines.push(
     "    '</div><div class=\"modal-footer border-top-0 px-4 pb-4\">' +"
