@@ -1933,13 +1933,15 @@ const adminController = {
         `attachment; filename=mahsulotlar-hisoboti-${Date.now()}.xlsx`
       );
 
-      await workbook.xlsx.write(res);
-      res.end();
+      const buffer = await workbook.xlsx.writeBuffer();
+      res.send(buffer);
 
       console.log("✅ Products export completed successfully");
     } catch (error) {
       console.error("❌ Export products error:", error);
-      res.redirect(`/admin/users/${req.params.id}?error=export_failed`);
+      if (!res.headersSent) {
+        res.redirect(`/admin/users/${req.params.id}?error=export_failed`);
+      }
     }
   },
 
@@ -2024,20 +2026,29 @@ const adminController = {
         fgColor: { argb: "FFFFD700" },
       };
 
+      const fileName =
+        `${user.firstName || "User"}_qarzdorlik_${Date.now()}.xlsx`
+          .replace(/\s+/g, "_")
+          .replace(/[^a-zA-Z0-0._-]/g, "");
+
       res.setHeader(
         "Content-Type",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
       );
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename=${user.firstName}-qarzdorlik-${Date.now()}.xlsx`
+        `attachment; filename=${encodeURIComponent(fileName)}`
       );
 
-      await workbook.xlsx.write(res);
-      res.end();
+      const buffer = await workbook.xlsx.writeBuffer();
+      res.send(buffer);
+
+      console.log("✅ User debt export completed successfully");
     } catch (error) {
       console.error("❌ Export user debt error:", error);
-      res.redirect(`/admin/users/${req.params.id}?error=export_failed`);
+      if (!res.headersSent) {
+        res.redirect(`/admin/users/${req.params.id}?error=export_failed`);
+      }
     }
   },
 
@@ -2126,20 +2137,29 @@ const adminController = {
         fgColor: { argb: "FFFFD700" },
       };
 
+      const fileName =
+        `${user.firstName || "User"}_buyurtmalar_${Date.now()}.xlsx`
+          .replace(/\s+/g, "_")
+          .replace(/[^a-zA-Z0-0._-]/g, "");
+
       res.setHeader(
         "Content-Type",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
       );
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename=${user.firstName}-buyurtmalar-${Date.now()}.xlsx`
+        `attachment; filename=${encodeURIComponent(fileName)}`
       );
 
-      await workbook.xlsx.write(res);
-      res.end();
+      const buffer = await workbook.xlsx.writeBuffer();
+      res.send(buffer);
+
+      console.log("✅ User orders export completed successfully");
     } catch (error) {
       console.error("❌ Export user orders error:", error);
-      res.redirect(`/admin/users/${req.params.id}?error=export_failed`);
+      if (!res.headersSent) {
+        res.redirect(`/admin/users/${req.params.id}?error=export_failed`);
+      }
     }
   },
 

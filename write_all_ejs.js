@@ -339,20 +339,18 @@ function buildUserDetailsEjs() {
   lines.push(
     "    '<h1 class=\"h2\"><i class=\"fas fa-user me-2\"></i>' + userName + '</h1>' +"
   );
+  lines.push("    '<div class=\"btn-toolbar mb-2 mb-md-0 d-flex gap-1\">' +");
   lines.push(
-    '    \'<div class="btn-toolbar mb-2 mb-md-0"><div class="btn-group me-2">\' +'
+    "    (hasProducts ? '<a href=\"/admin/users/' + user._id + '/export-products\" class=\"btn btn-sm btn-outline-success shadow-sm\"><i class=\"fas fa-file-excel me-1\"></i>Mahsulotlar</a>' : '') +"
   );
   lines.push(
-    "    (hasProducts ? '<a href=\"/admin/users/' + user._id + '/export-products\" class=\"btn btn-sm btn-success\"><i class=\"fas fa-file-excel me-1\"></i>Mahsulotlar</a>' : '') +"
+    "    (hasOrders ? '<a href=\"/admin/users/' + user._id + '/export-orders\" class=\"btn btn-sm btn-outline-primary shadow-sm\"><i class=\"fas fa-file-excel me-1\"></i>Buyurtmalar</a>' : '') +"
   );
   lines.push(
-    "    (hasOrders ? '<a href=\"/admin/users/' + user._id + '/export-orders\" class=\"btn btn-sm btn-primary ms-1\"><i class=\"fas fa-file-excel me-1\"></i>Buyurtmalar</a>' : '') +"
+    "    (hasDebt ? '<a href=\"/admin/users/' + user._id + '/export\" class=\"btn btn-sm btn-success shadow-sm\"><i class=\"fas fa-file-excel me-1\"></i>Qarzdorlik Excel</a>' : '') +"
   );
   lines.push(
-    "    (hasDebt ? '<a href=\"/admin/users/' + user._id + '/export\" class=\"btn btn-sm btn-warning ms-1\"><i class=\"fas fa-file-excel me-1\"></i>Qarzdorlik</a>' : '') +"
-  );
-  lines.push(
-    '    \'</div><a href="/admin/users" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Orqaga</a></div></div>\' +'
+    '    \'<a href="/admin/users" class="btn btn-sm btn-outline-secondary shadow-sm ms-2"><i class="fas fa-arrow-left me-2"></i>Orqaga</a></div></div>\' +'
   );
   lines.push("");
   lines.push('    \'<div class="row"><div class="col-lg-4">\' +');
@@ -478,9 +476,11 @@ function buildUserDetailsEjs() {
     "    '</tr></thead><tbody>' + paymentsRowsHTML + '</tbody></table></div></div></div>' +"
   );
   lines.push("");
-  lines.push("    '<div class=\"card mb-4 shadow-sm border-0\">' +");
   lines.push(
-    '    \'<div class="card-header bg-white border-bottom-0"><h5 class="mb-0 fw-bold text-primary"><i class="fas fa-shopping-bag me-2"></i>Buyurtmalar tarixi</h5></div>\' +'
+    '    \'<div class="card-header bg-white border-bottom-0 d-flex justify-content-between align-items-center\"><h5 class="mb-0 fw-bold text-primary"><i class="fas fa-shopping-bag me-2"></i>Buyurtmalar tarixi</h5>\' +'
+  );
+  lines.push(
+    "    (hasOrders ? '<a href=\"/admin/users/' + user._id + '/export-orders\" class=\"text-primary text-decoration-none small\"><i class=\"fas fa-file-excel me-1\"></i>Excel</a>' : '') + '</div>' +"
   );
   lines.push(
     '    \'<div class="card-body p-0"><div class="table-responsive">\' +'
@@ -502,6 +502,9 @@ function buildUserDetailsEjs() {
   );
   lines.push(
     '        \'<h5 class="mb-0 fw-bold text-info"><i class="fas fa-boxes me-2"></i>Mahsulotlar hisoboti</h5>\' +'
+  );
+  lines.push(
+    '        \'<a href="/admin/users/\' + user._id + \'/export-products" class="text-info text-decoration-none small mx-3"><i class="fas fa-file-excel me-1"></i>Excel</a>\' +'
   );
   lines.push(
     "        '<span class=\"badge bg-light text-info border\">' + productsStats.totalProducts + ' mahsulot</span></div>' +"

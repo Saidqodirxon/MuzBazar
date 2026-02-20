@@ -304,21 +304,12 @@ ${orderUrl}`;
 
       console.log(`📝 Message prepared, length: ${message.length} chars`);
 
-      // Send to Admin Group
-      await this.sendToGroup(message, { parse_mode: "HTML" });
+      // Send to Seller Group
+      const sellerResult = await this.sendToSellerGroup(message, {
+        parse_mode: "HTML",
+      });
 
-      // Send to Seller Group (if configured and different)
-      let sellerResult = { success: true };
-      const groupId = await this.getGroupId();
-      const sellerGroupId = await this.getSellerGroupId();
-
-      if (sellerGroupId && sellerGroupId !== groupId) {
-        sellerResult = await this.sendToSellerGroup(message, {
-          parse_mode: "HTML",
-        });
-      }
-
-      console.log(`✅ Notification sent to both groups`);
+      console.log(`✅ Order notification sent to Seller Group`);
       return sellerResult;
     } catch (error) {
       console.error("❌ New order notification error:", error.message);
