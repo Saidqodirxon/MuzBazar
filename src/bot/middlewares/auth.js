@@ -6,6 +6,20 @@ const { Markup } = require("telegraf");
  */
 const authMiddleware = async (ctx, next) => {
   try {
+    // Bot faqat private (shaxsiy) chatda ishlashi kerak
+    if (ctx.chat && ctx.chat.type !== "private") {
+      // Setup uchun /chatid buyrug'ini ruxsat beramiz
+      if (
+        ctx.message &&
+        ctx.message.text &&
+        ctx.message.text.startsWith("/chatid")
+      ) {
+        return next();
+      }
+      return; // Boshqa hech qanday xabarga guruhda javob bermaydi
+    }
+
+    if (!ctx.from) return;
     const telegramId = ctx.from.id.toString();
 
     // Try to find existing user
@@ -19,11 +33,13 @@ const authMiddleware = async (ctx, next) => {
         lastName: ctx.from.last_name || "",
         username: ctx.from.username || "",
         role: "client",
-        isBlocked: false, // Default holatda ochiq
+        isBlocked: true, // Yangi user bloklangan bo'ladi, admin ochadi
       });
 
       await user.save();
-      console.log(`🆕 New user registered: ${user.fullName} (${telegramId})`);
+      console.log(
+        `🆕 New user registered: ${user.fullName} (${telegramId}) - isBlocked: ${user.isBlocked}`
+      );
 
       // Guruhga notification yuborish
       try {
@@ -49,6 +65,18 @@ const authMiddleware = async (ctx, next) => {
       }
     }
 
+    // Check if user is blocked - FIRST (before phone or anything else)
+    if (user.isBlocked) {
+      const { Settings } = require("../../server/models");
+      const blockedMessage = await Settings.get(
+        "blocked_user_message",
+        "⛔️ Sizning hisobingiz hozircha bloklangan.\n\n" +
+          "✅ Admin sizning hisobingizni ko'rib chiqib, tez orada ochib qo'yadi.\n\n" +
+          "📞 Yordam uchun: @muzbazar_admin"
+      );
+      return ctx.reply(blockedMessage, Markup.removeKeyboard());
+    }
+
     // Check if user needs to provide phone number
     if (!user.phone && !ctx.session?.awaitingPhone) {
       // Check if this is a contact message
@@ -70,18 +98,6 @@ const authMiddleware = async (ctx, next) => {
         ctx.session.needsPhone = true;
         return next();
       }
-    }
-
-    // Check if user is blocked
-    if (user.isBlocked) {
-      const { Settings } = require("../../server/models");
-      const blockedMessage = await Settings.get(
-        "blocked_user_message",
-        "⛔️ Sizning hisobingiz hozircha bloklangan.\n\n" +
-          "✅ Admin sizning hisobingizni ko'rib chiqib, tez orada ochib qo'yadi.\n\n" +
-          "📞 Yordam uchun: @muzbazar_admin"
-      );
-      return ctx.reply(blockedMessage, Markup.removeKeyboard());
     }
 
     // Check if user is blocked/inactive

@@ -42,7 +42,11 @@ const userSchema = new mongoose.Schema(
     },
     isBlocked: {
       type: Boolean,
-      default: false, // Foydalanuvchilar ochiq bo'ladi
+      default: true, // Yangi kelgan userlar bloklangan bo'ladi (admin ochishi kerak)
+    },
+    notes: {
+      type: String, // Admin notes about user
+      default: "",
     },
     totalDebt: {
       type: Number,

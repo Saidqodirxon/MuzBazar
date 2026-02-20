@@ -1,281 +1,189 @@
 <%
-const layout = '../layouts/layout.ejs';
-
-// Helper function
-function formatNum(num) {
-    return (num || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-}
-
-// User info
-const userName = (user.firstName || '') + ' ' + (user.lastName || '');
-const userUsername = user.username ? '@' + user.username : "Yo'q";
-const userPhone = user.phone || 'Kiritilmagan';
-const userCreatedAt = moment(user.createdAt).utcOffset(5).format('DD/MM/YYYY HH:mm');
-
-// Build orders table rows
-let ordersRows = '';
-if (user.orders && user.orders.length > 0) {
-    user.orders.forEach(function(order) {
-        let statusClass = 'secondary';
-        let statusText = order.status;
-        if (order.status === 'pending') { statusClass = 'warning'; statusText = 'Kutilmoqda'; }
-        else if (order.status === 'confirmed') { statusClass = 'info'; statusText = 'Tasdiqlangan'; }
-        else if (order.status === 'delivered') { statusClass = 'success'; statusText = 'Yetkazilgan'; }
-        else if (order.status === 'cancelled') { statusClass = 'danger'; statusText = 'Bekor qilingan'; }
-        
-        ordersRows += '<tr>';
-        ordersRows += '<td><a href="/admin/orders/' + order._id + '">#' + order.orderNumber + '</a></td>';
-        ordersRows += '<td>' + formatNum(order.totalSum) + " so'm</td>";
-        ordersRows += '<td>' + formatNum(order.paidSum) + " so'm</td>";
-        ordersRows += '<td class="' + (order.debt > 0 ? 'text-danger fw-bold' : 'text-success') + '">' + formatNum(order.debt) + " so'm</td>";
-        ordersRows += '<td><span class="badge bg-' + statusClass + '">' + statusText + '</span></td>';
-        ordersRows += '<td>' + moment(order.createdAt).utcOffset(5).format('DD/MM/YYYY') + '</td>';
-        ordersRows += '</tr>';
-    });
-}
-
-// Build payments table rows
-let paymentsRows = '';
-if (payments && payments.length > 0) {
-    payments.forEach(function(payment) {
-        const sellerName = payment.seller ? (payment.seller.firstName + ' ' + (payment.seller.lastName || '')) : (payment.adminName || 'System');
-        paymentsRows += '<tr>';
-        paymentsRows += '<td>' + moment(payment.createdAt).utcOffset(5).format('DD/MM/YYYY HH:mm') + '</td>';
-        paymentsRows += '<td class="text-success fw-bold">' + formatNum(payment.amount) + " so'm</td>";
-        paymentsRows += '<td>' + sellerName + '</td>';
-        paymentsRows += '<td>' + (payment.notes || '-') + '</td>';
-        paymentsRows += '<td class="text-end">';
-        paymentsRows += '<form action="/admin/users/' + user._id + '/payments/' + payment._id + '/delete" method="POST" style="display:inline">';
-        paymentsRows += '<button type="submit" class="btn btn-sm btn-danger" onclick="return confirm(String.fromCharCode(84,111,108,111,118,110,105,32,111,99,104,105,114,97,115,105,122,109,105,63))"><i class="fas fa-trash"></i></button>';
-        paymentsRows += '</form>';
-        paymentsRows += '</td>';
-        paymentsRows += '</tr>';
-    });
-}
-
-// Build products table rows
-let productsRows = '';
-if (productsStats && productsStats.products && productsStats.products.length > 0) {
-    productsStats.products.forEach(function(p) {
-        const stockClass = p.stock <= 5 ? 'text-danger' : p.stock <= 10 ? 'text-warning' : 'text-success';
-        productsRows += '<tr>';
-        productsRows += '<td>' + p.name + '</td>';
-        productsRows += '<td><span class="badge bg-secondary">' + p.category + '</span></td>';
-        productsRows += '<td class="' + stockClass + ' fw-bold">' + p.stock + '</td>';
-        productsRows += '<td>' + formatNum(p.costPrice) + '</td>';
-        productsRows += '<td>' + formatNum(p.sellPrice) + '</td>';
-        productsRows += '<td class="text-primary">' + formatNum(p.totalCost) + '</td>';
-        productsRows += '<td class="text-success">' + formatNum(p.totalSell) + '</td>';
-        productsRows += '<td class="text-info fw-bold">' + formatNum(p.profit) + '</td>';
-        productsRows += '</tr>';
-    });
-}
-
-// Build order options for payment modal
-let orderOptions = '';
-if (user.orders && user.orders.length > 0) {
-    user.orders.forEach(function(order) {
-        if (order.debt > 0) {
-            orderOptions += '<option value="' + order._id + '">#' + order.orderNumber + ' - Qarz: ' + formatNum(order.debt) + " so'm</option>";
-        }
-    });
-}
-
-const hasDebt = stats.totalDebt > 0;
-const hasOrders = user.orders && user.orders.length > 0;
-const hasPayments = payments && payments.length > 0;
-const hasProducts = productsStats && productsStats.products && productsStats.products.length > 0;
-const profitValue = (productsStats ? productsStats.totalSellValue : 0) - (productsStats ? productsStats.totalCostValue : 0);
--%>
-
-<%- include('../layouts/layout', { title: title, body: `
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
-    <h1 class="h2">
-        <i class="fas fa-user me-2"></i>${userName}
-    </h1>
-    <div class="btn-toolbar mb-2 mb-md-0">
-        <div class="btn-group me-2">
-            ${hasProducts ? '<a href="/admin/users/' + user._id + '/export-products" class="btn btn-sm btn-success"><i class="fas fa-file-excel me-1"></i>Mahsulotlar Excel</a>' : ''}
-            ${hasOrders ? '<a href="/admin/users/' + user._id + '/export-orders" class="btn btn-sm btn-primary ms-1"><i class="fas fa-file-excel me-1"></i>Buyurtmalar Excel</a>' : ''}
-            ${hasDebt ? '<a href="/admin/users/' + user._id + '/export" class="btn btn-sm btn-warning ms-1"><i class="fas fa-file-excel me-1"></i>Qarzdorlik Excel</a>' : ''}
-        </div>
-        <a href="/admin/users" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left me-2"></i>Orqaga
-        </a>
-    </div>
-</div>
-
-<div class="row">
-    <div class="col-lg-4">
-        <!-- User Info Card -->
-        <div class="card mb-3">
-            <div class="card-header">
-                <h5 class="mb-0">Foydalanuvchi malumotlari</h5>
-            </div>
-            <div class="card-body">
-                <p><strong>Ism:</strong> ${userName}</p>
-                <p><strong>Username:</strong> ${userUsername}</p>
-                <p><strong>Telegram ID:</strong> ${user.telegramId || '-'}</p>
-                <p><strong>Telefon:</strong> ${userPhone}</p>
-                <p><strong>Qayd qilingan:</strong> ${userCreatedAt}</p>
-                <p><strong>Buyurtmalar soni:</strong> ${user.orderCount || 0}</p>
-                <p><strong>Umumiy summa:</strong> ${formatNum(user.totalSpent)} som</p>
-                <p><strong>Tolandi:</strong> ${formatNum(stats.totalPaid)} som</p>
-                <p><strong>Qarzdorlik:</strong> <span class="${hasDebt ? 'text-danger fw-bold' : 'text-success'}">${formatNum(stats.totalDebt)} som</span></p>
-                <p><strong>Status:</strong> 
-                    <span class="badge bg-${user.isActive ? 'success' : 'danger'}">
-                        ${user.isActive ? 'Aktiv' : 'Nofaol'}
-                    </span>
-                </p>
-                <p><strong>Rol:</strong> 
-                    <span class="badge bg-${user.role === 'admin' ? 'danger' : user.role === 'seller' ? 'warning' : 'info'}">
-                        ${user.role === 'admin' ? 'Admin' : user.role === 'seller' ? 'Sotuvchi' : 'Klient'}
-                    </span>
-                </p>
-            </div>
-        </div>
-
-        <!-- Payment Control Card -->
-        <div class="card mb-3">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0"><i class="fas fa-money-bill-wave me-2"></i>Tolov boshqaruvi</h5>
-            </div>
-            <div class="card-body">
-                <button type="button" class="btn btn-success w-100 mb-2" data-bs-toggle="modal" data-bs-target="#paymentModal" ${(hasDebt || hasOrders) ? '' : 'disabled'}>
-                    <i class="fas fa-plus-circle me-2"></i>Tolov qoshish / Qarz boshqarish
-                </button>
-                ${hasDebt ? '<small class="text-muted">Jami qarzdorlik: <span class="text-danger fw-bold">' + formatNum(stats.totalDebt) + ' som</span></small>' : '<small class="text-success"><i class="fas fa-check-circle me-1"></i>Qarz yoq</small>'}
-            </div>
-        </div>
-
-        <!-- Control Card -->
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Boshqaruv</h5>
-            </div>
-            <div class="card-body">
-                <form method="POST" action="/admin/users/${user._id}/toggle-status" class="mb-3">
-                    <button type="submit" class="btn btn-${user.isActive ? 'warning' : 'success'} btn-sm w-100">
-                        <i class="fas fa-${user.isActive ? 'ban' : 'check'} me-2"></i>
-                        ${user.isActive ? 'Bloklash' : 'Aktivlashtirish'}
-                    </button>
-                </form>
-                <button type="button" class="btn btn-info btn-sm w-100" data-bs-toggle="modal" data-bs-target="#notifyModal" ${user.telegramId ? '' : 'disabled'}>
-                    <i class="fas fa-bell me-2"></i>Xabar yuborish
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-lg-8">
-        <!-- Payments History -->
-        ${hasPayments ? '<div class="card mb-4"><div class="card-header bg-success text-white"><h5 class="mb-0"><i class="fas fa-history me-2"></i>Tolovlar tarixi</h5></div><div class="card-body"><div class="table-responsive"><table class="table table-sm table-hover"><thead><tr><th>Sana</th><th>Summa</th><th>Kim qoshdi</th><th>Izoh</th><th></th></tr></thead><tbody>' + paymentsRows + '</tbody></table></div></div></div>' : ''}
-
-        <!-- Orders History -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">Buyurtma tarixi</h5>
-            </div>
-            <div class="card-body">
-                ${hasOrders ? '<div class="table-responsive"><table class="table table-sm"><thead><tr><th>Buyurtma №</th><th>Jami summa</th><th>Tolangan</th><th>Qarz</th><th>Status</th><th>Sana</th></tr></thead><tbody>' + ordersRows + '</tbody></table></div>' : '<p class="text-muted">Buyurtmalar yoq</p>'}
-            </div>
-        </div>
-
-        <!-- Products Report -->
-        ${hasProducts ? '<div class="card mb-4"><div class="card-header bg-info text-white d-flex justify-content-between align-items-center"><h5 class="mb-0"><i class="fas fa-boxes me-2"></i>Mahsulotlar hisoboti</h5><span class="badge bg-light text-dark">' + productsStats.totalProducts + ' ta mahsulot</span></div><div class="card-body"><div class="row mb-3"><div class="col-md-3"><div class="border rounded p-2 text-center"><small class="text-muted">Jami soni</small><h5 class="mb-0 text-primary">' + formatNum(productsStats.totalStock) + '</h5></div></div><div class="col-md-3"><div class="border rounded p-2 text-center"><small class="text-muted">Tannarxi (jami)</small><h5 class="mb-0 text-warning">' + formatNum(productsStats.totalCostValue) + ' som</h5></div></div><div class="col-md-3"><div class="border rounded p-2 text-center"><small class="text-muted">Sotish narxi (jami)</small><h5 class="mb-0 text-success">' + formatNum(productsStats.totalSellValue) + ' som</h5></div></div><div class="col-md-3"><div class="border rounded p-2 text-center"><small class="text-muted">Kutilayotgan foyda</small><h5 class="mb-0 text-info">' + formatNum(profitValue) + ' som</h5></div></div></div><div class="table-responsive" style="max-height:400px;overflow-y:auto"><table class="table table-sm table-hover"><thead class="sticky-top bg-light"><tr><th>Mahsulot</th><th>Kategoriya</th><th>Qolgan soni</th><th>Tannarxi</th><th>Sotish narxi</th><th>Jami tannarx</th><th>Jami sotish</th><th>Foyda</th></tr></thead><tbody>' + productsRows + '</tbody><tfoot class="table-light fw-bold"><tr><td colspan="2">JAMI:</td><td>' + formatNum(productsStats.totalStock) + '</td><td>-</td><td>-</td><td class="text-primary">' + formatNum(productsStats.totalCostValue) + '</td><td class="text-success">' + formatNum(productsStats.totalSellValue) + '</td><td class="text-info">' + formatNum(profitValue) + '</td></tr></tfoot></table></div></div></div>' : ''}
-    </div>
-</div>
-
-<!-- Payment Modal -->
-<div class="modal fade" id="paymentModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="fas fa-money-bill-wave me-2"></i>Tolov/Qarz boshqaruvi</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form method="POST" action="/admin/users/${user._id}/payment">
-                <div class="modal-body">
-                    ${orderOptions ? '<div class="mb-3"><label for="orderId" class="form-label">Buyurtma tanlang (ixtiyoriy)</label><select class="form-select" id="orderId" name="orderId"><option value="">Avtomatik (eng eski qarz)</option>' + orderOptions + '</select></div>' : ''}
-                    <div class="mb-3">
-                        <label class="form-label">Amal turi</label>
-                        <div class="btn-group w-100" role="group">
-                            <input type="radio" class="btn-check" name="type" id="userTypeSubtract" value="subtract" checked>
-                            <label class="btn btn-outline-success" for="userTypeSubtract">
-                                <i class="fas fa-minus-circle me-1"></i>Qarzdan ayirish (Tolov)
-                            </label>
-                            <input type="radio" class="btn-check" name="type" id="userTypeAdd" value="add">
-                            <label class="btn btn-outline-warning" for="userTypeAdd">
-                                <i class="fas fa-plus-circle me-1"></i>Qarzga qoshish
-                            </label>
-                        </div>
-                        <small class="text-muted d-block mt-2" id="userTypeHint">Tolov qabul qilish uchun</small>
-                    </div>
-                    <div class="mb-3">
-                        <label for="userAmount" class="form-label">Miqdor (som)</label>
-                        <input type="number" class="form-control form-control-lg" id="userAmount" name="amount" min="1" required placeholder="Summani kiriting">
-                    </div>
-                    <div class="alert alert-info mb-0">
-                        <small>
-                            <i class="fas fa-info-circle me-1"></i>
-                            <strong>Qarzdan ayirish:</strong> Mijoz tolov qilganda<br>
-                            <strong>Qarzga qoshish:</strong> Yangi qarz qoshganda
-                        </small>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="fas fa-times me-1"></i>Bekor qilish
-                    </button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save me-1"></i>Saqlash
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Notification Modal -->
-<div class="modal fade" id="notifyModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="fas fa-bell me-2"></i>Xabar yuborish</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form method="POST" action="/admin/users/${user._id}/notify">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="message" class="form-label"><strong>Xabar matni:</strong></label>
-                        <textarea class="form-control" id="message" name="message" rows="4" required>Hurmatli mijoz! </textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="fas fa-times me-1"></i>Bekor qilish
-                    </button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-paper-plane me-1"></i>Yuborish
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-` }) %>
-<script>
-(function() {
-    var radios = document.querySelectorAll('input[name="type"]');
-    for (var i = 0; i < radios.length; i++) {
-        radios[i].addEventListener('change', function() {
-            var hint = document.getElementById('userTypeHint');
-            if (this.value === 'subtract') {
-                hint.textContent = 'Tolov qabul qilish uchun';
-            } else {
-                hint.textContent = 'Qarz qoshish uchun';
-            }
-        });
+var layout = '../layouts/layout.ejs';
+function fmt(n) {
+    var s = String(n || 0);
+    var parts = [];
+    var len = s.length;
+    for (var i = len; i > 0; i -= 3) {
+        var start = Math.max(0, i - 3);
+        parts.unshift(s.substring(start, i));
     }
-})();
-</script>
+    return parts.join(' ');
+}
+
+var userName = (user.firstName || '') + ' ' + (user.lastName || '');
+var userUsername = user.username ? '@' + user.username : '-';
+var userPhone = user.phone || 'Kiritilmagan';
+var userCreatedAt = moment(user.createdAt).utcOffset(5).format('DD/MM/YYYY HH:mm');
+var hasDebt = (stats.totalDebt || 0) > 0;
+var hasOrders = user.orders && user.orders.length > 0;
+var hasPayments = payments && payments.length > 0;
+var hasProducts = productsStats && productsStats.products && productsStats.products.length > 0;
+var profitValue = hasProducts ? (productsStats.totalSellValue - productsStats.totalCostValue) : 0;
+
+var ordersRowsHTML = '';
+if (hasOrders) {
+    for (var i = 0; i < user.orders.length; i++) {
+        var order = user.orders[i];
+        var sc = 'secondary'; var st = order.status || '';
+        if (order.status === 'pending') { sc = 'warning'; st = 'Kutilmoqda'; }
+        else if (order.status === 'confirmed') { sc = 'info'; st = 'Tasdiqlangan'; }
+        else if (order.status === 'delivered') { sc = 'success'; st = 'Yetkazilgan'; }
+        else if (order.status === 'cancelled') { sc = 'danger'; st = 'Bekor qilingan'; }
+        var dc = order.debt > 0 ? 'text-danger fw-bold' : 'text-success';
+        ordersRowsHTML += '<tr><td class="ps-3"><a href="/admin/orders/' + order._id + '">#' + order.orderNumber + '</a></td>' +
+            '<td>' + fmt(order.totalSum) + '</td><td>' + fmt(order.paidSum) + '</td>' +
+            '<td class="' + dc + '">' + fmt(order.debt) + '</td>' +
+            '<td><span class="badge bg-' + sc + '">' + st + '</span></td>' +
+            '<td>' + moment(order.createdAt).utcOffset(5).format('DD/MM/YYYY') + '</td></tr>';
+    }
+} else {
+    ordersRowsHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">Buyurtmalar yoq</td></tr>';
+}
+
+var paymentsRowsHTML = '';
+if (hasPayments) {
+    for (var pi = 0; pi < payments.length; pi++) {
+        var pay = payments[pi];
+        var sellerName = pay.seller ? ((pay.seller.firstName || '') + ' ' + (pay.seller.lastName || '')) : (pay.adminName || 'System');
+        paymentsRowsHTML += '<tr><td class="ps-3">' + moment(pay.createdAt).utcOffset(5).format('DD/MM/YYYY HH:mm') + '</td>' +
+            '<td class="text-success fw-bold">' + fmt(pay.amount) + '</td><td>' + sellerName + '</td>' +
+            '<td>' + (pay.notes || '-') + '</td>' +
+            '<td class="text-end pe-3"><form action="/admin/users/' + user._id + '/payments/' + pay._id + '/delete" method="POST" style="display:inline">' +
+            '<button type="submit" class="btn btn-sm btn-outline-danger border-0" onclick="return confirm(this.dataset.msg)" data-msg="Ochirasizmi?"><i class="fas fa-trash"></i></button></form></td></tr>';
+    }
+} else {
+    paymentsRowsHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">Tolovlar tarixi bosh</td></tr>';
+}
+
+var productsRowsHTML = '';
+if (hasProducts) {
+    for (var pp = 0; pp < productsStats.products.length; pp++) {
+        var p = productsStats.products[pp];
+        var skc = p.stock <= 5 ? 'text-danger' : p.stock <= 10 ? 'text-warning' : 'text-success';
+        productsRowsHTML += '<tr><td>' + p.name + '</td>' +
+            '<td><span class="badge bg-secondary opacity-75">' + p.category + '</span></td>' +
+            '<td class="' + skc + ' fw-bold">' + p.stock + '</td>' +
+            '<td>' + fmt(p.costPrice) + '</td><td>' + fmt(p.sellPrice) + '</td>' +
+            '<td class="text-info fw-bold">' + fmt(p.profit) + '</td></tr>';
+    }
+}
+
+var orderOptionsHTML = '';
+if (hasOrders) {
+    for (var oi = 0; oi < user.orders.length; oi++) {
+        var o = user.orders[oi];
+        if (o.debt > 0) {
+            orderOptionsHTML += '<option value="' + o._id + '">#' + o.orderNumber + ' - Qarz: ' + fmt(o.debt) + '</option>';
+        }
+    }
+}
+
+// Build the page body
+var body = '<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">' +
+    '<h1 class="h2"><i class="fas fa-user me-2"></i>' + userName + '</h1>' +
+    '<div class="btn-toolbar mb-2 mb-md-0"><div class="btn-group me-2">' +
+    (hasProducts ? '<a href="/admin/users/' + user._id + '/export-products" class="btn btn-sm btn-success"><i class="fas fa-file-excel me-1"></i>Mahsulotlar</a>' : '') +
+    (hasOrders ? '<a href="/admin/users/' + user._id + '/export-orders" class="btn btn-sm btn-primary ms-1"><i class="fas fa-file-excel me-1"></i>Buyurtmalar</a>' : '') +
+    (hasDebt ? '<a href="/admin/users/' + user._id + '/export" class="btn btn-sm btn-warning ms-1"><i class="fas fa-file-excel me-1"></i>Qarzdorlik</a>' : '') +
+    '</div><a href="/admin/users" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Orqaga</a></div></div>' +
+
+    '<div class="row"><div class="col-lg-4">' +
+
+    '<div class="card mb-3 shadow-sm border-0">' +
+    '<div class="card-header bg-white border-bottom-0 pb-0"><h5 class="mb-0 fw-bold">Foydalanuvchi</h5></div>' +
+    '<div class="card-body">' +
+    '<div class="mb-2"><strong>Ism:</strong> ' + userName + '</div>' +
+    '<div class="mb-2"><strong>Username:</strong> <span class="text-primary">' + userUsername + '</span></div>' +
+    '<div class="mb-2"><strong>Telegram ID:</strong> <code>' + (user.telegramId || '-') + '</code></div>' +
+    '<div class="mb-2"><strong>Telefon:</strong> ' + userPhone + '</div>' +
+    '<div class="mb-2"><strong>Qayd:</strong> ' + userCreatedAt + '</div><hr>' +
+    '<div class="mb-2"><strong>Buyurtmalar:</strong> ' + (user.orderCount || 0) + ' ta</div>' +
+    '<div class="mb-2"><strong>Umumiy summa:</strong> ' + fmt(user.totalSpent) + '</div>' +
+    '<div class="mb-2"><strong>Tulandi:</strong> <span class="text-success">' + fmt(stats.totalPaid) + '</span></div>' +
+    '<div class="mb-2"><strong>Qarzdorlik:</strong> <span class="' + (hasDebt ? 'text-danger fw-bold' : 'text-success') + '">' + fmt(stats.totalDebt) + '</span></div><hr>' +
+    '<div class="mb-2"><strong>Status:</strong> <span class="badge bg-' + (user.isActive ? 'success' : 'danger') + '">' + (user.isActive ? 'Aktiv' : 'Nofaol') + '</span></div>' +
+    '<div class="mb-2"><strong>Sotib olish:</strong> <span class="badge bg-' + (!user.isBlocked ? 'success' : 'warning') + '">' + (!user.isBlocked ? 'Ruxsat berilgan' : 'Bloklangan') + '</span></div>' +
+    '<div class="mb-2"><strong>Rol:</strong> <span class="badge bg-' + (user.role === 'admin' ? 'danger' : user.role === 'seller' ? 'warning' : 'info') + '">' + (user.role === 'admin' ? 'Admin' : user.role === 'seller' ? 'Sotuvchi' : 'Klient') + '</span></div>' +
+    '</div></div>' +
+
+    '<div class="card mb-3 shadow-sm border-0">' +
+    '<div class="card-header bg-white border-bottom-0 pb-0"><h5 class="mb-0 fw-bold text-center">Boshqaruv</h5></div>' +
+    '<div class="card-body">' +
+    '<form method="POST" action="/admin/users/' + user._id + '/toggle-block" class="mb-2">' +
+    '<button type="submit" class="btn btn-' + (user.isBlocked ? 'success' : 'outline-warning') + ' btn-sm w-100 py-2">' +
+    '<i class="fas fa-' + (user.isBlocked ? 'check-circle' : 'lock') + ' me-2"></i>' +
+    (user.isBlocked ? 'Sotib olishga ruxsat berish' : 'Sotib olishni cheklash') + '</button></form>' +
+    '<form method="POST" action="/admin/users/' + user._id + '/toggle-status" class="mb-2">' +
+    '<button type="submit" class="btn btn-' + (user.isActive ? 'outline-danger' : 'success') + ' btn-sm w-100 py-2">' +
+    '<i class="fas fa-' + (user.isActive ? 'user-slash' : 'user-check') + ' me-2"></i>' +
+    (user.isActive ? 'Profilni nofaol qilish' : 'Profilni faollashtirish') + '</button></form>' +
+    '<button type="button" class="btn btn-primary btn-sm w-100 py-2 shadow-sm mb-2" data-bs-toggle="modal" data-bs-target="#paymentModal" ' + ((!hasDebt && !hasOrders) ? 'disabled' : '') + '>' +
+    '<i class="fas fa-plus-circle me-2"></i>Tolov qoshish</button>' +
+    (user.role !== 'admin' ? '<form method="POST" action="/admin/users/' + user._id + '/delete" onsubmit="return confirm(this.dataset.msg)" data-msg="Bu foydalanuvchini butunlay ochirasizmi?">' +
+    '<button type="submit" class="btn btn-danger btn-sm w-100 py-2"><i class="fas fa-trash-alt me-2"></i>Foydalanuvchini ochirish</button></form>' : '') +
+    '</div></div>' +
+
+    '<div class="card mb-3 shadow-sm border-0">' +
+    '<div class="card-header bg-white border-bottom-0 pb-0"><h5 class="mb-0 fw-bold">Eslatmalar</h5></div>' +
+    '<div class="card-body">' +
+    '<form method="POST" action="/admin/users/' + user._id + '/notes">' +
+    '<div class="mb-2"><textarea class="form-control" name="notes" rows="3" placeholder="Izoh...">' + (user.notes || '') + '</textarea></div>' +
+    '<button type="submit" class="btn btn-outline-primary btn-sm w-100 shadow-sm">Saqlash</button>' +
+    '</form></div></div></div>' +
+
+    '<div class="col-lg-8">' +
+
+    '<div class="card mb-4 shadow-sm border-0">' +
+    '<div class="card-header bg-white border-bottom-0"><h5 class="mb-0 fw-bold text-success"><i class="fas fa-history me-2"></i>Tolovlar tarixi</h5></div>' +
+    '<div class="card-body p-0"><div class="table-responsive">' +
+    '<table class="table table-hover align-middle mb-0"><thead class="table-light"><tr>' +
+    '<th class="ps-3">Sana</th><th>Summa</th><th>Masul</th><th>Izoh</th><th class="text-end pe-3">Amallar</th>' +
+    '</tr></thead><tbody>' + paymentsRowsHTML + '</tbody></table></div></div></div>' +
+
+    '<div class="card mb-4 shadow-sm border-0">' +
+    '<div class="card-header bg-white border-bottom-0"><h5 class="mb-0 fw-bold text-primary"><i class="fas fa-shopping-bag me-2"></i>Buyurtmalar tarixi</h5></div>' +
+    '<div class="card-body p-0"><div class="table-responsive">' +
+    '<table class="table table-hover align-middle mb-0"><thead class="table-light"><tr>' +
+    '<th class="ps-3">No</th><th>Summa</th><th>Tulangan</th><th>Qarz</th><th>Holat</th><th>Sana</th>' +
+    '</tr></thead><tbody>' + ordersRowsHTML + '</tbody></table></div></div></div>';
+
+if (hasProducts) {
+    body += '<div class="card mb-4 shadow-sm border-0">' +
+        '<div class="card-header bg-white border-bottom-0 d-flex justify-content-between align-items-center">' +
+        '<h5 class="mb-0 fw-bold text-info"><i class="fas fa-boxes me-2"></i>Mahsulotlar hisoboti</h5>' +
+        '<span class="badge bg-light text-info border">' + productsStats.totalProducts + ' mahsulot</span></div>' +
+        '<div class="card-body">' +
+        '<div class="row g-2 mb-3">' +
+        '<div class="col-md-3"><div class="p-3 bg-light rounded text-center"><div class="small text-muted">Jami dona</div><div class="h5 mb-0 fw-bold">' + fmt(productsStats.totalStock) + '</div></div></div>' +
+        '<div class="col-md-3"><div class="p-3 bg-light rounded text-center"><div class="small text-muted">Tannarxi</div><div class="h5 mb-0 fw-bold text-danger">' + fmt(productsStats.totalCostValue) + '</div></div></div>' +
+        '<div class="col-md-3"><div class="p-3 bg-light rounded text-center"><div class="small text-muted">Sotish</div><div class="h5 mb-0 fw-bold text-success">' + fmt(productsStats.totalSellValue) + '</div></div></div>' +
+        '<div class="col-md-3"><div class="p-3 bg-light rounded text-center"><div class="small text-muted">Foyda</div><div class="h5 mb-0 fw-bold text-info">' + fmt(profitValue) + '</div></div></div></div>' +
+        '<div class="table-responsive" style="max-height:400px;border-radius:10px">' +
+        '<table class="table table-sm table-hover align-middle mb-0"><thead class="table-light sticky-top"><tr>' +
+        '<th>Nomi</th><th>Kategoriya</th><th>Soni</th><th>Tannarx</th><th>Sotish</th><th>Poyda</th>' +
+        '</tr></thead><tbody>' + productsRowsHTML + '</tbody>' +
+        '<tfoot class="table-light fw-bold"><tr><td colspan="2">JAMI:</td><td>' + fmt(productsStats.totalStock) + '</td><td colspan="2">-</td><td class="text-info">' + fmt(profitValue) + '</td></tr></tfoot>' +
+        '</table></div></div></div>';
+}
+
+body += '</div></div>' +
+    '<div class="modal fade" id="paymentModal" tabindex="-1">' +
+    '<div class="modal-dialog modal-dialog-centered"><div class="modal-content border-0 shadow">' +
+    '<div class="modal-header bg-primary text-white border-bottom-0 rounded-top">' +
+    '<h5 class="modal-title fw-bold">Tolov qoshish</h5>' +
+    '<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>' +
+    '<form method="POST" action="/admin/users/' + user._id + '/payment">' +
+    '<div class="modal-body p-4">' +
+    '<div class="mb-3"><label class="form-label fw-bold small">Tolov miqdori</label>' +
+    '<input type="number" class="form-control form-control-lg bg-light border-0 shadow-sm" name="amount" required min="100" step="100" placeholder="0"></div>' +
+    '<div class="mb-3"><label class="form-label fw-bold small text-muted">Izoh (ixtiyoriy)</label>' +
+    '<input type="text" class="form-control bg-light border-0 shadow-sm" name="notes" placeholder="Tolov haqida malumot"></div>' +
+    (hasOrders ? '<div class="mb-3"><label class="form-label fw-bold small text-muted">Buyurtmani yopish (ixtiyoriy)</label>' +
+    '<select class="form-select bg-light border-0 shadow-sm" name="orderId"><option value="">Umumiy hisobga</option>' + orderOptionsHTML + '</select></div>' : '') +
+    '</div><div class="modal-footer border-top-0 px-4 pb-4">' +
+    '<button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Bekor qilish</button>' +
+    '<button type="submit" class="btn btn-primary px-4 shadow">Saqlash</button>' +
+    '</div></form></div></div></div>';
+-%>
+<%- include(layout, { body: body, title: title }) %>

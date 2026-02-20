@@ -202,6 +202,22 @@ settingsSchema.statics.initDefaults = async function () {
       type: "datetime",
       isEditable: true,
     },
+    {
+      key: "notification_group_id",
+      label: "Admin guruhi ID (Telegram)",
+      value: process.env.NOTIFICATION_GROUP_ID || "",
+      defaultValue: "",
+      description: "Adminlar uchun guruh ID (masalan: -100...) ",
+      type: "text",
+    },
+    {
+      key: "seller_group_id",
+      label: "Sotuvchilar guruhi ID (Telegram)",
+      value: process.env.SELLER_GROUP_ID || "",
+      defaultValue: "",
+      description: "Sotuvchilar uchun guruh ID (masalan: -100...) ",
+      type: "text",
+    },
   ];
 
   for (const setting of defaults) {

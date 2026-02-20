@@ -7,7 +7,32 @@ const { User, Order, Settings } = require("../server/models");
 class NotificationService {
   constructor() {
     this.bot = new Telegraf(process.env.BOT_TOKEN);
-    this.groupId = process.env.NOTIFICATION_GROUP_ID;
+  }
+
+  /**
+   * Get Group ID from Settings or Env
+   */
+  async getGroupId() {
+    try {
+      const { Settings } = require("../server/models");
+      const setting = await Settings.get("notification_group_id");
+      return setting || process.env.NOTIFICATION_GROUP_ID;
+    } catch (e) {
+      return process.env.NOTIFICATION_GROUP_ID;
+    }
+  }
+
+  /**
+   * Get Seller Group ID from Settings or Env
+   */
+  async getSellerGroupId() {
+    try {
+      const { Settings } = require("../server/models");
+      const setting = await Settings.get("seller_group_id");
+      return setting || process.env.SELLER_GROUP_ID;
+    } catch (e) {
+      return process.env.SELLER_GROUP_ID;
+    }
   }
 
   /**
@@ -19,16 +44,17 @@ class NotificationService {
   }
 
   /**
-   * Send notification to Telegram group
+   * Send notification to Telegram group (Default: Admin Group)
    */
   async sendToGroup(message, options = {}) {
     try {
-      if (!this.groupId) {
+      const groupId = await this.getGroupId();
+      if (!groupId) {
         console.warn("⚠️ NOTIFICATION_GROUP_ID not configured");
         return { success: false, error: "Group ID not configured" };
       }
 
-      await this.bot.telegram.sendMessage(this.groupId, message, {
+      await this.bot.telegram.sendMessage(groupId, message, {
         parse_mode: "Markdown",
         disable_web_page_preview: true,
         ...options,
@@ -38,6 +64,36 @@ class NotificationService {
       return { success: true };
     } catch (error) {
       console.error(`❌ Failed to send group notification:`, error.message);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Send notification to Seller Group
+   */
+  async sendToSellerGroup(message, options = {}) {
+    try {
+      const sellerGroupId = await this.getSellerGroupId();
+      if (!sellerGroupId) {
+        console.warn(
+          "⚠️ SELLER_GROUP_ID not configured, falling back to Admin Group"
+        );
+        return this.sendToGroup(message, options);
+      }
+
+      await this.bot.telegram.sendMessage(sellerGroupId, message, {
+        parse_mode: "Markdown",
+        disable_web_page_preview: true,
+        ...options,
+      });
+
+      console.log(`✅ Seller Group notification sent`);
+      return { success: true };
+    } catch (error) {
+      console.error(
+        `❌ Failed to send seller group notification:`,
+        error.message
+      );
       return { success: false, error: error.message };
     }
   }
@@ -189,18 +245,11 @@ class NotificationService {
   }
 
   /**
-   * Notify sellers about new order (send to group)
+   * Notify sellers about new order (send to Seller Group)
    */
   async notifyNewOrder(order) {
     try {
       console.log(`📤 Starting notifyNewOrder for order ${order._id}...`);
-
-      if (!this.groupId) {
-        console.error("❌ NOTIFICATION_GROUP_ID is not set!");
-        return { success: false, error: "Group ID not configured" };
-      }
-
-      console.log(`📍 Group ID: ${this.groupId}`);
 
       // Populate order data
       const populatedOrder = await Order.findById(order._id)
@@ -255,13 +304,22 @@ ${orderUrl}`;
 
       console.log(`📝 Message prepared, length: ${message.length} chars`);
 
-      // Send to group using HTML format
-      const result = await this.sendToGroup(message, {
-        parse_mode: "HTML",
-      });
+      // Send to Admin Group
+      await this.sendToGroup(message, { parse_mode: "HTML" });
 
-      console.log(`✅ Notification sent, result:`, result);
-      return result;
+      // Send to Seller Group (if configured and different)
+      let sellerResult = { success: true };
+      const groupId = await this.getGroupId();
+      const sellerGroupId = await this.getSellerGroupId();
+
+      if (sellerGroupId && sellerGroupId !== groupId) {
+        sellerResult = await this.sendToSellerGroup(message, {
+          parse_mode: "HTML",
+        });
+      }
+
+      console.log(`✅ Notification sent to both groups`);
+      return sellerResult;
     } catch (error) {
       console.error("❌ New order notification error:", error.message);
       console.error("❌ Full error:", error);

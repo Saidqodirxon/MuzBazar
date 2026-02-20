@@ -62,6 +62,8 @@ router.post("/users/:id/notify", adminController.sendUserNotification);
 router.post("/users/:id/role", adminController.updateUserRole);
 router.post("/users/:id/toggle-status", adminController.toggleUserStatus);
 router.post("/users/:id/toggle-block", adminController.toggleUserBlock);
+router.post("/users/:id/delete", adminController.deleteUser);
+router.post("/users/:id/notes", adminController.updateUserNotes);
 router.post("/users/:id/payment", adminController.addUserPayment);
 router.post(
   "/users/:id/payments/:paymentId/delete",

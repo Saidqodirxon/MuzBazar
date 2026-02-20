@@ -1,146 +1,109 @@
 <%
-const layout = '../layouts/layout.ejs';
-
-let usersHtml = '';
-if (users.length === 0) {
-    usersHtml = `
-    <div class="text-center py-5">
-        <i class="fas fa-users fa-5x text-muted mb-3"></i>
-        <h3 class="text-muted">Hali foydalanuvchilar yo'q</h3>
-    </div>`;
-} else {
-    usersHtml = `
-    <div class="card">
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Ism</th>
-                            <th>Telefon</th>
-                            <th>Buyurtmalar</th>
-                            <th>Boshlang'ich qoldiq</th>
-                            <th>To'lov summasi</th>
-                            <th>Umumiy qoldiq</th>
-                            <th>Status</th>
-                            <th>Qayd qilingan</th>
-                            <th>Amallar</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${users.map(user => {
-                            const statusBadge = user.isActive ? 'success' : 'danger';
-                            const statusText = user.isActive ? 'Aktiv' : 'Bloklangan';
-                            const toggleIcon = user.isActive ? 'ban' : 'check';
-                            const toggleTitle = user.isActive ? 'Bloklash' : 'Aktivlashtirish';
-                            const notifyDisabled = user.telegramId ? '' : 'disabled';
-                            
-                            const blockBadge = user.isBlocked ? 'danger' : 'success';
-                            const blockText = user.isBlocked ? '🔒 Blok' : '✅ Ochiq';
-                            const blockToggleIcon = user.isBlocked ? 'unlock' : 'lock';
-                            const blockToggleTitle = user.isBlocked ? 'Ochish' : 'Yopish';
-                            const blockToggleClass = user.isBlocked ? 'success' : 'warning';
-                            
-                            return `
-                        <tr>
-                            <td>
-                                <strong>${user.firstName} ${user.lastName}</strong>
-                                ${user.username ? '<br><small class="text-muted">@' + user.username + '</small>' : ''}
-                            </td>
-                            <td>${user.phone ? '<a href="tel:' + user.phone + '">' + user.phone + '</a>' : '<span class="text-muted">Kiritilmagan</span>'}</td>
-                            <td>${user.orderCount || 0}</td>
-                            <td>${(user.totalSpent || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</td>
-                            <td>${(user.totalPaid || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</td>
-                            <td><span class="${(user.totalDebt || 0) > 0 ? 'text-danger fw-bold' : 'text-success'}">${(user.totalDebt || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</span></td>
-                            <td>
-                                <span class="badge bg-${statusBadge}">${statusText}</span>
-                                ${user.isBlocked ? '<br><span class="badge bg-' + blockBadge + ' mt-1">' + blockText + '</span>' : ''}
-                            </td>
-                            <td>${moment(user.createdAt).utcOffset(5).format('DD/MM/YYYY')}</td>
-                            <td>
-                                <div class="btn-group" role="group">
-                                    <a href="/admin/users/${user._id}" class="btn btn-sm btn-outline-primary" title="Ko'rish">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    ${user.isBlocked ? `
-                                    <form method="POST" action="/admin/users/${user._id}/toggle-block" style="display: inline;" 
-                                          onsubmit="event.stopPropagation(); if(!confirm('Foydalanuvchini ochmoqchimisiz?')) return false;">
-                                        <button type="submit" class="btn btn-sm btn-outline-${blockToggleClass}" 
-                                                title="${blockToggleTitle}" onclick="event.stopPropagation();">
-                                            <i class="fas fa-${blockToggleIcon}"></i>
-                                        </button>
-                                    </form>
-                                    ` : ''}
-                                    <form method="POST" action="/admin/users/${user._id}/toggle-status" style="display: inline;" 
-                                          onsubmit="event.stopPropagation(); if(!confirm('Statusni ozgartirmoqchimisiz?')) return false;">
-                                        <button type="submit" class="btn btn-sm btn-outline-${user.isActive ? 'warning' : 'success'}" 
-                                                title="${toggleTitle}" onclick="event.stopPropagation();">
-                                            <i class="fas fa-${toggleIcon}"></i>
-                                        </button>
-                                    </form>
-                                    <button type="button" class="btn btn-sm btn-outline-info" title="Xabar yuborish" 
-                                            ${notifyDisabled} data-bs-toggle="modal" data-bs-target="#notifyModal${user._id}"
-                                            onclick="event.stopPropagation();">
-                                        <i class="fas fa-bell"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        `;
-                        }).join('')}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Notification Modals -->
-    ${users.map(user => `
-    <div class="modal fade" id="notifyModal${user._id}" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Xabar yuborish: ${user.firstName} ${user.lastName}</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form method="POST" action="/admin/users/${user._id}/notify">
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label for="message${user._id}" class="form-label">Xabar matni:</label>
-                            <textarea class="form-control" id="message${user._id}" name="message" rows="4" required>Hurmatli ${user.firstName}!</textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor qilish</button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-paper-plane me-1"></i>Yuborish
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-    `).join('')}`;
+var layout = '../layouts/layout.ejs';
+function fmt(n) {
+    var s = String(n || 0);
+    var parts = [];
+    var len = s.length;
+    for (var i = len; i > 0; i -= 3) {
+        var start = Math.max(0, i - 3);
+        parts.unshift(s.substring(start, i));
+    }
+    return parts.join(' ');
 }
 
-const body = `
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
-    <h1 class="h2">
-        <i class="fas fa-users me-2"></i>Foydalanuvchilar
-    </h1>
-</div>
+var usersHtml = '';
+if (users.length === 0) {
+    usersHtml = '<div class="text-center py-5"><i class="fas fa-users fa-5x text-muted mb-3"></i><h3 class="text-muted">Hali foydalanuvchilar yo\'q</h3></div>';
+} else {
+    usersHtml = '<div class="card"><div class="card-body"><div class="table-responsive">' +
+        '<table class="table table-hover"><thead class="table-light"><tr>' +
+        '<th>Ism</th><th>Telefon</th><th>Buyurtmalar</th>' +
+        '<th>Summa</th><th>Tulangan</th><th>Qoldiq</th>' +
+        '<th>Status</th><th>Sana</th><th>Amallar</th>' +
+        '</tr></thead><tbody>';
 
-<div class="row mb-3">
-    <div class="col-md-6">
-        <form action="/admin/users" method="GET" class="d-flex">
-            <input type="text" name="search" class="form-control me-2" placeholder="Qidiruv..." value="${typeof search !== 'undefined' ? search : ''}">
-            <button class="btn btn-outline-secondary" type="submit">Qidirish</button>
-            ${typeof search !== 'undefined' && search ? '<a href="/admin/users" class="btn btn-outline-danger ms-2"><i class="fas fa-times"></i></a>' : ''}
-        </form>
-    </div>
-</div>
+    for (var i = 0; i < users.length; i++) {
+        var u = users[i];
+        var statusBadge = u.isActive ? 'success' : 'danger';
+        var statusText = u.isActive ? 'Aktiv' : 'Bloklangan';
+        var toggleIcon = u.isActive ? 'ban' : 'check';
+        var toggleTitle = u.isActive ? 'Bloklash' : 'Aktivlashtirish';
+        var notifyDisabled = u.telegramId ? '' : 'disabled';
+        var blockToggleIcon = u.isBlocked ? 'unlock' : 'lock';
+        var blockToggleClass = u.isBlocked ? 'success' : 'warning';
 
-${usersHtml}
-`;
+        var nameCell = '<strong>' + (u.firstName || '') + ' ' + (u.lastName || '') + '</strong>';
+        if (u.username) nameCell += '<br><small class="text-muted">@' + u.username + '</small>';
+
+        var phoneCell = u.phone ? '<a href="tel:' + u.phone + '">' + u.phone + '</a>' : '<span class="text-muted">-</span>';
+
+        var statusCell = '<span class="badge bg-' + statusBadge + '">' + statusText + '</span>';
+        if (u.isBlocked) statusCell += '<br><span class="badge bg-danger mt-1">Blok</span>';
+
+        var debtClass = (u.totalDebt || 0) > 0 ? 'text-danger fw-bold' : 'text-success';
+
+        var actionsCell = '<div class="btn-group" role="group">' +
+            '<a href="/admin/users/' + u._id + '" class="btn btn-sm btn-outline-primary" title="Korish"><i class="fas fa-eye"></i></a>';
+
+        if (u.isBlocked) {
+            actionsCell += '<form method="POST" action="/admin/users/' + u._id + '/toggle-block" style="display:inline">' +
+                '<button type="submit" class="btn btn-sm btn-outline-' + blockToggleClass + '"><i class="fas fa-' + blockToggleIcon + '"></i></button></form>';
+        }
+
+        actionsCell += '<form method="POST" action="/admin/users/' + u._id + '/toggle-status" style="display:inline">' +
+            '<button type="submit" class="btn btn-sm btn-outline-' + (u.isActive ? 'warning' : 'success') + '"><i class="fas fa-' + toggleIcon + '"></i></button></form>';
+
+        actionsCell += '<button type="button" class="btn btn-sm btn-outline-info" ' +
+            notifyDisabled + ' data-bs-toggle="modal" data-bs-target="#notifyModal' + u._id + '"><i class="fas fa-bell"></i></button>';
+
+        if (u.role !== 'admin') {
+            actionsCell += '<form method="POST" action="/admin/users/' + u._id + '/delete" style="display:inline" onsubmit="return confirm(this.dataset.msg)" data-msg="Ochirishni tasdiqlaysizmi?">' +
+                '<button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button></form>';
+        }
+
+        actionsCell += '</div>';
+
+        usersHtml += '<tr>' +
+            '<td>' + nameCell + '</td>' +
+            '<td>' + phoneCell + '</td>' +
+            '<td>' + (u.orderCount || 0) + '</td>' +
+            '<td>' + fmt(u.totalSpent) + '</td>' +
+            '<td>' + fmt(u.totalPaid) + '</td>' +
+            '<td><span class="' + debtClass + '">' + fmt(u.totalDebt) + '</span></td>' +
+            '<td>' + statusCell + '</td>' +
+            '<td>' + moment(u.createdAt).utcOffset(5).format('DD/MM/YYYY') + '</td>' +
+            '<td>' + actionsCell + '</td></tr>';
+    }
+
+    usersHtml += '</tbody></table></div></div></div>';
+
+    // Notification modals
+    for (var j = 0; j < users.length; j++) {
+        var mu = users[j];
+        usersHtml += '<div class="modal fade" id="notifyModal' + mu._id + '" tabindex="-1">' +
+            '<div class="modal-dialog"><div class="modal-content">' +
+            '<div class="modal-header"><h5 class="modal-title">Xabar yuborish: ' + (mu.firstName || '') + '</h5>' +
+            '<button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>' +
+            '<form method="POST" action="/admin/users/' + mu._id + '/notify">' +
+            '<div class="modal-body"><div class="mb-3">' +
+            '<label class="form-label">Xabar matni:</label>' +
+            '<textarea class="form-control" name="message" rows="4" required>Hurmatli ' + (mu.firstName || '') + '!</textarea>' +
+            '</div></div>' +
+            '<div class="modal-footer">' +
+            '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor qilish</button>' +
+            '<button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane me-1"></i>Yuborish</button>' +
+            '</div></form></div></div></div>';
+    }
+}
+
+var searchVal = typeof search !== 'undefined' ? search : '';
+var body = '<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">' +
+    '<h1 class="h2"><i class="fas fa-users me-2"></i>Foydalanuvchilar</h1></div>' +
+    '<div class="row mb-3"><div class="col-md-6">' +
+    '<form action="/admin/users" method="GET" class="d-flex">' +
+    '<input type="text" name="search" class="form-control me-2" placeholder="Qidiruv..." value="' + searchVal + '">' +
+    '<button class="btn btn-outline-secondary" type="submit">Qidirish</button>' +
+    (searchVal ? '<a href="/admin/users" class="btn btn-outline-danger ms-2"><i class="fas fa-times"></i></a>' : '') +
+    '</form></div></div>' + usersHtml;
 -%>
-<%- include(layout, { body, title }) %>
+<%- include(layout, { body: body, title: title }) %>
