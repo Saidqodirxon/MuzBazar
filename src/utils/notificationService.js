@@ -253,7 +253,7 @@ class NotificationService {
 
       // Populate order data
       const populatedOrder = await Order.findById(order._id)
-        .populate("client", "firstName lastName username telegramId")
+        .populate("client", "firstName lastName username telegramId phone")
         .populate("items.product", "name");
 
       console.log(
@@ -268,6 +268,7 @@ class NotificationService {
       const telegramInfo = client.username
         ? `@${client.username}`
         : client.telegramId;
+      const clientPhone = client.phone || "Kiritilmagan";
       const totalSum = (populatedOrder.totalSum || 0)
         .toString()
         .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
@@ -291,6 +292,7 @@ class NotificationService {
 
 🆔 Buyurtma: <b>${populatedOrder.orderNumber}</b>
 👤 Klient: ${clientName}
+📞 Tel: <code>${clientPhone}</code>
 📱 Telegram: ${telegramInfo}
 
 📦 <b>Mahsulotlar:</b>
@@ -309,7 +311,18 @@ ${orderUrl}`;
         parse_mode: "HTML",
       });
 
-      console.log(`✅ Order notification sent to Seller Group`);
+      // Also send to Admin Group (Notification Group) if it's different
+      const sellerGroupId = await this.getSellerGroupId();
+      const adminGroupId = await this.getGroupId();
+
+      if (adminGroupId && adminGroupId !== sellerGroupId) {
+        await this.sendToGroup(message, {
+          parse_mode: "HTML",
+        });
+        console.log(`✅ Order notification also sent to Admin Group`);
+      }
+
+      console.log(`✅ Order notification process completed`);
       return sellerResult;
     } catch (error) {
       console.error("❌ New order notification error:", error.message);

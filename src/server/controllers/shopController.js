@@ -1,4 +1,5 @@
 const { User, Category, Product, Order } = require("../models");
+const NotificationService = require("../../utils/notificationService");
 
 const shopController = {
   // Login page
@@ -295,37 +296,8 @@ const shopController = {
       // Notification in background
       setImmediate(async () => {
         try {
-          const bot = require("../../bot");
-          if (process.env.NOTIFICATION_GROUP_ID) {
-            const clientName = (
-              req.user.firstName +
-              (req.user.lastName ? " " + req.user.lastName : "")
-            )
-              .replace(/</g, "&lt;")
-              .replace(/>/g, "&gt;");
-            const clientPhone = req.user.phone || "Kiritilmagan";
-
-            let message = `🆕 <b>Yangi buyurtma!</b>\n\n`;
-            message += `🆔 ID: <code>${order._id}</code>\n`;
-            message += `👤 Mijoz: <b>${clientName}</b>\n`;
-            message += `📞 Tel: <code>${clientPhone}</code>\n\n`;
-            message += `🛒 <b>Mahsulotlar:</b>\n`;
-            message += itemDetails
-              .map((d) => d.replace(/</g, "&lt;").replace(/>/g, "&gt;"))
-              .join("\n");
-            message += `\n\n💰 <b>Jami: ${totalSum.toLocaleString()} so'm</b>\n`;
-            message += `\n📍 <a href="${process.env.SITE_URL}/admin/orders/${order._id}">Admin panelda ko'rish</a>`;
-
-            const sendTask = bot.telegram.sendMessage(
-              process.env.NOTIFICATION_GROUP_ID,
-              message,
-              { parse_mode: "HTML" }
-            );
-            const timeoutTask = new Promise((_, r) =>
-              setTimeout(() => r(new Error("Timeout")), 5000)
-            );
-            await Promise.race([sendTask, timeoutTask]);
-          }
+          const notificationService = new NotificationService();
+          await notificationService.notifyNewOrder(order);
         } catch (err) {
           console.error("⚠️ Background notification warning:", err.message);
         }
