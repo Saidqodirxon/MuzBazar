@@ -300,11 +300,11 @@
                     <%= formatNumber(order.paidSum) %> so'm
                 </span>
             </div>
-            <% if (order.client && order.client.totalDebt> 0) { %>
+            <% if (typeof clientTotalDebt !=='undefined' && clientTotalDebt> 0) { %>
                 <div class="total-row debt">
                     <span>Qarz (Umumiy):</span>
                     <span class="amount">
-                        <%= formatNumber(order.client.totalDebt) %> so'm
+                        <%= formatNumber(clientTotalDebt) %> so'm
                     </span>
                 </div>
                 <% } else { %>

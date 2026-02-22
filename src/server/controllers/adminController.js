@@ -742,13 +742,20 @@ const adminController = {
       }
 
       // Get shop settings
-      const { Settings } = require("../models");
+      const { Settings, User } = require("../models");
       const shopName = await Settings.get("shop_name", "MUZ BAZAR");
       const shopPhone = await Settings.get("shop_phone", "+998 90 123 45 67");
       const shopAddress = await Settings.get("shop_address", "Toshkent shahar");
 
+      let clientTotalDebt = 0;
+      if (order.client) {
+        clientTotalDebt = await User.updateUserTotalDebt(order.client._id);
+        order.client.totalDebt = clientTotalDebt; // just to be double sure
+      }
+
       res.render("admin/order-check", {
         order,
+        clientTotalDebt,
         shopName,
         shopPhone,
         shopAddress,
