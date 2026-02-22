@@ -131,9 +131,11 @@
         .total-row {
             display: flex;
             justify-content: space-between;
+            align-items: center;
             margin: 4px 0;
-            font-size: 15px;
+            font-size: 14px;
             font-weight: bold;
+            white-space: nowrap;
         }
 
         .total-row .amount {
@@ -142,23 +144,23 @@
         }
 
         .total-row.main {
-            font-size: 17px;
+            font-size: 16px;
             font-weight: bold;
             margin: 6px 0;
         }
 
         .total-row.main .amount {
-            font-size: 18px;
+            font-size: 17px;
         }
 
         .total-row.debt {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
             color: #000;
         }
 
         .total-row.debt .amount {
-            font-size: 16px;
+            font-size: 15px;
         }
 
         .client-section {
@@ -289,7 +291,7 @@
         <!-- Totals -->
         <div class="totals section">
             <div class="total-row main">
-                <span>Shu buyurtma narxi:</span>
+                <span>Buyurtma narxi:</span>
                 <span class="amount">
                     <%= formatNumber(order.totalSum) %> so'm
                 </span>
@@ -302,14 +304,14 @@
             </div>
             <% if (typeof clientTotalDebt !=='undefined' && clientTotalDebt> 0) { %>
                 <div class="total-row debt">
-                    <span>Jami eski qoldiq:</span>
+                    <span>Umumiy qarzdorlik:</span>
                     <span class="amount">
                         <%= formatNumber(clientTotalDebt) %> so'm
                     </span>
                 </div>
                 <% } else { %>
                     <div class="total-row">
-                        <span>Jami eski qoldiq:</span>
+                        <span>Umumiy qarzdorlik:</span>
                         <span class="amount">0 so'm</span>
                     </div>
                     <% } %>
