@@ -289,7 +289,7 @@
         <!-- Totals -->
         <div class="totals section">
             <div class="total-row main">
-                <span>JAMI:</span>
+                <span>Shu buyurtma narxi:</span>
                 <span class="amount">
                     <%= formatNumber(order.totalSum) %> so'm
                 </span>
@@ -302,14 +302,14 @@
             </div>
             <% if (typeof clientTotalDebt !=='undefined' && clientTotalDebt> 0) { %>
                 <div class="total-row debt">
-                    <span>Eski qoldiq:</span>
+                    <span>Jami eski qoldiq:</span>
                     <span class="amount">
                         <%= formatNumber(clientTotalDebt) %> so'm
                     </span>
                 </div>
                 <% } else { %>
                     <div class="total-row">
-                        <span>Eski qoldiq:</span>
+                        <span>Jami eski qoldiq:</span>
                         <span class="amount">0 so'm</span>
                     </div>
                     <% } %>
