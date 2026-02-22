@@ -68,43 +68,45 @@
         }
 
         let searchInput = '';
+        let queryParams = [];
         if (typeof search !== 'undefined' && search) {
-        searchInput = '<input type="hidden" ' +
-                ' name="search" value="' + search + '">';
+        searchInput = '<input type="hidden" name="search" value="' + search + '">';
+        queryParams.push('search=' + encodeURIComponent(search));
         }
 
         let statusInput = '';
         if (typeof currentStatus !== 'undefined' && currentStatus) {
-        statusInput = '<input type="hidden" ' +
-                ' name="status" value="' + currentStatus + '">';
+        statusInput = '<input type="hidden" name="status" value="' + currentStatus + '">';
+        queryParams.push('status=' + encodeURIComponent(currentStatus));
         }
+
+        let baseQuery = queryParams.length > 0 ? queryParams.join('&') + '&' : '';
 
         paginationHtml = `
         <div class="d-flex justify-content-between align-items-center mt-3">
-            <form action="/admin/orders" method="GET"
-                class="d-flex align-items-center mb-0 w-100 justify-content-center">
-                ${searchInput}
-                ${statusInput}
-
-                <button type="submit" name="page" value="${pagination.current > 1 ? pagination.current - 1 : 1}"
-                    class="btn btn-outline-primary" ${!pagination.hasPrev ? 'disabled' : '' }>
+            <div class="d-flex align-items-center w-100 justify-content-center">
+                <a href="/admin/orders?${baseQuery}page=${pagination.current > 1 ? pagination.current - 1 : 1}"
+                    class="btn btn-outline-primary ${!pagination.hasPrev ? 'disabled' : '' }">
                     &laquo; Oldingi
-                </button>
+                </a>
 
-                <div class="input-group mx-3" style="width: auto;">
-                    <span class="input-group-text">Sahifa: </span>
-                    <input type="number" name="page" class="form-control text-center" style="width: 80px;" min="1"
-                        max="${pagination.total}" value="${pagination.current}">
-                    <span class="input-group-text">/ ${pagination.total}</span>
-                    <button type="submit" class="btn btn-primary">O'tish</button>
-                </div>
+                <form action="/admin/orders" method="GET" class="d-flex align-items-center mb-0 mx-3">
+                    ${searchInput}
+                    ${statusInput}
+                    <div class="input-group" style="width: auto;">
+                        <span class="input-group-text">Sahifa: </span>
+                        <input type="number" name="page" class="form-control text-center" style="width: 80px;" min="1"
+                            max="${pagination.total}" value="${pagination.current}">
+                        <span class="input-group-text">/ ${pagination.total}</span>
+                        <button type="submit" class="btn btn-primary">O'tish</button>
+                    </div>
+                </form>
 
-                <button type="submit" name="page"
-                    value="${pagination.current < pagination.total ? pagination.current + 1 : pagination.total}"
-                    class="btn btn-outline-primary" ${!pagination.hasNext ? 'disabled' : '' }>
+                <a href="/admin/orders?${baseQuery}page=${pagination.current < pagination.total ? pagination.current + 1 : pagination.total}"
+                    class="btn btn-outline-primary ${!pagination.hasNext ? 'disabled' : '' }">
                     Keyingi &raquo;
-                </button>
-            </form>
+                </a>
+            </div>
         </div>
         `;
         }
