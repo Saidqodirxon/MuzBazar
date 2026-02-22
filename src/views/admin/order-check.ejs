@@ -1,21 +1,23 @@
 <!DOCTYPE html>
 <html lang="uz">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Check #<%= order.orderNumber %></title>
+    <title>Check #<%= order.orderNumber %>
+    </title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         @page {
             size: 80mm auto;
             margin: 0;
         }
-        
+
         body {
             font-family: 'Courier New', monospace;
             width: 80mm;
@@ -28,27 +30,27 @@
             font-weight: 600;
             color: #000;
         }
-        
+
         .check-container {
             width: 100%;
             max-width: 74mm;
             margin: 0 auto;
         }
-        
+
         .header {
             text-align: center;
             margin-bottom: 10px;
             padding-bottom: 10px;
             border-bottom: 2px dashed #000;
         }
-        
+
         .logo {
             width: 60mm;
             height: auto;
             margin: 0 auto 5px;
             display: block;
         }
-        
+
         .shop-name {
             font-size: 18px;
             font-weight: bold;
@@ -57,20 +59,20 @@
             color: #000;
             text-transform: uppercase;
         }
-        
+
         .shop-slogan {
             font-size: 11px;
             margin: 3px 0;
             font-weight: 600;
             color: #333;
         }
-        
+
         .check-info {
             margin: 8px 0;
             padding: 6px 0;
             border-bottom: 2px dashed #000;
         }
-        
+
         .info-row {
             display: flex;
             justify-content: space-between;
@@ -78,15 +80,15 @@
             font-size: 13px;
             font-weight: bold;
         }
-        
+
         .info-label {
             font-weight: bold;
         }
-        
+
         .items-section {
             margin: 8px 0;
         }
-        
+
         .section-title {
             font-weight: bold;
             margin-bottom: 5px;
@@ -94,38 +96,38 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-        
+
         .item {
             margin: 6px 0;
             padding: 4px 0;
             border-bottom: 1px dotted #666;
         }
-        
+
         .item-name {
             font-weight: bold;
             margin-bottom: 3px;
             font-size: 13px;
         }
-        
+
         .item-details {
             display: flex;
             justify-content: space-between;
             font-size: 13px;
             font-weight: bold;
         }
-        
+
         .item-details .price {
             font-weight: bold;
             font-size: 14px;
         }
-        
+
         .totals-section {
             margin: 10px 0;
             padding: 8px 0;
             border-top: 2px solid #000;
             border-bottom: 2px solid #000;
         }
-        
+
         .total-row {
             display: flex;
             justify-content: space-between;
@@ -133,167 +135,196 @@
             font-size: 15px;
             font-weight: bold;
         }
-        
+
         .total-row .amount {
             font-weight: bold;
             font-size: 15px;
         }
-        
+
         .total-row.main {
             font-size: 17px;
             font-weight: bold;
             margin: 6px 0;
         }
-        
+
         .total-row.main .amount {
             font-size: 18px;
         }
-        
+
         .total-row.debt {
             font-size: 16px;
             font-weight: bold;
             color: #000;
         }
-        
+
         .total-row.debt .amount {
             font-size: 16px;
         }
-        
+
         .client-section {
             margin: 8px 0;
             padding: 6px 0;
             border-bottom: 2px dashed #000;
         }
-        
+
         .footer {
             text-align: center;
             margin-top: 10px;
             font-size: 12px;
             font-weight: 600;
         }
-        
+
         .thank-you {
             font-size: 16px;
             font-weight: bold;
             margin: 8px 0;
             color: #000;
         }
-        
+
         .contact {
             margin: 3px 0;
             font-weight: 600;
         }
-        
+
         .barcode {
             text-align: center;
             margin: 8px 0;
             font-size: 11px;
             font-weight: bold;
         }
-        
+
         @media print {
             body {
                 width: 80mm;
             }
-            
+
             .no-print {
                 display: none;
             }
-            
+
             .check-container {
                 page-break-after: avoid;
             }
         }
     </style>
 </head>
+
 <body>
     <div class="check-container">
         <!-- Header -->
         <div class="header">
             <img src="/logo.png" class="logo" alt="MUZBAZAR">
         </div>
-        
+
         <!-- Check Info -->
         <div class="check-info">
             <div class="info-row">
                 <span class="info-label">Sana:</span>
-                <span><%= moment(order.createdAt).utcOffset(5).format('DD.MM.YYYY') %></span>
+                <span>
+                    <%= moment(order.createdAt).utcOffset(5).format('DD.MM.YYYY') %>
+                </span>
             </div>
             <div class="info-row">
                 <span class="info-label">Vaqt:</span>
-                <span><%= moment(order.createdAt).utcOffset(5).format('HH:mm') %></span>
+                <span>
+                    <%= moment(order.createdAt).utcOffset(5).format('HH:mm') %>
+                </span>
             </div>
             <div class="info-row">
                 <span class="info-label">Check №:</span>
-                <span><%= order.orderNumber %></span>
+                <span>
+                    <%= order.orderNumber %>
+                </span>
             </div>
         </div>
-        
+
         <!-- Client Info -->
         <div class="client-section">
             <div class="section-title">Mijoz ma'lumotlari:</div>
             <div class="info-row">
                 <span class="info-label">Ism:</span>
-                <span><%= (order.client?.firstName || '') + ' ' + (order.client?.lastName || '') %></span>
+                <span>
+                    <%= (order.client?.firstName || '' ) + ' ' + (order.client?.lastName || '' ) %>
+                </span>
             </div>
             <% if (order.client?.phone) { %>
-            <div class="info-row">
-                <span class="info-label">Tel:</span>
-                <span><%= order.client.phone %></span>
-            </div>
-            <% } %>
-            <% if (order.client?.username) { %>
-            <div class="info-row">
-                <span class="info-label">Username:</span>
-                <span>@<%= order.client.username %></span>
-            </div>
-            <% } %>
+                <div class="info-row">
+                    <span class="info-label">Tel:</span>
+                    <span>
+                        <%= order.client.phone %>
+                    </span>
+                </div>
+                <% } %>
+                    <% if (order.client?.username) { %>
+                        <div class="info-row">
+                            <span class="info-label">Username:</span>
+                            <span>@<%= order.client.username %></span>
+                        </div>
+                        <% } %>
         </div>
-        
+
         <!-- Items -->
         <div class="items-section">
             <div class="section-title">Mahsulotlar:</div>
-            <% 
-            const formatNumber = (num) => (num || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-            if (order.items && order.items.length > 0) {
-                order.items.forEach((item, index) => { 
-            %>
-            <div class="item">
-                <div class="item-name"><%= index + 1 %>. <%= item.product?.name || '-' %></div>
-                <div class="item-details">
-                    <span><%= item.quantity %> x <%= formatNumber(item.pricePerUnit) %></span>
-                    <span class="price"><%= formatNumber(item.totalPrice) %> so'm</span>
+            <% const formatNumber=(num)=> (num || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+                if (order.items && order.items.length > 0) {
+                order.items.forEach((item, index) => {
+                %>
+                <div class="item">
+                    <div class="item-name">
+                        <%= index + 1 %>. <%= item.product?.name || '-' %>
+                    </div>
+                    <div class="item-details">
+                        <span>
+                            <%= item.quantity %> x <%= formatNumber(item.pricePerUnit) %>
+                        </span>
+                        <span class="price">
+                            <%= formatNumber(item.totalPrice) %> so'm
+                        </span>
+                    </div>
                 </div>
-            </div>
-            <% 
-                });
-            } 
-            %>
+                <% }); } %>
         </div>
-        
+
         <!-- Totals -->
         <div class="totals section">
             <div class="total-row main">
                 <span>JAMI:</span>
-                <span class="amount"><%= formatNumber(order.totalSum) %> so'm</span>
+                <span class="amount">
+                    <%= formatNumber(order.totalSum) %> so'm
+                </span>
             </div>
             <div class="total-row">
                 <span>To'langan:</span>
-                <span class="amount"><%= formatNumber(order.paidSum) %> so'm</span>
+                <span class="amount">
+                    <%= formatNumber(order.paidSum) %> so'm
+                </span>
             </div>
-            <% if (order.debt > 0) { %>
-            <div class="total-row debt">
-                <span>Qarz:</span>
-                <span class="amount"><%= formatNumber(order.debt) %> so'm</span>
-            </div>
-            <% } else { %>
-            <div class="total-row">
-                <span>Qoldiq:</span>
-                <span class="amount">0 so'm</span>
-            </div>
-            <% } %>
+            <% if (order.debt> 0) { %>
+                <div class="total-row debt">
+                    <span>Qarz:</span>
+                    <span class="amount">
+                        <%= formatNumber(order.debt) %> so'm
+                    </span>
+                </div>
+                <% } else { %>
+                    <div class="total-row">
+                        <span>Qoldiq:</span>
+                        <span class="amount">0 so'm</span>
+                    </div>
+                    <% } %>
+
+                        <% if (order.client && order.client.totalDebt> 0) { %>
+                            <div class="total-row debt"
+                                style="margin-top: 5px; padding-top: 5px; border-top: 1px dashed #000;">
+                                <span>Umumiy qarz:</span>
+                                <span class="amount">
+                                    <%= formatNumber(order.client.totalDebt) %> so'm
+                                </span>
+                            </div>
+                            <% } %>
         </div>
-        
+
         <!-- Footer -->
         <div class="footer">
             <div class="thank-you">Haridingiz uchun RAHMAT!</div>
@@ -310,36 +341,39 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Print Controls (Hidden on print) -->
     <div class="no-print" style="text-align: center; margin-top: 20px; padding: 20px;">
-        <button onclick="window.print()" style="padding: 10px 30px; font-size: 16px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 5px; margin-right: 10px;">
+        <button onclick="window.print()"
+            style="padding: 10px 30px; font-size: 16px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 5px; margin-right: 10px;">
             Chop etish
         </button>
-        <button onclick="window.close()" style="padding: 10px 30px; font-size: 16px; cursor: pointer; background: #6c757d; color: white; border: none; border-radius: 5px;">
+        <button onclick="window.close()"
+            style="padding: 10px 30px; font-size: 16px; cursor: pointer; background: #6c757d; color: white; border: none; border-radius: 5px;">
             Yopish
         </button>
     </div>
-    
+
     <script>
         // Faqat desktop/laptop da avtomatik print qilish
-        window.onload = function() {
+        window.onload = function () {
             // Mobil qurilmalarni aniqlash
             var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
             var isSmallScreen = window.innerWidth < 768;
-            
+
             // Faqat desktop da avtomatik print
             if (!isMobile && !isSmallScreen) {
-                setTimeout(function() {
+                setTimeout(function () {
                     window.print();
                 }, 100);
             }
         };
-        
+
         // Chop etishdan keyin oynani avtomatik yopish (ixtiyoriy)
-        window.onafterprint = function() {
+        window.onafterprint = function () {
             // window.close(); // Agar kerak bo'lsa, commentdan chiqaring
         };
     </script>
 </body>
+
 </html>
