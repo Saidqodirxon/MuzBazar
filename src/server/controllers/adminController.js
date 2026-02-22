@@ -1274,8 +1274,7 @@ const adminController = {
         status: { $ne: "cancelled" },
       })
         .populate("items.product", "name costPrice sellPrice stock")
-        .sort({ createdAt: -1 })
-        .limit(20);
+        .sort({ createdAt: -1 });
 
       const totalDebt = orders.reduce((sum, order) => sum + order.debt, 0);
       const totalPaid = orders.reduce((sum, order) => sum + order.paidSum, 0);
@@ -2624,8 +2623,7 @@ const adminController = {
 
       const orders = await Order.find()
         .populate("client", "firstName lastName")
-        .sort({ createdAt: -1 })
-        .limit(100);
+        .sort({ createdAt: -1 });
 
       const statusLabels = {
         pending: "Kutilmoqda",

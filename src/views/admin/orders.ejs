@@ -1,15 +1,10 @@
-<%
-const layout = '../layouts/layout.ejs';
-
-let ordersHtml = '';
-if (orders.length === 0) {
-    ordersHtml = `
-    <div class="text-center py-5">
-        <i class="fas fa-shopping-cart fa-5x text-muted mb-3"></i>
-        <h3 class="text-muted">Hali buyurtmalar yo'q</h3>
-        <p class="text-muted">Klientlardan buyurtmalar kutilmoqda</p>
+<% const layout='../layouts/layout.ejs' ; let ordersHtml='' ; if (orders.length===0) { ordersHtml=` <div
+    class="text-center py-5">
+    <i class="fas fa-shopping-cart fa-5x text-muted mb-3"></i>
+    <h3 class="text-muted">Hali buyurtmalar yo'q</h3>
+    <p class="text-muted">Klientlardan buyurtmalar kutilmoqda</p>
     </div>`;
-} else {
+    } else {
     ordersHtml = `
     <div class="card">
         <div class="card-body">
@@ -30,22 +25,25 @@ if (orders.length === 0) {
                     </thead>
                     <tbody>
                         ${orders.map(order => {
-                            let statusClass = 'secondary';
-                            let statusText = order.status;
-                            switch (order.status) {
-                                case 'pending': statusClass = 'warning'; statusText = 'Kutilmoqda'; break;
-                                case 'confirmed': statusClass = 'info'; statusText = 'Tasdiqlangan'; break;
-                                case 'delivered': statusClass = 'success'; statusText = 'Yetkazilgan'; break;
-                                case 'cancelled': statusClass = 'danger'; statusText = 'Bekor qilingan'; break;
-                            }
-                            return `
+                        let statusClass = 'secondary';
+                        let statusText = order.status;
+                        switch (order.status) {
+                        case 'pending': statusClass = 'warning'; statusText = 'Kutilmoqda'; break;
+                        case 'confirmed': statusClass = 'info'; statusText = 'Tasdiqlangan'; break;
+                        case 'delivered': statusClass = 'success'; statusText = 'Yetkazilgan'; break;
+                        case 'cancelled': statusClass = 'danger'; statusText = 'Bekor qilingan'; break;
+                        }
+                        return `
                         <tr>
                             <td><strong>${order.orderNumber}</strong></td>
                             <td>${order.client?.firstName} ${order.client?.lastName}</td>
-                            <td>${order.client?.phone ? '<a href="tel:' + order.client.phone + '">' + order.client.phone + '</a>' : '<span class="text-muted">Kiritilmagan</span>'}</td>
+                            <td>${order.client?.phone ? '<a href="tel:' + order.client.phone + '">' + order.client.phone
+                                    + '</a>' : '<span class="text-muted">Kiritilmagan</span>'}</td>
                             <td>${(order.totalSum || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</td>
                             <td>${(order.paidSum || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</td>
-                            <td><span class="${(order.debt || 0) > 0 ? 'text-danger fw-bold' : 'text-success'}">${(order.debt || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</span></td>
+                            <td><span
+                                    class="${(order.debt || 0) > 0 ? 'text-danger fw-bold' : 'text-success'}">${(order.debt
+                                    || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</span></td>
                             <td><span class="badge bg-${statusClass}">${statusText}</span></td>
                             <td>${moment(order.createdAt).utcOffset(5).format('DD/MM/YYYY HH:mm')}</td>
                             <td>
@@ -60,32 +58,77 @@ if (orders.length === 0) {
             </div>
         </div>
     </div>`;
-}
+    }
 
-const body = `
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
-    <h1 class="h2">
-        <i class="fas fa-shopping-cart me-2"></i>Buyurtmalar
-    </h1>
-    <div class="btn-toolbar mb-2 mb-md-0">
-        <a href="/admin/orders/export${typeof currentStatus !== 'undefined' && currentStatus ? '?status='+currentStatus : ''}" class="btn btn-success" ${orders.length === 0 ? 'disabled' : ''}>
-            <i class="fas fa-file-excel me-2"></i>Excel
-        </a>
-    </div>
-</div>
+    let paginationHtml = '';
+    if (typeof pagination !== 'undefined' && pagination.total > 1) {
+    let pagesOptions = '';
+    for(let i=1; i<=pagination.total; i++) { pagesOptions +=`<option value="${i}" ${pagination.current===i ? 'selected'
+        : '' }>${i}-sahifa / ${pagination.total}</option>`;
+        }
 
-<div class="row mb-3">
-    <div class="col-md-6">
-        <form action="/admin/orders" method="GET" class="d-flex">
-            <input type="text" name="search" class="form-control me-2" placeholder="Qidiruv..." value="${typeof search !== 'undefined' ? search : ''}">
-            ${typeof currentStatus !== 'undefined' && currentStatus ? `<input type="hidden" name="status" value="${currentStatus}">` : ''}
-            <button class="btn btn-outline-secondary" type="submit">Qidirish</button>
-            ${typeof search !== 'undefined' && search ? `<a href="/admin/orders${typeof currentStatus !== 'undefined' && currentStatus ? '?status='+currentStatus : ''}" class="btn btn-outline-danger ms-2"><i class="fas fa-times"></i></a>` : ''}
-        </form>
-    </div>
-</div>
+        paginationHtml = `
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <form action="/admin/orders" method="GET"
+                class="d-flex align-items-center mb-0 w-100 justify-content-center">
+                ${typeof search !== 'undefined' && search ? \`<input type="hidden" name="search" value="\${search}">\` :
+                ''}
+                ${typeof currentStatus !== 'undefined' && currentStatus ? \`<input type="hidden" name="status"
+                    value="\${currentStatus}">\` : ''}
 
-${ordersHtml}
-`;
--%>
-<%- include(layout, { body, title }) %>
+                <button type="submit" name="page" value="${pagination.current > 1 ? pagination.current - 1 : 1}"
+                    class="btn btn-outline-primary" ${!pagination.hasPrev ? 'disabled' : '' }>
+                    &laquo; Oldingi
+                </button>
+
+                <div class="input-group mx-3" style="width: auto;">
+                    <span class="input-group-text">Sahifa: </span>
+                    <input type="number" name="page" class="form-control text-center" style="width: 80px;" min="1"
+                        max="${pagination.total}" value="${pagination.current}">
+                    <span class="input-group-text">/ ${pagination.total}</span>
+                    <button type="submit" class="btn btn-primary">O'tish</button>
+                </div>
+
+                <button type="submit" name="page"
+                    value="${pagination.current < pagination.total ? pagination.current + 1 : pagination.total}"
+                    class="btn btn-outline-primary" ${!pagination.hasNext ? 'disabled' : '' }>
+                    Keyingi &raquo;
+                </button>
+            </form>
+        </div>
+        `;
+        }
+
+        const body = `
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+            <h1 class="h2">
+                <i class="fas fa-shopping-cart me-2"></i>Buyurtmalar
+            </h1>
+            <div class="btn-toolbar mb-2 mb-md-0">
+                <a href="/admin/orders/export${typeof currentStatus !== 'undefined' && currentStatus ? '?status='+currentStatus : ''}"
+                    class="btn btn-success" ${orders.length===0 ? 'disabled' : '' }>
+                    <i class="fas fa-file-excel me-2"></i>Excel
+                </a>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <form action="/admin/orders" method="GET" class="d-flex">
+                    <input type="text" name="search" class="form-control me-2" placeholder="Qidiruv..."
+                        value="${typeof search !== 'undefined' ? search : ''}">
+                    ${typeof currentStatus !== 'undefined' && currentStatus ? `<input type="hidden" name="status"
+                        value="${currentStatus}">` : ''}
+                    <button class="btn btn-outline-secondary" type="submit">Qidirish</button>
+                    ${typeof search !== 'undefined' && search ? `<a
+                        href="/admin/orders${typeof currentStatus !== 'undefined' && currentStatus ? '?status='+currentStatus : ''}"
+                        class="btn btn-outline-danger ms-2"><i class="fas fa-times"></i></a>` : ''}
+                </form>
+            </div>
+        </div>
+
+        ${ordersHtml}
+        ${paginationHtml}
+        `;
+        -%>
+        <%- include(layout, { body, title }) %>
