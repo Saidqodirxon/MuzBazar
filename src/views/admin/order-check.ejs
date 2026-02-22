@@ -300,29 +300,19 @@
                     <%= formatNumber(order.paidSum) %> so'm
                 </span>
             </div>
-            <% if (order.debt> 0) { %>
+            <% if (order.client && order.client.totalDebt> 0) { %>
                 <div class="total-row debt">
-                    <span>Qarz:</span>
+                    <span>Qarz (Umumiy):</span>
                     <span class="amount">
-                        <%= formatNumber(order.debt) %> so'm
+                        <%= formatNumber(order.client.totalDebt) %> so'm
                     </span>
                 </div>
                 <% } else { %>
                     <div class="total-row">
-                        <span>Qoldiq:</span>
+                        <span>Qoldiq (Umumiy):</span>
                         <span class="amount">0 so'm</span>
                     </div>
                     <% } %>
-
-                        <% if (order.client && order.client.totalDebt> 0) { %>
-                            <div class="total-row debt"
-                                style="margin-top: 5px; padding-top: 5px; border-top: 1px dashed #000;">
-                                <span>Umumiy qarz:</span>
-                                <span class="amount">
-                                    <%= formatNumber(order.client.totalDebt) %> so'm
-                                </span>
-                            </div>
-                            <% } %>
         </div>
 
         <!-- Footer -->
