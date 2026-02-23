@@ -336,7 +336,7 @@
 
     <!-- Print Controls (Hidden on print) -->
     <div class="no-print" style="text-align: center; margin-top: 20px; padding: 20px;">
-        <button onclick="window.print()"
+        <button onclick="handlePrint()"
             style="padding: 10px 30px; font-size: 16px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 5px; margin-right: 10px;">
             Chop etish
         </button>
@@ -344,26 +344,58 @@
             style="padding: 10px 30px; font-size: 16px; cursor: pointer; background: #6c757d; color: white; border: none; border-radius: 5px;">
             Yopish
         </button>
+
+        <div id="mobile-print-hint"
+            style="display: none; margin-top: 15px; font-size: 13px; color: #d9534f; background: #fdf2f2; padding: 10px; border-radius: 5px; text-align: left;">
+            <b>Diqqat:</b> Agar siz Telegramda bo'lsangiz, chop etish ishlamasligi mumkin. Iltimos, yuqoridagi 3 nuqtani
+            bosib sahifani <b>Chrome/Safari</b> brauzerida oching.<br><br>
+            Bluetooth printerda chiqarish uchun telefoningizga <b>RawBT</b> (yoki shunga o'xshash Print Service) dasturi
+            o'rnatilgan bo'lishi kerak.
+            <br><br>
+            <a href="#" onclick="printViaRawBT(event)"
+                style="color: #007bff; text-decoration: underline; font-weight: bold;">RawBT dasturi orqali
+                to'g'ridan-to'g'ri chop etish (Android)</a>
+        </div>
     </div>
 
     <script>
-        // Faqat desktop/laptop da avtomatik print qilish
-        window.onload = function () {
-            // Mobil qurilmalarni aniqlash
-            var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-            var isSmallScreen = window.innerWidth < 768;
+        var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        var isTelegram = /Telegram/i.test(navigator.userAgent);
 
-            // Faqat desktop da avtomatik print
-            if (!isMobile && !isSmallScreen) {
+        window.onload = function () {
+            if (isTelegram) {
+                // Agar Telegram ichida bo'lsa, eslatmani ko'rsatamiz
+                document.getElementById('mobile-print-hint').style.display = 'block';
+            } else {
+                // Haqiqiy brauzerda (Chrome, Safari va h.k.) ochilsa, darhol chop etish
                 setTimeout(function () {
                     window.print();
-                }, 100);
+                }, 300);
+
+                if (isMobile) {
+                    // Agar mobil brauzer bo'lsa, baribir yordamchi matnni ko'rsatib turish zarar qilmaydi
+                    document.getElementById('mobile-print-hint').style.display = 'block';
+                }
             }
         };
 
-        // Chop etishdan keyin oynani avtomatik yopish (ixtiyoriy)
+        function handlePrint() {
+            if (isTelegram) {
+                alert("Siz Telegram brauzeridasiz. Chop etish uchun sahifani Chrome yoki Safari brauzerida oching (Yuqori o'ng burchakdagi menyudan).");
+            } else {
+                window.print();
+            }
+        }
+
+        function printViaRawBT(e) {
+            e.preventDefault();
+            // Sahifani to'g'ridan-to'g'ri RawBT intent orqali ochish
+            var intentUrl = "intent:" + window.location.href + "#Intent;scheme=" + window.location.protocol.replace(':', '') + ";package=ru.a402d.rawbtprinter;action=android.intent.action.VIEW;end;";
+            window.location.href = intentUrl;
+        }
+
         window.onafterprint = function () {
-            // window.close(); // Agar kerak bo'lsa, commentdan chiqaring
+            // window.close();
         };
     </script>
 </body>
