@@ -1,54 +1,92 @@
-<%
-const layout = '../layouts/layout.ejs';
-
-const body = `
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+<% const layout='../layouts/layout.ejs' ; const body=` <div
+    class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
     <h1 class="h2">
         <i class="fas fa-user-cog me-2"></i>Admin Profil
     </h1>
-</div>
+    </div>
 
-<div class="row">
-    <div class="col-lg-6">
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5><i class="fas fa-user me-2"></i>Profil ma'lumotlari</h5>
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-user me-2"></i>Profil ma'lumotlari</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Foydalanuvchi nomi:</strong> ${adminUser.username}</p>
+                    <p><strong>Ism:</strong> ${adminUser.name}</p>
+                </div>
             </div>
-            <div class="card-body">
-                <p><strong>Foydalanuvchi nomi:</strong> ${adminUser.username}</p>
-                <p><strong>Ism:</strong> ${adminUser.name}</p>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-key me-2"></i>Parolni o'zgartirish</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="/admin/profile/password">
+                        <div class="mb-3">
+                            <label for="currentPassword" class="form-label">Joriy parol</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="currentPassword" name="currentPassword"
+                                    required>
+                                <button class="btn btn-outline-secondary toggle-password" type="button"
+                                    data-target="currentPassword">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newPassword" class="form-label">Yangi parol</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="newPassword" name="newPassword"
+                                    minlength="6" required>
+                                <button class="btn btn-outline-secondary toggle-password" type="button"
+                                    data-target="newPassword">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirmPassword" class="form-label">Parolni tasdiqlash</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="confirmPassword" name="confirmPassword"
+                                    minlength="6" required>
+                                <button class="btn btn-outline-secondary toggle-password" type="button"
+                                    data-target="confirmPassword">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>O'zgartirish
+                        </button>
+                    </form>
+
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="col-lg-6">
-        <div class="card">
-            <div class="card-header">
-                <h5><i class="fas fa-key me-2"></i>Parolni o'zgartirish</h5>
-            </div>
-            <div class="card-body">
-                <form method="POST" action="/admin/profile/password">
-                    <div class="mb-3">
-                        <label for="currentPassword" class="form-label">Joriy parol</label>
-                        <input type="password" class="form-control" id="currentPassword" name="currentPassword" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="newPassword" class="form-label">Yangi parol</label>
-                        <input type="password" class="form-control" id="newPassword" name="newPassword" minlength="6" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="confirmPassword" class="form-label">Parolni tasdiqlash</label>
-                        <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" minlength="6" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save me-2"></i>O'zgartirish
-                    </button>
-                </form>
-        
-            </div>
-        </div>
-    </div>
-</div>
-`;
--%>
-<%- include(layout, { body, title }) %>
+    <script>
+        document.querySelectorAll('.toggle-password').forEach(button => {
+            button.addEventListener('click', function () {
+                const targetId = this.getAttribute('data-target');
+                const input = document.getElementById(targetId);
+                const icon = this.querySelector('i');
+
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                } else {
+                    input.type = 'password';
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
+            });
+        });
+    </script>
+    `;
+    -%>
+    <%- include(layout, { body, title }) %>

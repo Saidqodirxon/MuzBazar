@@ -2853,9 +2853,27 @@ const adminController = {
         return res.redirect("/admin/profile?error=password_too_short");
       }
 
-      // Note: In production, you would update .env file or use database
-      // For now, just show success message
-      res.redirect("/admin/profile?success=password_updated_note");
+      // Update .env file with new password
+      const fs = require("fs");
+      const path = require("path");
+      const envPath = path.join(process.cwd(), ".env");
+
+      if (fs.existsSync(envPath)) {
+        let envContent = fs.readFileSync(envPath, "utf8");
+        // Replace or add ADMIN_PASSWORD
+        if (envContent.match(/^ADMIN_PASSWORD=/m)) {
+          envContent = envContent.replace(
+            /^ADMIN_PASSWORD=.*$/m,
+            `ADMIN_PASSWORD=${newPassword}`
+          );
+        } else {
+          envContent += `\nADMIN_PASSWORD=${newPassword}\n`;
+        }
+        fs.writeFileSync(envPath, envContent);
+        process.env.ADMIN_PASSWORD = newPassword; // Update current process env
+      }
+
+      res.redirect("/admin/profile?success=password_updated");
     } catch (error) {
       console.error("❌ Update password error:", error);
       res.redirect("/admin/profile?error=update_failed");
