@@ -2989,7 +2989,28 @@ const adminController = {
                   },
                   {
                     $multiply: [
-                      { $ifNull: ["$productInfo.costPrice", 0] },
+                      {
+                        $cond: [
+                          {
+                            $gt: [
+                              { $ifNull: ["$productInfo.costPrice", 0] },
+                              {
+                                $ifNull: [
+                                  "$items.pricePerUnit",
+                                  { $ifNull: ["$productInfo.sellPrice", 0] },
+                                ],
+                              },
+                            ],
+                          },
+                          {
+                            $ifNull: [
+                              "$items.pricePerUnit",
+                              { $ifNull: ["$productInfo.sellPrice", 0] },
+                            ],
+                          },
+                          { $ifNull: ["$productInfo.costPrice", 0] },
+                        ],
+                      },
                       "$items.quantity",
                     ],
                   },
@@ -3133,7 +3154,28 @@ const adminController = {
                     },
                     {
                       $multiply: [
-                        { $ifNull: ["$productInfo.costPrice", 0] },
+                        {
+                          $cond: [
+                            {
+                              $gt: [
+                                { $ifNull: ["$productInfo.costPrice", 0] },
+                                {
+                                  $ifNull: [
+                                    "$items.pricePerUnit",
+                                    { $ifNull: ["$productInfo.sellPrice", 0] },
+                                  ],
+                                },
+                              ],
+                            },
+                            {
+                              $ifNull: [
+                                "$items.pricePerUnit",
+                                { $ifNull: ["$productInfo.sellPrice", 0] },
+                              ],
+                            },
+                            { $ifNull: ["$productInfo.costPrice", 0] },
+                          ],
+                        },
                         "$items.quantity",
                       ],
                     },
@@ -3205,7 +3247,28 @@ const adminController = {
                     },
                     {
                       $multiply: [
-                        { $ifNull: ["$productInfo.costPrice", 0] },
+                        {
+                          $cond: [
+                            {
+                              $gt: [
+                                { $ifNull: ["$productInfo.costPrice", 0] },
+                                {
+                                  $ifNull: [
+                                    "$items.pricePerUnit",
+                                    { $ifNull: ["$productInfo.sellPrice", 0] },
+                                  ],
+                                },
+                              ],
+                            },
+                            {
+                              $ifNull: [
+                                "$items.pricePerUnit",
+                                { $ifNull: ["$productInfo.sellPrice", 0] },
+                              ],
+                            },
+                            { $ifNull: ["$productInfo.costPrice", 0] },
+                          ],
+                        },
                         "$items.quantity",
                       ],
                     },
