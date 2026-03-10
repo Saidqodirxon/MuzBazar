@@ -2561,8 +2561,12 @@ const adminController = {
       summarySheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
 
       summarySheet.addRow({
-        label: "Umumiy daromad",
+        label: "Kirim (To'langan pullar)",
         value: `${stats.totalRevenue || 0} so'm`,
+      });
+      summarySheet.addRow({
+        label: "Umumiy aylanma (Jami savdo)",
+        value: `${stats.totalSales || 0} so'm`,
       });
       summarySheet.addRow({
         label: "Jami buyurtmalar",
@@ -2581,15 +2585,23 @@ const adminController = {
         value: stats.todayOrders || 0,
       });
       summarySheet.addRow({
-        label: "Bugungi daromad",
+        label: "Bugungi kirim (To'langan)",
         value: `${stats.todayRevenue || 0} so'm`,
+      });
+      summarySheet.addRow({
+        label: "Bugungi aylanma (Jami savdo)",
+        value: `${stats.todaySales || 0} so'm`,
+      });
+      summarySheet.addRow({
+        label: "Bugungi sof foyda",
+        value: `${stats.todayProfit || 0} so'm`,
       });
       summarySheet.addRow({
         label: "Oylik buyurtmalar",
         value: stats.monthlyOrders || 0,
       });
       summarySheet.addRow({
-        label: "Oylik daromad",
+        label: "Oylik kirim (To'langan)",
         value: `${stats.monthlyRevenue || 0} so'm`,
       });
       summarySheet.addRow({
@@ -2597,8 +2609,16 @@ const adminController = {
         value: `${stats.totalDebt || 0} so'm`,
       });
       summarySheet.addRow({
-        label: "Umumiy foyda",
+        label: "Umumiy sof foyda",
         value: `${stats.totalProfit || 0} so'm`,
+      });
+      const profitPercentage =
+        stats.totalSales > 0
+          ? Math.round((stats.totalProfit / stats.totalSales) * 100)
+          : 0;
+      summarySheet.addRow({
+        label: "Sof foyda foizi",
+        value: `${profitPercentage}%`,
       });
 
       // Sheet 2: Buyurtmalar (agar mavjud bo'lsa)
@@ -2939,7 +2959,12 @@ const adminController = {
             as: "productInfo",
           },
         },
-        { $unwind: "$productInfo" },
+        {
+          $unwind: {
+            path: "$productInfo",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
         {
           $group: {
             _id: null,
@@ -2948,8 +2973,8 @@ const adminController = {
                 $multiply: [
                   {
                     $subtract: [
-                      "$productInfo.sellPrice",
-                      "$productInfo.costPrice",
+                      "$items.pricePerUnit",
+                      { $ifNull: ["$productInfo.costPrice", 0] },
                     ],
                   },
                   "$items.quantity",
@@ -3063,7 +3088,12 @@ const adminController = {
               as: "productInfo",
             },
           },
-          { $unwind: "$productInfo" },
+          {
+            $unwind: {
+              path: "$productInfo",
+              preserveNullAndEmptyArrays: true,
+            },
+          },
           {
             $group: {
               _id: null,
@@ -3072,8 +3102,8 @@ const adminController = {
                   $multiply: [
                     {
                       $subtract: [
-                        "$productInfo.sellPrice",
-                        "$productInfo.costPrice",
+                        "$items.pricePerUnit",
+                        { $ifNull: ["$productInfo.costPrice", 0] },
                       ],
                     },
                     "$items.quantity",
@@ -3115,7 +3145,12 @@ const adminController = {
               as: "productInfo",
             },
           },
-          { $unwind: "$productInfo" },
+          {
+            $unwind: {
+              path: "$productInfo",
+              preserveNullAndEmptyArrays: true,
+            },
+          },
           {
             $group: {
               _id: null,
@@ -3124,8 +3159,8 @@ const adminController = {
                   $multiply: [
                     {
                       $subtract: [
-                        "$productInfo.sellPrice",
-                        "$productInfo.costPrice",
+                        "$items.pricePerUnit",
+                        { $ifNull: ["$productInfo.costPrice", 0] },
                       ],
                     },
                     "$items.quantity",

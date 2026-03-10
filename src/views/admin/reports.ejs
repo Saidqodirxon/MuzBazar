@@ -22,7 +22,7 @@ const body = `
             <div class="card-body text-center">
                 <i class="fas fa-money-bill-wave fa-2x mb-2"></i>
                 <h4>${formatNumber(stats.totalRevenue)} so'm</h4>
-                <p class="mb-0">Umumiy daromad</p>
+                <p class="mb-0">Kirim (To'langan pullar)</p>
             </div>
         </div>
     </div>
@@ -58,7 +58,7 @@ const body = `
 <!-- Bugungi statistika -->
 <div class="card mb-4 border-warning">
     <div class="card-header bg-warning text-dark">
-        <h5 class="mb-0"><i class="fas fa-sun me-2"></i>Bugungi aylanma</h5>
+        <h5 class="mb-0"><i class="fas fa-sun me-2"></i>Bugungi ko'rsatkichlar</h5>
     </div>
     <div class="card-body">
         <div class="row">
@@ -76,7 +76,7 @@ const body = `
                     <div class="card-body text-center">
                         <i class="fas fa-dollar-sign fa-2x mb-2 text-primary"></i>
                         <h4>${formatNumber(stats.todaySales)} so'm</h4>
-                        <p class="text-muted mb-0">Savdo (Jami)</p>
+                        <p class="text-muted mb-0">Aylanma (Jami savdo)</p>
                     </div>
                 </div>
             </div>
@@ -85,7 +85,7 @@ const body = `
                     <div class="card-body text-center">
                         <i class="fas fa-coins fa-2x mb-2 text-success"></i>
                         <h4>${formatNumber(stats.todayRevenue)} so'm</h4>
-                        <p class="text-muted mb-0">Daromad (To'langan)</p>
+                        <p class="text-muted mb-0">Kirim (To'langan)</p>
                     </div>
                 </div>
             </div>
@@ -94,7 +94,7 @@ const body = `
                     <div class="card-body text-center">
                         <i class="fas fa-chart-line fa-2x mb-2 text-info"></i>
                         <h4>${formatNumber(stats.todayProfit)} so'm</h4>
-                        <p class="text-muted mb-0">Foyda</p>
+                        <p class="text-muted mb-0">Sof foyda</p>
                     </div>
                 </div>
             </div>
@@ -118,7 +118,7 @@ const body = `
             <div class="card-body text-center">
                 <i class="fas fa-chart-line fa-2x mb-2 text-info"></i>
                 <h4>${formatNumber(stats.monthlyRevenue)} so'm</h4>
-                <p class="text-muted mb-0">Oylik daromad</p>
+                <p class="text-muted mb-0">Oylik kirim (To'langan)</p>
             </div>
         </div>
     </div>
@@ -127,7 +127,7 @@ const body = `
             <div class="card-body text-center">
                 <i class="fas fa-boxes fa-2x mb-2 text-secondary"></i>
                 <h4>${formatNumber(stats.totalSales)} so'm</h4>
-                <p class="text-muted mb-0">Umumiy savdo</p>
+                <p class="text-muted mb-0">Umumiy aylanma (Jami savdo)</p>
             </div>
         </div>
     </div>
@@ -136,7 +136,7 @@ const body = `
             <div class="card-body text-center">
                 <i class="fas fa-percentage fa-2x mb-2 text-warning"></i>
                 <h4>${stats.totalSales > 0 ? Math.round((stats.totalProfit / stats.totalSales) * 100) : 0}%</h4>
-                <p class="text-muted mb-0">Foyda foizi</p>
+                <p class="text-muted mb-0">Sof foyda foizi</p>
             </div>
         </div>
     </div>
@@ -164,11 +164,11 @@ const body = `
     <div class="col-md-6 mb-3">
         <div class="card border-success">
             <div class="card-header bg-success text-white">
-                <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Foyda</h5>
+                <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Sof foyda</h5>
             </div>
             <div class="card-body text-center">
                 <h2 class="text-success">${formatNumber(stats.totalProfit)} so'm</h2>
-                <p class="text-muted">Umumiy foyda (sotilish - tannarx)</p>
+                <p class="text-muted">Umumiy sof foyda (sotilish - tannarx)</p>
             </div>
         </div>
     </div>
