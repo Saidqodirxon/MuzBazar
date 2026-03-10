@@ -2970,14 +2970,29 @@ const adminController = {
             _id: null,
             total: {
               $sum: {
-                $multiply: [
+                $subtract: [
                   {
-                    $subtract: [
-                      "$items.pricePerUnit",
-                      { $ifNull: ["$productInfo.costPrice", 0] },
+                    $ifNull: [
+                      "$items.totalPrice",
+                      {
+                        $multiply: [
+                          {
+                            $ifNull: [
+                              "$items.pricePerUnit",
+                              { $ifNull: ["$productInfo.sellPrice", 0] },
+                            ],
+                          },
+                          "$items.quantity",
+                        ],
+                      },
                     ],
                   },
-                  "$items.quantity",
+                  {
+                    $multiply: [
+                      { $ifNull: ["$productInfo.costPrice", 0] },
+                      "$items.quantity",
+                    ],
+                  },
                 ],
               },
             },
@@ -3099,14 +3114,29 @@ const adminController = {
               _id: null,
               total: {
                 $sum: {
-                  $multiply: [
+                  $subtract: [
                     {
-                      $subtract: [
-                        "$items.pricePerUnit",
-                        { $ifNull: ["$productInfo.costPrice", 0] },
+                      $ifNull: [
+                        "$items.totalPrice",
+                        {
+                          $multiply: [
+                            {
+                              $ifNull: [
+                                "$items.pricePerUnit",
+                                { $ifNull: ["$productInfo.sellPrice", 0] },
+                              ],
+                            },
+                            "$items.quantity",
+                          ],
+                        },
                       ],
                     },
-                    "$items.quantity",
+                    {
+                      $multiply: [
+                        { $ifNull: ["$productInfo.costPrice", 0] },
+                        "$items.quantity",
+                      ],
+                    },
                   ],
                 },
               },
@@ -3156,14 +3186,29 @@ const adminController = {
               _id: null,
               total: {
                 $sum: {
-                  $multiply: [
+                  $subtract: [
                     {
-                      $subtract: [
-                        "$items.pricePerUnit",
-                        { $ifNull: ["$productInfo.costPrice", 0] },
+                      $ifNull: [
+                        "$items.totalPrice",
+                        {
+                          $multiply: [
+                            {
+                              $ifNull: [
+                                "$items.pricePerUnit",
+                                { $ifNull: ["$productInfo.sellPrice", 0] },
+                              ],
+                            },
+                            "$items.quantity",
+                          ],
+                        },
                       ],
                     },
-                    "$items.quantity",
+                    {
+                      $multiply: [
+                        { $ifNull: ["$productInfo.costPrice", 0] },
+                        "$items.quantity",
+                      ],
+                    },
                   ],
                 },
               },
