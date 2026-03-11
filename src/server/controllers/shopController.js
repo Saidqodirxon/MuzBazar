@@ -239,7 +239,9 @@ const shopController = {
       let totalSum = 0;
       const orderItems = [];
       const itemDetails = [];
+      const productsToUpdate = [];
 
+      // Loop 1: Validation and calculation
       for (const item of items) {
         const product = await Product.findById(item.productId);
         if (!product) continue;
@@ -265,9 +267,25 @@ const shopController = {
           `${product.name} x ${item.quantity} = ${itemTotal.toLocaleString()} so'm`
         );
 
-        // Reduce stock
-        product.stock -= item.quantity;
-        await product.save();
+        // Save for stock reduction
+        productsToUpdate.push({ product, quantity: item.quantity });
+      }
+
+      // Check minimum order amount
+      const { Settings } = require("../models");
+      const minOrderAmount = await Settings.get("min_order_amount", 0);
+
+      if (minOrderAmount > 0 && totalSum < minOrderAmount) {
+        return res.status(400).json({
+          success: false,
+          message: `Minimal buyurtma summasi: ${Number(minOrderAmount).toLocaleString("ru-RU").replace(/,/g, " ")} so'm. Sizning xaridingiz: ${totalSum.toLocaleString("ru-RU").replace(/,/g, " ")} so'm.`,
+        });
+      }
+
+      // Loop 2: Apply stock reduction
+      for (const item of productsToUpdate) {
+        item.product.stock -= item.quantity;
+        await item.product.save();
       }
 
       // Generate a unique order number

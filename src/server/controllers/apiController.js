@@ -153,6 +153,17 @@ const apiController = {
         totalSum += itemTotal;
       }
 
+      // Check minimum order amount
+      const { Settings } = require("../models");
+      const minOrderAmount = await Settings.get("min_order_amount", 0);
+
+      if (minOrderAmount > 0 && totalSum < minOrderAmount) {
+        return res.status(400).json({
+          success: false,
+          message: `Minimal buyurtma summasi: ${Number(minOrderAmount).toLocaleString("ru-RU").replace(/,/g, " ")} so'm`,
+        });
+      }
+
       // Create order
       const order = new Order({
         client,
