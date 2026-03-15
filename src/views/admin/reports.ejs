@@ -1,154 +1,158 @@
-<% var layout='../layouts/layout.ejs' ; function fmt(n) { if (!n || n===0) return '0' ; return
-    String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " " ); } var sRows='' ; if (typeof stats !=='undefined' &&
-    stats.sellerStats && stats.sellerStats.length> 0) {
+<% var layout='../layouts/layout.ejs' ; function fmt(n) { var num=n || 0; var s=String(num); var parts=[]; var
+    len=s.length; for (var i=len; i> 0; i -= 3) {
+    var start = Math.max(0, i - 3);
+    parts.unshift(s.substring(start, i));
+    }
+    return parts.join(' ');
+    }
+
+    var sRows = '';
+    if (typeof stats !== 'undefined' && stats.sellerStats && stats.sellerStats.length > 0) {
     for (var i = 0; i < stats.sellerStats.length; i++) { var s=stats.sellerStats[i]; var bClass=(s.balance || 0)> 0 ?
         'text-danger' : 'text-success';
-        sRows += `
-        <tr>
-            <td><strong>${s.name || ''}</strong></td>
-            <td>${fmt(s.todayOrders)} ta</td>
-            <td>${fmt(s.todaySales)} so'm</td>
-            <td>${fmt(s.todayRevenue)} so'm</td>
-            <td class="text-info">${fmt(s.todayProfit)} so'm</td>
-            <td class="fw-bold ${bClass}">${fmt(s.balance)} so'm</td>
-        </tr>`;
+        sRows += '<tr>' +
+            '<td><strong>' + (s.name || '') + '</strong></td>' +
+            '<td>' + fmt(s.todayOrders) + ' ta</td>' +
+            '<td>' + fmt(s.todaySales) + ' so\'m</td>' +
+            '<td>' + fmt(s.todayRevenue) + ' so\'m</td>' +
+            '<td class="text-info">' + fmt(s.todayProfit) + ' so\'m</td>' +
+            '<td class="fw-bold ' + bClass + '">' + fmt(s.balance) + ' so\'m</td>' +
+            '</tr>';
         }
         } else {
-        sRows = `<tr>
-            <td colspan="6" class="text-center py-4 text-muted">Ma'lumot yo'q</td>
-        </tr>`;
+        sRows = '<tr>
+            <td colspan="6" class="text-center py-4 text-muted">Ma\'lumot yo\'q</td>
+        </tr>';
         }
 
-        var body = `
-        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
-            <h1 class="h2"><i class="fas fa-chart-line me-2"></i>Hisobotlar</h1>
-            <div class="btn-toolbar mb-2 mb-md-0">
-                <a href="/admin/reports/export" class="btn btn-sm btn-outline-primary">
-                    <i class="fas fa-file-excel me-1"></i>Excel Export
-                </a>
-            </div>
-        </div>
+        var body = '<div
+            class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">'
+            +
+            '<h1 class="h2"><i class="fas fa-chart-line me-2"></i>Hisobotlar</h1>' +
+            '<div class="btn-toolbar mb-2 mb-md-0">' +
+                '<a href="/admin/reports/export" class="btn btn-sm btn-outline-primary">' +
+                    '<i class="fas fa-file-excel me-1"></i>Excel Export' +
+                    '</a>' +
+                '</div>' +
+            '</div>' +
 
-        <div class="row mb-4">
-            <div class="col-md-3 mb-3">
-                <div class="card bg-primary text-white h-100 shadow-sm border-0">
-                    <div class="card-body">
-                        <div class="small text-uppercase opacity-75">Bugungi Savdo</div>
-                        <div class="h3 mb-0 fw-bold">${fmt(stats.todaySales)} <small class="fw-normal"
-                                style="font-size: 0.6em">so'm</small></div>
-                        <div class="small mt-2 opacity-75">${stats.todayOrders || 0} ta buyurtma</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3 mb-3">
-                <div class="card bg-success text-white h-100 shadow-sm border-0">
-                    <div class="card-body">
-                        <div class="small text-uppercase opacity-75">Bugungi Kirim</div>
-                        <div class="h3 mb-0 fw-bold">${fmt(stats.todayRevenue)} <small class="fw-normal"
-                                style="font-size: 0.6em">so'm</small></div>
-                        <div class="small mt-2 opacity-75">Kassaga tushgan pul</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3 mb-3">
-                <div class="card bg-info text-white h-100 shadow-sm border-0">
-                    <div class="card-body">
-                        <div class="small text-uppercase opacity-75">Bugungi Foyda</div>
-                        <div class="h3 mb-0 fw-bold">${fmt(stats.todayProfit)} <small class="fw-normal"
-                                style="font-size: 0.6em">so'm</small></div>
-                        <div class="small mt-2 opacity-75">Sof tushum</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3 mb-3">
-                <div class="card bg-danger text-white h-100 shadow-sm border-0">
-                    <div class="card-body">
-                        <div class="small text-uppercase opacity-75">Umumiy Qarz</div>
-                        <div class="h3 mb-0 fw-bold">${fmt(stats.totalDebt)} <small class="fw-normal"
-                                style="font-size: 0.6em">so'm</small></div>
-                        <div class="small mt-2 opacity-75">Mijozlardan qarzdorlik</div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        '<div class="row mb-4">' +
+            '<div class="col-md-3 mb-3">' +
+                '<div class="card bg-primary text-white h-100 shadow-sm border-0">' +
+                    '<div class="card-body">' +
+                        '<div class="small text-uppercase opacity-75">Bugungi Savdo</div>' +
+                        '<div class="h3 mb-0 fw-bold">' + fmt(stats.todaySales) + ' <small class="fw-normal"
+                                style="font-size: 0.6em">so\'m</small></div>' +
+                        '<div class="small mt-2 opacity-75">' + (stats.todayOrders || 0) + ' ta buyurtma</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+            '<div class="col-md-3 mb-3">' +
+                '<div class="card bg-success text-white h-100 shadow-sm border-0">' +
+                    '<div class="card-body">' +
+                        '<div class="small text-uppercase opacity-75">Bugungi Kirim</div>' +
+                        '<div class="h3 mb-0 fw-bold">' + fmt(stats.todayRevenue) + ' <small class="fw-normal"
+                                style="font-size: 0.6em">so\'m</small></div>' +
+                        '<div class="small mt-2 opacity-75">Kassaga tushgan pul</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+            '<div class="col-md-3 mb-3">' +
+                '<div class="card bg-info text-white h-100 shadow-sm border-0">' +
+                    '<div class="card-body">' +
+                        '<div class="small text-uppercase opacity-75">Bugungi Foyda</div>' +
+                        '<div class="h3 mb-0 fw-bold">' + fmt(stats.todayProfit) + ' <small class="fw-normal"
+                                style="font-size: 0.6em">so\'m</small></div>' +
+                        '<div class="small mt-2 opacity-75">Sof tushum</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+            '<div class="col-md-3 mb-3">' +
+                '<div class="card bg-danger text-white h-100 shadow-sm border-0">' +
+                    '<div class="card-body">' +
+                        '<div class="small text-uppercase opacity-75">Umumiy Qarz</div>' +
+                        '<div class="h3 mb-0 fw-bold">' + fmt(stats.totalDebt) + ' <small class="fw-normal"
+                                style="font-size: 0.6em">so\'m</small></div>' +
+                        '<div class="small mt-2 opacity-75">Mijozlardan qarzdorlik</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>' +
 
-        <div class="row mb-4">
-            <div class="col-md-6 mb-3">
-                <div class="card h-100 border-0 shadow-sm border-start border-primary border-4">
-                    <div class="card-body">
-                        <h6 class="text-muted text-uppercase small fw-bold">Shu oygi tushum</h6>
-                        <div class="h4 mb-0 fw-bold text-primary">${fmt(stats.monthlyRevenue)} so'm</div>
-                        <div class="small text-muted mt-1">${stats.monthlyOrders || 0} ta buyurtma</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6 mb-3">
-                <div class="card h-100 border-0 shadow-sm border-start border-success border-4">
-                    <div class="card-body">
-                        <h6 class="text-muted text-uppercase small fw-bold">Jami Foyda</h6>
-                        <div class="h4 mb-0 fw-bold text-success">${fmt(stats.totalProfit)} so'm</div>
-                        <div class="small text-muted mt-1">Barcha vaqtlar uchun (sof foyda)</div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        '<div class="row mb-4">' +
+            '<div class="col-md-6 mb-3">' +
+                '<div class="card h-100 border-0 shadow-sm border-start border-primary border-4">' +
+                    '<div class="card-body">' +
+                        '<h6 class="text-muted text-uppercase small fw-bold">Shu oygi tushum</h6>' +
+                        '<div class="h4 mb-0 fw-bold text-primary">' + fmt(stats.monthlyRevenue) + ' so\'m</div>' +
+                        '<div class="small text-muted mt-1">' + (stats.monthlyOrders || 0) + ' ta buyurtma</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+            '<div class="col-md-6 mb-3">' +
+                '<div class="card h-100 border-0 shadow-sm border-start border-success border-4">' +
+                    '<div class="card-body">' +
+                        '<h6 class="text-muted text-uppercase small fw-bold">Jami Foyda</h6>' +
+                        '<div class="h4 mb-0 fw-bold text-success">' + fmt(stats.totalProfit) + ' so\'m</div>' +
+                        '<div class="small text-muted mt-1">Barcha vaqtlar uchun (sof foyda)</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>' +
 
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white py-3 border-0">
-                <h5 class="card-title mb-0 fw-bold"><i class="fas fa-users-cog me-2 text-primary"></i>Sotuvchilar
-                    bo'yicha hisobot (Bugun)</h5>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="bg-light text-muted small text-uppercase">
-                            <tr>
-                                <th class="ps-3 border-0">Sotuvchi</th>
-                                <th class="border-0">Buyurtmalar</th>
-                                <th class="border-0">Savdo</th>
-                                <th class="border-0">Kirim</th>
-                                <th class="border-0 text-info">Foyda</th>
-                                <th class="pe-3 border-0">Balans</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${sRows}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+        '<div class="card border-0 shadow-sm mb-4">' +
+            '<div class="card-header bg-white py-3 border-0">' +
+                '<h5 class="card-title mb-0 fw-bold"><i class="fas fa-users-cog me-2 text-primary"></i>Sotuvchilar
+                    bo\'yicha hisobot (Bugun)</h5>' +
+                '</div>' +
+            '<div class="card-body p-0">' +
+                '<div class="table-responsive">' +
+                    '<table class="table table-hover align-middle mb-0">' +
+                        '<thead class="bg-light text-muted small text-uppercase">' +
+                            '<tr>' +
+                                '<th class="ps-3 border-0">Sotuvchi</th>' +
+                                '<th class="border-0">Buyurtmalar</th>' +
+                                '<th class="border-0">Savdo</th>' +
+                                '<th class="border-0">Kirim</th>' +
+                                '<th class="border-0 text-info">Foyda</th>' +
+                                '<th class="pe-3 border-0">Balans</th>' +
+                                '</tr>' +
+                            '</thead>' +
+                        '<tbody>' + sRows + '</tbody>' +
+                        '</table>' +
+                    '</div>' +
+                '</div>' +
+            '</div>' +
 
-        <div class="row text-center">
-            <div class="col-md-4 mb-3">
-                <div class="card border-0 shadow-sm py-3">
-                    <div class="card-body">
-                        <div class="text-primary h2 mb-2"><i class="fas fa-shopping-bag"></i></div>
-                        <div class="h4 mb-0 fw-bold">${fmt(stats.totalOrders)}</div>
-                        <div class="text-muted small text-uppercase mt-1">Jami buyurtmalar</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4 mb-3">
-                <div class="card border-0 shadow-sm py-3">
-                    <div class="card-body">
-                        <div class="text-success h2 mb-2"><i class="fas fa-hand-holding-usd"></i></div>
-                        <div class="h4 mb-0 fw-bold">${fmt(stats.totalRevenue)}</div>
-                        <div class="text-muted small text-uppercase mt-1">Jami tushum (Kirim)</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4 mb-3">
-                <div class="card border-0 shadow-sm py-3">
-                    <div class="card-body">
-                        <div class="text-warning h2 mb-2"><i class="fas fa-users"></i></div>
-                        <div class="h4 mb-0 fw-bold">${fmt(stats.totalCustomers)}</div>
-                        <div class="text-muted small text-uppercase mt-1">Jami mijozlar</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        `;
+        '<div class="row text-center">' +
+            '<div class="col-md-4 mb-3">' +
+                '<div class="card border-0 shadow-sm py-3">' +
+                    '<div class="card-body">' +
+                        '<div class="text-primary h2 mb-2"><i class="fas fa-shopping-bag"></i></div>' +
+                        '<div class="h4 mb-0 fw-bold">' + fmt(stats.totalOrders) + '</div>' +
+                        '<div class="text-muted small text-uppercase mt-1">Jami buyurtmalar</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+            '<div class="col-md-4 mb-3">' +
+                '<div class="card border-0 shadow-sm py-3">' +
+                    '<div class="card-body">' +
+                        '<div class="text-success h2 mb-2"><i class="fas fa-hand-holding-usd"></i></div>' +
+                        '<div class="h4 mb-0 fw-bold">' + fmt(stats.totalRevenue) + '</div>' +
+                        '<div class="text-muted small text-uppercase mt-1">Jami tushum (Kirim)</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+            '<div class="col-md-4 mb-3">' +
+                '<div class="card border-0 shadow-sm py-3">' +
+                    '<div class="card-body">' +
+                        '<div class="text-warning h2 mb-2"><i class="fas fa-users"></i></div>' +
+                        '<div class="h4 mb-0 fw-bold">' + fmt(stats.totalCustomers) + '</div>' +
+                        '<div class="text-muted small text-uppercase mt-1">Jami mijozlar</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
         %>
 
         <%- include(layout, { body: body, title: 'Hisobotlar' }) %>
