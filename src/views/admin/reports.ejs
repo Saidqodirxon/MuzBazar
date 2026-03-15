@@ -1,19 +1,27 @@
-<% const layout="../layouts/layout.ejs" ; function fmt(n) { return (n || 0).toLocaleString("ru-RU"); } var sRows="" ; if
-    (typeof stats !=="undefined" && stats.sellerStats && stats.sellerStats.length> 0) {
+<% var layout='../layouts/layout.ejs' ; function fmt(n) { var s=String(n || 0); var parts=[]; var len=s.length; for (var
+    i=len; i> 0; i -= 3) {
+    var start = Math.max(0, i - 3);
+    parts.unshift(s.substring(start, i));
+    }
+    return parts.join(' ');
+    }
+
+    var sRows = '';
+    if (typeof stats !== 'undefined' && stats.sellerStats && stats.sellerStats.length > 0) {
     for (var i = 0; i < stats.sellerStats.length; i++) { var s=stats.sellerStats[i]; var bClass=s.balance> 0 ?
-        "text-danger" : "text-success";
-        sRows += "<tr>" +
-            "<td><strong>" + (s.name || "") + "</strong></td>" +
-            "<td>" + fmt(s.todayOrders) + " ta</td>" +
-            "<td>" + fmt(s.todaySales) + " so\'m</td>" +
-            "<td>" + fmt(s.todayRevenue) + " so\'m</td>" +
-            "<td class='text-info'>" + fmt(s.todayProfit) + " so\'m</td>" +
-            "<td class='fw-bold " + bClass + "'>" + fmt(s.balance) + " so\'m</td>" +
-            "</tr>";
+        'text-danger' : 'text-success';
+        sRows += '<tr>' +
+            '<td><strong>' + (s.name || '') + '</strong></td>' +
+            '<td>' + fmt(s.todayOrders) + ' ta</td>' +
+            '<td>' + fmt(s.todaySales) + " so'm</td>" +
+            '<td>' + fmt(s.todayRevenue) + " so'm</td>" +
+            "<td class='text-info'>" + fmt(s.todayProfit) + " so'm</td>" +
+            "<td class='fw-bold " + bClass + "'>" + fmt(s.balance) + " so'm</td>" +
+            '</tr>';
         }
         } else {
         sRows = "<tr>
-            <td colspan='6' class='text-center py-4 text-muted'>Ma\'lumot yo\'q</td>
+            <td colspan='6' class='text-center py-4 text-muted'>Malumot yoq</td>
         </tr>";
         }
 
@@ -24,15 +32,14 @@
             '<div class="btn-toolbar mb-2 mb-md-0">' +
                 '<a href="/admin/reports/export" class="btn btn-sm btn-outline-primary"><i
                         class="fas fa-file-excel me-1"></i>Excel Export</a>' +
-                '</div>' +
-            '</div>' +
-
+                '</div>
+        </div>' +
         '<div class="row mb-4">' +
             '<div class="col-md-3 mb-3">
                 <div class="card bg-primary text-white h-100">
                     <div class="card-body">' +
                         '<div class="small text-uppercase opacity-75">Bugungi Savdo</div>' +
-                        '<div class="h3 mb-0 fw-bold">' + fmt(stats.todaySales) + ' <small>so\'m</small></div>' +
+                        '<div class="h3 mb-0 fw-bold">' + fmt(stats.todaySales) + " <small>so'm</small></div>" +
                         '<div class="small mt-2">' + stats.todayOrders + ' ta buyurtma</div>' +
                         '</div>
                 </div>
@@ -41,7 +48,7 @@
                 <div class="card bg-success text-white h-100">
                     <div class="card-body">' +
                         '<div class="small text-uppercase opacity-75">Bugungi Kirim</div>' +
-                        '<div class="h3 mb-0 fw-bold">' + fmt(stats.todayRevenue) + ' <small>so\'m</small></div>' +
+                        '<div class="h3 mb-0 fw-bold">' + fmt(stats.todayRevenue) + " <small>so'm</small></div>" +
                         '</div>
                 </div>
             </div>' +
@@ -49,7 +56,7 @@
                 <div class="card bg-info text-white h-100">
                     <div class="card-body">' +
                         '<div class="small text-uppercase opacity-75">Bugungi Foyda</div>' +
-                        '<div class="h3 mb-0 fw-bold">' + fmt(stats.todayProfit) + ' <small>so\'m</small></div>' +
+                        '<div class="h3 mb-0 fw-bold">' + fmt(stats.todayProfit) + " <small>so'm</small></div>" +
                         '</div>
                 </div>
             </div>' +
@@ -57,18 +64,17 @@
                 <div class="card bg-danger text-white h-100">
                     <div class="card-body">' +
                         '<div class="small text-uppercase opacity-75">Umumiy Qarz</div>' +
-                        '<div class="h3 mb-0 fw-bold">' + fmt(stats.totalDebt) + ' <small>so\'m</small></div>' +
+                        '<div class="h3 mb-0 fw-bold">' + fmt(stats.totalDebt) + " <small>so'm</small></div>" +
                         '</div>
                 </div>
             </div>' +
             '</div>' +
-
         '<div class="row mb-4">' +
             '<div class="col-md-6 mb-3">
                 <div class="card h-100 border-start border-primary border-4">
                     <div class="card-body">' +
                         '<h6 class="text-muted text-uppercase small">Shu oygi tushum</h6>' +
-                        '<div class="h4 mb-0 fw-bold text-primary">' + fmt(stats.monthlyRevenue) + ' so\'m</div>' +
+                        '<div class="h4 mb-0 fw-bold text-primary">' + fmt(stats.monthlyRevenue) + " so'm</div>" +
                         '<div class="small text-muted mt-1">' + stats.monthlyOrders + ' ta buyurtma</div>' +
                         '</div>
                 </div>
@@ -77,37 +83,36 @@
                 <div class="card h-100 border-start border-success border-4">
                     <div class="card-body">' +
                         '<h6 class="text-muted text-uppercase small">Jami Foyda</h6>' +
-                        '<div class="h4 mb-0 fw-bold text-success">' + fmt(stats.totalProfit) + ' so\'m</div>' +
+                        '<div class="h4 mb-0 fw-bold text-success">' + fmt(stats.totalProfit) + " so'm</div>" +
                         '<div class="small text-muted mt-1">Barcha vaqtlar uchun</div>' +
                         '</div>
                 </div>
             </div>' +
             '</div>' +
-
         '<div class="card shadow-sm mb-4">' +
             '<div class="card-header bg-white py-3">' +
-                '<h5 class="card-title mb-0"><i class="fas fa-users-cog me-2 text-primary"></i>Sotuvchilar bo\'yicha
-                    hisobot (Bugun)</h5>' +
+                "<h5 class='card-title mb-0'><i class='fas fa-users-cog me-2 text-primary'></i>Sotuvchilar bo'yicha
+                    hisobot (Bugun)</h5>" +
                 '</div>' +
             '<div class="card-body p-0">
                 <div class="table-responsive">' +
                     '<table class="table table-hover align-middle mb-0">' +
                         '<thead class="table-light">
                             <tr>' +
-                                '<th class="ps-3">Sotuvchi</th>' +
-                                '<th>Buyurtmalar</th>' +
-                                '<th>Savdo</th>' +
-                                '<th>Kirim</th>' +
-                                '<th>Foyda</th>' +
-                                '<th class="pe-3">Kassa balansi</th>' +
-                                '</tr>
+                                '<th class="ps-3">Sotuvchi</th>
+                                <th>Buyurtmalar</th>
+                                <th>Savdo</th>
+                                <th>Kirim</th>
+                                <th>Foyda</th>
+                                <th class="pe-3">Kassa balansi</th>' +
+                                '
+                            </tr>
                         </thead>' +
                         '<tbody>' + sRows + '</tbody>' +
-                        '</table>' +
-                    '</div>
-            </div>' +
-            '</div>' +
-
+                        '</table>
+                </div>
+            </div>
+        </div>' +
         '<div class="row">' +
             '<div class="col-md-4 mb-3">
                 <div class="card text-center py-3 border-0 shadow-sm">
@@ -138,4 +143,4 @@
             </div>' +
             '</div>';
         -%>
-        <%- include(layout, { body: body, title: "Hisobotlar" }) %>
+        <%- include(layout, { body: body, title: 'Hisobotlar' }) %>
