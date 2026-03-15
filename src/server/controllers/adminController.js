@@ -3374,12 +3374,93 @@ const adminController = {
           { $group: { _id: null, total: { $sum: "$amount" } } },
         ]);
 
+        // Today's profit by seller
+        const sellerTodayProfitAgg = await Order.aggregate([
+          {
+            $match: {
+              seller: seller._id,
+              createdAt: { $gte: today, $lt: tomorrow },
+              status: { $ne: "cancelled" },
+            },
+          },
+          { $unwind: "$items" },
+          {
+            $lookup: {
+              from: "products",
+              localField: "items.product",
+              foreignField: "_id",
+              as: "productInfo",
+            },
+          },
+          {
+            $unwind: {
+              path: "$productInfo",
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              total: {
+                $sum: {
+                  $subtract: [
+                    {
+                      $ifNull: [
+                        "$items.totalPrice",
+                        {
+                          $multiply: [
+                            {
+                              $ifNull: [
+                                "$items.pricePerUnit",
+                                { $ifNull: ["$productInfo.sellPrice", 0] },
+                              ],
+                            },
+                            "$items.quantity",
+                          ],
+                        },
+                      ],
+                    },
+                    {
+                      $multiply: [
+                        {
+                          $cond: [
+                            {
+                              $gt: [
+                                { $ifNull: ["$productInfo.costPrice", 0] },
+                                {
+                                  $ifNull: [
+                                    "$items.pricePerUnit",
+                                    { $ifNull: ["$productInfo.sellPrice", 0] },
+                                  ],
+                                },
+                              ],
+                            },
+                            {
+                              $ifNull: [
+                                "$items.pricePerUnit",
+                                { $ifNull: ["$productInfo.sellPrice", 0] },
+                              ],
+                            },
+                            { $ifNull: ["$productInfo.costPrice", 0] },
+                          ],
+                        },
+                        "$items.quantity",
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        ]);
+
         sellerStats.push({
           name: `${seller.firstName} ${seller.lastName || ""}`.trim(),
           balance: seller.balance || 0,
           todaySales: sellerTodaySalesAgg[0]?.total || 0,
           todayOrders: sellerTodaySalesAgg[0]?.count || 0,
           todayRevenue: sellerTodayRevenueAgg[0]?.total || 0,
+          todayProfit: sellerTodayProfitAgg[0]?.total || 0,
         });
       }
 
