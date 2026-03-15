@@ -40,21 +40,31 @@ const adminController = {
   async login(req, res) {
     try {
       const { username, password } = req.body;
+      console.log(`🔐 Login attempt: ${username}`);
 
       // 1. Check if Admin (Env variables)
+      const envAdminUser = (process.env.ADMIN_USERNAME || "").trim();
+      const envAdminPass = (process.env.ADMIN_PASSWORD || "").trim();
+      const envAdmin2User = (process.env.ADMIN2_USERNAME || "").trim();
+      const envAdmin2Pass = (process.env.ADMIN2_PASSWORD || "").trim();
+
       if (
-        username === process.env.ADMIN_USERNAME &&
-        password === process.env.ADMIN_PASSWORD
+        (username === envAdminUser && password === envAdminPass) ||
+        (envAdmin2User &&
+          username === envAdmin2User &&
+          password === envAdmin2Pass)
       ) {
+        console.log(`✅ Admin login success: ${username}`);
         req.session.adminAuth = true;
         req.session.role = "admin";
         req.session.adminUser = {
-          name: "Admin",
-          username: process.env.ADMIN_USERNAME,
+          name: username === envAdminUser ? "Admin" : "MuzAdmin",
+          username: username,
           role: "admin",
         };
         return res.redirect("/admin/dashboard");
       }
+      console.log(`❌ Admin credentials mismatch for: ${username}`);
 
       // 2. Check if Seller
       const seller = await Seller.findOne({ username });
@@ -1049,6 +1059,10 @@ const adminController = {
         // Add seller or admin info
         if (req.session.role === "seller" && req.session.sellerId) {
           payment.seller = req.session.sellerId;
+          const { Seller } = require("../models");
+          await Seller.findByIdAndUpdate(req.session.sellerId, {
+            $inc: { balance: paymentAmount },
+          });
         } else if (req.session.adminUser?.name) {
           payment.adminName = req.session.adminUser.name;
         }
@@ -1167,6 +1181,14 @@ const adminController = {
       // Update user's total debt
       if (order.client) {
         await User.updateUserTotalDebt(order.client);
+      }
+
+      // Decrease seller balance if applicable
+      if (payment.seller) {
+        const { Seller } = require("../models");
+        await Seller.findByIdAndUpdate(payment.seller, {
+          $inc: { balance: -payment.amount },
+        });
       }
 
       // Delete payment
@@ -1697,6 +1719,10 @@ const adminController = {
 
             if (req.session.role === "seller" && req.session.sellerId) {
               payment.seller = req.session.sellerId;
+              const { Seller } = require("../models");
+              await Seller.findByIdAndUpdate(req.session.sellerId, {
+                $inc: { balance: payAmount },
+              });
             } else if (req.session.adminUser?.name) {
               payment.adminName = req.session.adminUser.name;
             }
@@ -1806,6 +1832,14 @@ const adminController = {
 
       // Update user's total debt
       await User.updateUserTotalDebt(userId);
+
+      // Decrease seller balance if applicable
+      if (payment.seller) {
+        const { Seller } = require("../models");
+        await Seller.findByIdAndUpdate(payment.seller, {
+          $inc: { balance: -payment.amount },
+        });
+      }
 
       // Delete payment
       await Payment.findByIdAndDelete(paymentId);
@@ -2237,6 +2271,23 @@ const adminController = {
     } catch (error) {
       console.error("❌ Remove seller error:", error);
       res.redirect("/admin/sellers?error=remove_failed");
+    }
+  },
+
+  // Collect seller cash
+  async collectSellerCash(req, res) {
+    try {
+      const seller = await Seller.findById(req.params.id);
+      if (!seller) {
+        return res.redirect("/admin/sellers?error=not_found");
+      }
+      seller.balance = 0;
+      await seller.save();
+
+      res.redirect("/admin/sellers?success=cash_collected");
+    } catch (error) {
+      console.error("❌ Collect seller cash error:", error);
+      res.redirect("/admin/sellers?error=collect_failed");
     }
   },
 
@@ -3290,6 +3341,48 @@ const adminController = {
           ? Math.round((totalRevenue[0]?.total || 0) / totalOrders)
           : 0;
 
+      const sellers = await Seller.find();
+      let sellerStats = [];
+
+      for (const seller of sellers) {
+        // Today's total sales by seller
+        const sellerTodaySalesAgg = await Order.aggregate([
+          {
+            $match: {
+              seller: seller._id,
+              createdAt: { $gte: today, $lt: tomorrow },
+              status: { $ne: "cancelled" },
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: "$totalSum" },
+              count: { $sum: 1 },
+            },
+          },
+        ]);
+
+        // Today's revenue by seller
+        const sellerTodayRevenueAgg = await Payment.aggregate([
+          {
+            $match: {
+              seller: seller._id,
+              createdAt: { $gte: today, $lt: tomorrow },
+            },
+          },
+          { $group: { _id: null, total: { $sum: "$amount" } } },
+        ]);
+
+        sellerStats.push({
+          name: `${seller.firstName} ${seller.lastName || ""}`.trim(),
+          balance: seller.balance || 0,
+          todaySales: sellerTodaySalesAgg[0]?.total || 0,
+          todayOrders: sellerTodaySalesAgg[0]?.count || 0,
+          todayRevenue: sellerTodayRevenueAgg[0]?.total || 0,
+        });
+      }
+
       return {
         totalRevenue: totalRevenue[0]?.total || 0,
         totalSales: totalSales[0]?.total || 0,
@@ -3304,6 +3397,7 @@ const adminController = {
         monthlyRevenue: monthlyRevenue[0]?.total || 0,
         totalDebt: totalDebt[0]?.total || 0,
         totalProfit: totalProfit[0]?.total || 0,
+        sellerStats,
       };
     } catch (error) {
       console.error("❌ Get detailed statistics error:", error);
@@ -3321,6 +3415,7 @@ const adminController = {
         monthlyRevenue: 0,
         totalDebt: 0,
         totalProfit: 0,
+        sellerStats: [],
       };
     }
   },

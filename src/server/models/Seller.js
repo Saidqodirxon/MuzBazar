@@ -42,6 +42,10 @@ const sellerSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    balance: {
+      type: Number,
+      default: 0, // Admin'ga topshirilishi kerak bo'lgan summa (kassada yig'ilgan)
+    },
   },
   {
     timestamps: true,

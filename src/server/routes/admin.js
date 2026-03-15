@@ -75,6 +75,7 @@ router.get("/sellers", adminController.sellers);
 router.post("/sellers/add", adminController.addSeller);
 router.post("/sellers/:id/toggle", adminController.toggleSellerStatus);
 router.post("/sellers/:id/remove", adminController.removeSeller);
+router.post("/sellers/:id/collect-cash", adminController.collectSellerCash);
 
 // Debts
 router.get("/debts", adminController.debts);
