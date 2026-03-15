@@ -2281,8 +2281,27 @@ const adminController = {
       if (!seller) {
         return res.redirect("/admin/sellers?error=not_found");
       }
-      seller.balance = 0;
-      await seller.save();
+
+      const currentBalance = seller.balance || 0;
+      if (currentBalance > 0) {
+        // Add to history
+        seller.cashCollections.push({
+          amount: currentBalance,
+          collectedAt: new Date(),
+        });
+
+        // Reset balance
+        seller.balance = 0;
+
+        // Keep only last 7 days of history
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        seller.cashCollections = seller.cashCollections.filter(
+          (c) => c.collectedAt >= sevenDaysAgo
+        );
+
+        await seller.save();
+      }
 
       res.redirect("/admin/sellers?success=cash_collected");
     } catch (error) {

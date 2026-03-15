@@ -46,6 +46,12 @@ const sellerSchema = new mongoose.Schema(
       type: Number,
       default: 0, // Admin'ga topshirilishi kerak bo'lgan summa (kassada yig'ilgan)
     },
+    cashCollections: [
+      {
+        amount: { type: Number, required: true },
+        collectedAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   {
     timestamps: true,

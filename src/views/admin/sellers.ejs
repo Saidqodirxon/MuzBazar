@@ -7,6 +7,16 @@
     const bClass = bal > 0 ? "text-danger" : "text-success";
     const created = typeof moment !== 'undefined' ? moment(s.createdAt).utcOffset(5).format('DD/MM/YYYY') : '';
 
+    let historyHtml = "";
+    if (s.cashCollections && s.cashCollections.length > 0) {
+    historyHtml = "<div class='mt-1 border-top pt-1' style='font-size: 0.75rem; max-height: 80px; overflow-y: auto;'>";
+        s.cashCollections.sort((a, b) => new Date(b.collectedAt) - new Date(a.collectedAt)).forEach(hc => {
+        const dateStr = typeof moment !== 'undefined' ? moment(hc.collectedAt).utcOffset(5).format('DD/MM HH:mm') : '';
+        historyHtml += `<div class='text-muted'>${dateStr}: <b>${fmt(hc.amount)}</b></div>`;
+        });
+        historyHtml += "</div>";
+    }
+
     tableRows += `
     <tr>
         <td>
@@ -15,7 +25,10 @@
         </td>
         <td>${s.phone || "-"}</td>
         <td>${s.username || ""}</td>
-        <td class="fw-bold ${bClass}">${fmt(bal)} so'm</td>
+        <td>
+            <div class="fw-bold ${bClass}">${fmt(bal)} so'm</div>
+            ${historyHtml}
+        </td>
         <td><span class="badge bg-${sClass}">${sText}</span></td>
         <td>${created}</td>
         <td>
