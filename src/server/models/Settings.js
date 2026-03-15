@@ -224,6 +224,16 @@ settingsSchema.statics.initDefaults = async function () {
     const exists = await this.findOne({ key: setting.key });
     if (!exists) {
       await this.create(setting);
+    } else if (
+      (setting.key === "notification_group_id" ||
+        setting.key === "seller_group_id") &&
+      setting.value &&
+      exists.value !== setting.value
+    ) {
+      // Sync from .env if it exists and differs from DB
+      exists.value = setting.value;
+      await exists.save();
+      console.log(`🔄 Synced ${setting.key} from .env to database`);
     }
   }
 };

@@ -1,89 +1,117 @@
-<%
-const layout = '../layouts/layout.ejs';
-
-function fmt(n) {
-    return (n || 0).toLocaleString('ru-RU');
-}
-
-let tableRows = "";
-if (typeof sellers !== 'undefined' && sellers && sellers.length > 0) {
+<% const layout='../layouts/layout.ejs' ; function fmt(n) { return (n || 0).toLocaleString('ru-RU'); } let tableRows=""
+    ; if (typeof sellers !=='undefined' && sellers && sellers.length> 0) {
     sellers.forEach(s => {
-        const sClass = s.isActive ? "success" : "danger";
-        const sText = s.isActive ? "Aktiv" : "Nofaol";
-        const bal = s.balance || 0;
-        const bClass = bal > 0 ? "text-danger" : "text-success";
-        const created = typeof moment !== 'undefined' ? moment(s.createdAt).utcOffset(5).format('DD/MM/YYYY') : '';
-        
-        tableRows += "<tr>" +
-            "<td><strong>" + (s.firstName || "") + " " + (s.lastName || "") + "</strong>" +
+    const sClass = s.isActive ? "success" : "danger";
+    const sText = s.isActive ? "Aktiv" : "Nofaol";
+    const bal = s.balance || 0;
+    const bClass = bal > 0 ? "text-danger" : "text-success";
+    const created = typeof moment !== 'undefined' ? moment(s.createdAt).utcOffset(5).format('DD/MM/YYYY') : '';
+
+    tableRows += "<tr>" +
+        "<td><strong>" + (s.firstName || "") + " " + (s.lastName || "") + "</strong>" +
             (s.username ? "<br><small class='text-muted'>@" + s.username + "</small>" : "") + "</td>" +
-            "<td>" + (s.phone || "-") + "</td>" +
-            "<td>" + (s.username || "") + "</td>" +
-            "<td class='fw-bold " + bClass + "'>" + fmt(bal) + " so'm</td>" +
-            "<td><span class='badge bg-" + sClass + "'>" + sText + "</span></td>" +
-            "<td>" + created + "</td>" +
-            "<td>" +
-                "<form method='POST' action='/admin/sellers/" + s._id + "/toggle' class='d-inline'>" +
-                    "<button type='submit' class='btn btn-sm btn-outline-" + (s.isActive ? "warning" : "success") + "' title='Status'>" +
-                        "<i class='fas fa-" + (s.isActive ? "ban" : "check") + "'></i>" +
+        "<td>" + (s.phone || "-") + "</td>" +
+        "<td>" + (s.username || "") + "</td>" +
+        "<td class='fw-bold " + bClass + "'>" + fmt(bal) + " so'm</td>" +
+        "<td><span class='badge bg-" + sClass + "'>" + sText + "</span></td>" +
+        "<td>" + created + "</td>" +
+        "<td>" +
+            "<form method='POST' action='/admin/sellers/" + s._id + "/toggle' class='d-inline'>" +
+                "<button type='submit' class='btn btn-sm btn-outline-" + (s.isActive ? "warning" : "success") + "'
+                    title='Status'>" +
+                    "<i class='fas fa-" + (s.isActive ? "ban" : "check") + "'></i>" +
                     "</button>" +
                 "</form> " +
-                "<form method='POST' action='/admin/sellers/" + s._id + "/remove' class='d-inline' onsubmit=\"return confirm('Ochirilsinmi?')\">" +
-                    "<button type='submit' class='btn btn-sm btn-outline-danger' title='Ochirish'>" +
-                        "<i class='fas fa-trash'></i>" +
+            "<form method='POST' action='/admin/sellers/" + s._id + "/remove' class='d-inline' onsubmit=\"return
+                confirm('Ochirilsinmi?');\">" +
+                "<button type='submit' class='btn btn-sm btn-outline-danger' title='Ochirish'>" +
+                    "<i class='fas fa-trash'></i>" +
                     "</button>" +
                 "</form> " +
-                (bal > 0 ? 
-                "<form method='POST' action='/admin/sellers/" + s._id + "/collect-cash' class='d-inline ms-1' onsubmit=\"return confirm('Pul qabul qilindimi?')\">" +
-                    "<button type='submit' class='btn btn-sm btn-success' title='Kassani bushatish'>" +
-                        "<i class='fas fa-hand-holding-usd'></i>" +
+            (bal > 0 ?
+            "<form method='POST' action='/admin/sellers/" + s._id + "/collect-cash' class='d-inline ms-1'
+                onsubmit=\"return confirm('Pul qabul qilindimi?');\">" +
+                "<button type='submit' class='btn btn-sm btn-success' title='Kassani bushatish'>" +
+                    "<i class='fas fa-hand-holding-usd'></i>" +
                     "</button>" +
                 "</form>" : "") +
             "</td>" +
         "</tr>";
     });
-} else {
-    tableRows = "<tr><td colspan='7' class='text-center py-4 text-muted'>Hali sotuvchilar yo'q</td></tr>";
-}
+    } else {
+    tableRows = "<tr>
+        <td colspan='7' class='text-center py-4 text-muted'>Hali sotuvchilar yo'q</td>
+    </tr>";
+    }
 
-const body = "<div class='d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom'>" +
-    "<h1 class='h2'><i class='fas fa-user-tie me-2'></i>Sotuvchilar</h1>" +
-    "<div class='btn-toolbar mb-2 mb-md-0'>" +
-        "<button type='button' class='btn btn-primary' data-bs-toggle='modal' data-bs-target='#addSellerModal'>" +
-            "<i class='fas fa-plus me-2'></i>Sotuvchi qoshish" +
-        "</button>" +
-    "</div>" +
-"</div>" +
-
-"<div class='row mb-4'>" +
-    "<div class='col-md-4'>" +
-        "<div class='card bg-primary text-white'><div class='card-body text-center'>" +
-            "<i class='fas fa-users fa-2x mb-2'></i><h4>" + (sellers ? sellers.length : 0) + "</h4><p class='mb-0'>Jami</p>" +
-        "</div></div>" +
-    "</div>" +
-"</div>" +
-
-"<div class='card'><div class='card-body'><div class='table-responsive'>" +
-    "<table class='table table-hover'>" +
-        "<thead class='table-light'><tr><th>Ism</th><th>Tel</th><th>Login</th><th>Kassa</th><th>Status</th><th>Sana</th><th>Amallar</th></tr></thead>" +
-        "<tbody>" + tableRows + "</tbody>" +
-    "</table>" +
-"</div></div></div>" +
-
-"<div class='modal fade' id='addSellerModal' tabindex='-1'>" +
-    "<div class='modal-dialog'><div class='modal-content'>" +
-        "<div class='modal-header'><h5 class='modal-title'>Yangi sotuvchi qoshish</h5><button type='button' class='btn-close' data-bs-dismiss='modal'></button></div>" +
-        "<form method='POST' action='/admin/sellers/add'>" +
-            "<div class='modal-body'>" +
-                "<div class='mb-3'><label class='form-label'>Ism</label><input type='text' name='firstName' class='form-control' required></div>" +
-                "<div class='mb-3'><label class='form-label'>Familiya</label><input type='text' name='lastName' class='form-control'></div>" +
-                "<div class='mb-3'><label class='form-label'>Login</label><input type='text' name='username' class='form-control' required></div>" +
-                "<div class='mb-3'><label class='form-label'>Parol</label><input type='password' name='password' class='form-control' required></div>" +
-                "<div class='mb-3'><label class='form-label'>Tel</label><input type='text' name='phone' class='form-control'></div>" +
+    const body = "<div
+        class='d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom'>" +
+        "<h1 class='h2'><i class='fas fa-user-tie me-2'></i>Sotuvchilar</h1>" +
+        "<div class='btn-toolbar mb-2 mb-md-0'>" +
+            "<button type='button' class='btn btn-primary' data-bs-toggle='modal' data-bs-target='#addSellerModal'>" +
+                "<i class='fas fa-plus me-2'></i>Sotuvchi qoshish" +
+                "</button>" +
             "</div>" +
-            "<div class='modal-footer'><button type='submit' class='btn btn-primary'>Saqlash</button></div>" +
-        "</form>" +
-    "</div></div>" +
-"</div>";
-%>
-<%- include(layout, { body: body, title: 'Sotuvchilar' }) %>
+        "</div>" +
+
+    "<div class='row mb-4'>" +
+        "<div class='col-md-4'>" +
+            "<div class='card bg-primary text-white'>
+                <div class='card-body text-center'>" +
+                    "<i class='fas fa-users fa-2x mb-2'></i>
+                    <h4>" + (sellers ? sellers.length : 0) + "</h4>
+                    <p class='mb-0'>Jami</p>" +
+                    "
+                </div>
+            </div>" +
+            "</div>" +
+        "</div>" +
+
+    "<div class='card'>
+        <div class='card-body'>
+            <div class='table-responsive'>" +
+                "<table class='table table-hover'>" +
+                    "<thead class='table-light'>
+                        <tr>
+                            <th>Ism</th>
+                            <th>Tel</th>
+                            <th>Login</th>
+                            <th>Kassa</th>
+                            <th>Status</th>
+                            <th>Sana</th>
+                            <th>Amallar</th>
+                        </tr>
+                    </thead>" +
+                    "<tbody>" + tableRows + "</tbody>" +
+                    "</table>" +
+                "</div>
+        </div>
+    </div>" +
+
+    "<div class='modal fade' id='addSellerModal' tabindex='-1'>" +
+        "<div class='modal-dialog'>
+            <div class='modal-content'>" +
+                "<div class='modal-header'>
+                    <h5 class='modal-title'>Yangi sotuvchi qoshish</h5><button type='button' class='btn-close'
+                        data-bs-dismiss='modal'></button>
+                </div>" +
+                "<form method='POST' action='/admin/sellers/add'>" +
+                    "<div class='modal-body'>" +
+                        "<div class='mb-3'><label class='form-label'>Ism</label><input type='text' name='firstName'
+                                class='form-control' required></div>" +
+                        "<div class='mb-3'><label class='form-label'>Familiya</label><input type='text' name='lastName'
+                                class='form-control'></div>" +
+                        "<div class='mb-3'><label class='form-label'>Login</label><input type='text' name='username'
+                                class='form-control' required></div>" +
+                        "<div class='mb-3'><label class='form-label'>Parol</label><input type='password' name='password'
+                                class='form-control' required></div>" +
+                        "<div class='mb-3'><label class='form-label'>Tel</label><input type='text' name='phone'
+                                class='form-control'></div>" +
+                        "</div>" +
+                    "<div class='modal-footer'><button type='submit' class='btn btn-primary'>Saqlash</button></div>" +
+                    "</form>" +
+                "</div>
+        </div>" +
+        "</div>";
+    %>
+    <%- include(layout, { body: body, title: 'Sotuvchilar' }) %>
