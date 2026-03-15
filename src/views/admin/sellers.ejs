@@ -22,15 +22,15 @@
                     "<i class='fas fa-" + (s.isActive ? "ban" : "check") + "'></i>" +
                     "</button>" +
                 "</form> " +
-            "<form method='POST' action='/admin/sellers/" + s._id + "/remove' class='d-inline' onsubmit=\"return
-                confirm('Ochirilsinmi?');\">" +
+            "<form method='POST' action='/admin/sellers/" + s._id + "/remove' class='d-inline' onsubmit="return
+                confirm('Ochirilsinmi?');">" +
                 "<button type='submit' class='btn btn-sm btn-outline-danger' title='Ochirish'>" +
                     "<i class='fas fa-trash'></i>" +
                     "</button>" +
                 "</form> " +
             (bal > 0 ?
             "<form method='POST' action='/admin/sellers/" + s._id + "/collect-cash' class='d-inline ms-1'
-                onsubmit=\"return confirm('Pul qabul qilindimi?');\">" +
+                onsubmit="return confirm('Pul qabul qilindimi?');">" +
                 "<button type='submit' class='btn btn-sm btn-success' title='Kassani bushatish'>" +
                     "<i class='fas fa-hand-holding-usd'></i>" +
                     "</button>" +
