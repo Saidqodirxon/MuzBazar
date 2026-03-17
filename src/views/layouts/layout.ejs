@@ -616,7 +616,7 @@
     <script>
         (function() {
             const SECRET_CODE = "0000";
-            const AUTH_DURATION = 2 * 60 * 1000; // 2 minutes in ms
+            const AUTH_DURATION = 24 * 60 * 60 * 1000; // 24 hours instead of 2 minutes
             const authModal = new bootstrap.Modal(document.getElementById('privacyAuthModal'));
             const codeInput = document.getElementById('privacySecretCode');
             const errorDiv = document.getElementById('privacyAuthError');
@@ -734,13 +734,8 @@
                 updateUIState(saved === 'on' || !saved);
             }
 
-            // Periodic check to auto-lock after 2 minutes
-            setInterval(() => {
-                if (!isAuthorized() && !document.body.classList.contains('privacy-on')) {
-                    updateUIState(true);
-                    localStorage.setItem('privacyMode', 'on');
-                }
-            }, 5000);
+            // Auto-lock timer removed by user request
+
 
         })();
     </script>
