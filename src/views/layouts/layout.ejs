@@ -345,6 +345,16 @@
                 font-size: 13px;
             }
         }
+        /* Privacy Toggle */
+        .sensitive-data {
+            transition: all 0.2s;
+        }
+        
+        body.privacy-on .sensitive-data {
+            filter: blur(8px);
+            user-select: none;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -536,6 +546,69 @@
             });
         }
     </script>
+    
+    <!-- Privacy Toggle Script -->
+    <script>
+        (function() {
+            // Check saved preference or default to ON
+            let privacyOn = localStorage.getItem('privacyMode') !== 'off';
+            
+            function updateState() {
+                if (privacyOn) {
+                    document.body.classList.add('privacy-on');
+                    localStorage.setItem('privacyMode', 'on');
+                } else {
+                    document.body.classList.remove('privacy-on');
+                    localStorage.setItem('privacyMode', 'off');
+                }
+                
+                const toggles = document.querySelectorAll('.privacy-toggle-btn');
+                toggles.forEach(btn => {
+                    const icon = btn.querySelector('i');
+                    if (icon) {
+                        if (privacyOn) {
+                            icon.className = 'fas fa-eye-slash';
+                            btn.title = "Ma'lumotlarni ko'rsatish";
+                            if (btn.classList.contains('floating-privacy-btn')) {
+                                btn.classList.add('btn-danger');
+                                btn.classList.remove('btn-success');
+                            }
+                        } else {
+                            icon.className = 'fas fa-eye';
+                            btn.title = "Ma'lumotlarni yashirish";
+                            if (btn.classList.contains('floating-privacy-btn')) {
+                                btn.classList.remove('btn-danger');
+                                btn.classList.add('btn-success');
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Initialize
+            updateState();
+            
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.privacy-toggle-btn')) {
+                    e.preventDefault();
+                    privacyOn = !privacyOn;
+                    updateState();
+                }
+            });
+        })();
+    </script>
+
+    <% 
+    const privacyPages = ['Admin Dashboard', 'Hisobotlar', 'Mahsulotlar', 'Foydalanuvchilar', 'Sotuvchilar', 'Qarzdorlik boshqaruvi', 'Buyurtmalar'];
+    if (privacyPages.includes(title)) { 
+    %>
+    <!-- Floating Privacy Toggle -->
+    <button class="privacy-toggle-btn floating-privacy-btn btn btn-lg shadow-lg position-fixed bottom-0 end-0 m-4 rounded-circle d-flex align-items-center justify-content-center" 
+            style="width: 60px; height: 60px; z-index: 9999; border: 2px solid white;">
+        <i class="fas fa-eye-slash"></i>
+    </button>
+    <% } %>
+
     
     <!-- Toast Container -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 9999;">

@@ -9,6 +9,9 @@ const {
 const moment = require("moment");
 const bcrypt = require("bcrypt");
 
+// In-memory locks to prevent duplicate submissions
+const paymentLocks = new Map();
+
 const adminController = {
   // Show login page
   async showLogin(req, res) {
@@ -1023,37 +1026,50 @@ const adminController = {
           );
         }
 
-        // Check if payment exceeds debt
+        // Check if payment exceeds debt - handle surplus by moving to balance
+        let payToOrder = paymentAmount;
+        let surplus = 0;
+
         if (paymentAmount > order.debt) {
-          return res.redirect(
-            `/admin/orders/${req.params.id}?error=amount_exceeds_debt&debt=${order.debt}`
-          );
+            payToOrder = order.debt;
+            surplus = paymentAmount - order.debt;
         }
 
-        // Add payment
+        // Add payment to order
         const previousPaidSum = order.paidSum || 0;
-        order.paidSum = previousPaidSum + paymentAmount;
+        order.paidSum = previousPaidSum + payToOrder;
         order.debt = Math.max(0, order.totalSum - order.paidSum);
 
         console.log(
-          `✅ After payment - Total: ${order.totalSum}, Paid: ${order.paidSum} (was: ${previousPaidSum}), Debt: ${order.debt}`
+          `✅ After payment - Total: ${order.totalSum}, Paid: ${order.paidSum} (was: ${previousPaidSum}), Debt: ${order.debt}, Surplus: ${surplus}`
         );
 
         // Save order first
         await order.save();
+
+        // Update surplus to user balance
+        if (surplus > 0 && order.client) {
+            const user = await User.findById(order.client._id);
+            if (user) {
+                user.balance = (user.balance || 0) + surplus;
+                await user.save();
+                console.log(`➕ Surplus of ${surplus} added to user ${user._id} balance.`);
+            }
+        }
 
         // Update user's total debt
         if (order.client) {
           await User.updateUserTotalDebt(order.client._id);
         }
 
-        // Create Payment record
+        // Create Payment record for full amount? 
+        // Or separate? Let's use full amount but attached to order (even if it exceeded)
         const payment = new Payment({
           order: order._id,
           client: order.client._id,
-          amount: paymentAmount,
+          amount: paymentAmount, // Store full amount in payment history
           paymentMethod: "cash",
-          notes: "Admin panel orqali to'lov qabul qilindi",
+          notes: "Admin panel orqali to'lov qabul qilindi (Buyurtma)",
         });
 
         // Add seller or admin info
@@ -1631,6 +1647,17 @@ const adminController = {
         );
       }
 
+      // 🛑 IDEMPOTENCY CHECK: Prevent duplicate submissions within 5 seconds
+      const lockKey = `${req.params.id}-${paymentAmount}-${type || 'subtract'}`;
+      const now = Date.now();
+      if (paymentLocks.has(lockKey) && (now - paymentLocks.get(lockKey)) < 5000) {
+        console.warn(`🛑 Duplicate payment attempt blocked: ${lockKey}`);
+        return res.redirect(`/admin/users/${req.params.id}?error=duplicate_submission&message=To'lov allaqachon jarayonda, kuting.`);
+      }
+      paymentLocks.set(lockKey, now);
+      // Clean up lock after 5 seconds
+      setTimeout(() => paymentLocks.delete(lockKey), 5000);
+
       // Default to 'subtract' (Payment received) if not specified
       if (!type) type = "subtract";
 
@@ -1655,7 +1682,11 @@ const adminController = {
         // 2. If orderId is provided, prepand it to pay first
         if (orderId) {
           const specificOrder = await Order.findById(orderId);
-          if (specificOrder && specificOrder.status !== "cancelled") {
+          if (
+            specificOrder &&
+            specificOrder.status !== "cancelled" &&
+            specificOrder.debt > 0
+          ) {
             // Remove from list if already there to avoid double payment
             ordersToPay = ordersToPay.filter(
               (o) => o._id.toString() !== orderId
@@ -1664,49 +1695,16 @@ const adminController = {
           }
         }
 
-        // 3. If no orders with debt, find ANY latest order to apply surplus to
-        if (ordersToPay.length === 0) {
-          let lastOrder = await Order.findOne({
-            client: user._id,
-            status: { $ne: "cancelled" },
-          }).sort({ createdAt: -1 });
-
-          if (!lastOrder) {
-            // Create a generic "Balans" order if no orders at all
-            lastOrder = new Order({
-              client: user._id,
-              orderNumber: "B-" + Date.now().toString().slice(-6),
-              items: [],
-              totalSum: 0,
-              paidSum: 0,
-              debt: 0,
-              status: "confirmed",
-            });
-            await lastOrder.save();
-          }
-          ordersToPay.push(lastOrder);
-        }
-
-        // 4. Distribute payment
+        // 3. Distribute payment to orders
         for (const order of ordersToPay) {
           if (remainingAmount <= 0) break;
 
-          // If it's the last eligible order, it takes the rest (surplus)
-          let payAmount;
-          const isLastInList =
-            ordersToPay.indexOf(order) === ordersToPay.length - 1;
+          // Capped payment: only pay what is owed
+          const payAmount = Math.min(remainingAmount, Math.max(0, order.debt));
 
-          if (isLastInList) {
-            // Take all remaining money, potentially making debt negative (surplus)
-            payAmount = remainingAmount;
-          } else {
-            // Standard FIFO: only pay what is owed
-            payAmount = Math.min(remainingAmount, Math.max(0, order.debt));
-          }
-
-          if (payAmount !== 0) {
+          if (payAmount > 0) {
             order.paidSum = (order.paidSum || 0) + payAmount;
-            order.debt = (order.totalSum || 0) - order.paidSum;
+            order.debt = Math.max(0, (order.totalSum || 0) - order.paidSum);
             await order.save();
 
             const payment = new Payment({
@@ -1733,6 +1731,18 @@ const adminController = {
           }
         }
 
+        // 4. Surplus Handling: Add remaining amount to user balance
+        if (remainingAmount > 0) {
+          user.balance = (user.balance || 0) + remainingAmount;
+          await user.save();
+
+          // If no orders were paid but balance was increased, create a generic payment record
+          // or just ensure the notification mentions the balance.
+          console.log(
+            `➕ Surplus of ${remainingAmount} added to user ${user._id} balance.`
+          );
+        }
+
         // Update user total debt
         await User.updateUserTotalDebt(user._id);
 
@@ -1743,17 +1753,32 @@ const adminController = {
           try {
             const fmt = (n) =>
               n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-            await notificationService.sendToUser(
-              user.telegramId,
-              `💰 <b>To'lov qabul qilindi</b>\n\n` +
-                `💵 Summa: <b>${fmt(paymentAmount)} so'm</b>\n` +
-                `📊 Holat: ${processedOrders.length} ta buyurtma yangilandi.`,
-              { parse_mode: "HTML" }
-            );
+            let message = `💰 <b>To'lov qabul qilindi</b>\n\n` +
+                `💵 Summa: <b>${fmt(paymentAmount)} so'm</b>\n`;
+            
+            if (processedOrders.length > 0) {
+                message += `📊 Holat: ${processedOrders.length} ta buyurtma yangilandi.\n`;
+            }
+            if (remainingAmount > 0) {
+                message += `💳 Balans: <b>+${fmt(remainingAmount)} so'm</b> (Hozirgi: ${fmt(user.balance)} so'm)`;
+            }
+
+            await notificationService.sendToUser(user.telegramId, message, { parse_mode: "HTML" });
           } catch (e) {}
         }
       } else {
         // RECORDING NEW DEBT / EXPENSE (Increases debt)
+        let amountToDebt = paymentAmount;
+        let amountFromBalance = 0;
+
+        // Use user balance first if available
+        if (user.balance > 0) {
+          amountFromBalance = Math.min(amountToDebt, user.balance);
+          user.balance -= amountFromBalance;
+          amountToDebt -= amountFromBalance;
+          await user.save();
+        }
+
         let order;
         if (orderId) {
           order = await Order.findById(orderId);
@@ -1778,7 +1803,25 @@ const adminController = {
           }
         }
 
+        // Add the new debt to totalSum
         order.totalSum = (order.totalSum || 0) + paymentAmount;
+        
+        // The payment from balance (if any) is added to paidSum
+        if (amountFromBalance > 0) {
+            order.paidSum = (order.paidSum || 0) + amountFromBalance;
+            
+            // Create a payment record for the portion taken from balance
+            const balancePayment = new Payment({
+                order: order._id,
+                client: user._id,
+                amount: amountFromBalance,
+                paymentMethod: "balance",
+                notes: "Balansdan yopildi",
+                adminName: req.session.adminUser?.name || "System"
+            });
+            await balancePayment.save();
+        }
+
         order.debt = order.totalSum - (order.paidSum || 0);
         if (notes) order.notes = (order.notes || "") + "\n" + notes;
         await order.save();
@@ -1791,13 +1834,15 @@ const adminController = {
           try {
             const fmt = (n) =>
               n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-            await notificationService.sendToUser(
-              user.telegramId,
-              `📋 <b>Qarz yozildi</b>\n\n` +
-                `➕ Summa: <b>+${fmt(paymentAmount)} so'm</b>\n` +
-                `🆔 Buyurtma: #${order.orderNumber}`,
-              { parse_mode: "HTML" }
-            );
+            let msg = `📋 <b>Qarz yozildi</b>\n\n` +
+                `➕ Summa: <b>+${fmt(paymentAmount)} so'm</b>\n`;
+            
+            if (amountFromBalance > 0) {
+                msg += `💳 Balansdan: <b>-${fmt(amountFromBalance)} so'm</b>\n`;
+            }
+            msg += `🆔 Buyurtma: #${order.orderNumber}`;
+            
+            await notificationService.sendToUser(user.telegramId, msg, { parse_mode: "HTML" });
           } catch (e) {}
         }
       }

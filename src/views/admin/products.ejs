@@ -43,7 +43,7 @@ if (products.length === 0) {
                             <td>${categoryName}</td>
                             <td>${formattedPrice} so'm</td>
                             <td>
-                                <span class="badge ${product.stock <= product.minStock ? 'bg-warning' : 'bg-success'}">
+                                <span class="badge ${product.stock <= product.minStock ? 'bg-warning' : 'bg-success'} sensitive-data">
                                     ${product.stock}
                                 </span>
                             </td>

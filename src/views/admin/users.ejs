@@ -67,9 +67,9 @@ if (users.length === 0) {
             '<td>' + nameCell + '</td>' +
             '<td>' + phoneCell + '</td>' +
             '<td>' + (u.orderCount || 0) + '</td>' +
-            '<td>' + fmt(u.totalSpent) + '</td>' +
-            '<td>' + fmt(u.totalPaid) + '</td>' +
-            '<td><span class="' + debtClass + '">' + fmt(u.totalDebt) + '</span></td>' +
+            '<td><span class="sensitive-data">' + fmt(u.totalSpent) + '</span></td>' +
+            '<td><span class="sensitive-data">' + fmt(u.totalPaid) + '</span></td>' +
+            '<td><span class="' + debtClass + ' sensitive-data">' + fmt(u.totalDebt) + '</span></td>' +
             '<td>' + statusCell + '</td>' +
             '<td>' + moment(u.createdAt).utcOffset(5).format('DD/MM/YYYY') + '</td>' +
             '<td>' + actionsCell + '</td></tr>';
