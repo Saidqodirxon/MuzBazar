@@ -547,6 +547,45 @@
         }
     </script>
     
+    <!-- Global Loading & Prevent Double Submission -->
+    <script>
+        document.addEventListener('submit', function(e) {
+            const form = e.target;
+            const submitBtn = form.querySelector('button[type="submit"]');
+            
+            // Skip if the button specifies no loading
+            if (submitBtn && !submitBtn.classList.contains('no-loading')) {
+                // Prevent multiple clicks
+                submitBtn.disabled = true;
+                
+                // Add loading spinner
+                const originalText = submitBtn.innerHTML;
+                submitBtn.setAttribute('data-original-content', originalText);
+                
+                // Keep the same width to prevent layout shift if possible
+                const width = submitBtn.offsetWidth;
+                submitBtn.style.minWidth = width + 'px';
+                
+                submitBtn.innerHTML = `
+                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    Yuklanmoqda...
+                `;
+            }
+        });
+
+        // Also handle standard button clicks if they are marked for loading
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('.btn-loading');
+            if (btn && !btn.disabled) {
+                const form = btn.closest('form');
+                if (!form) { // If not in a form, handle manually (for links or JS actions)
+                    btn.disabled = true;
+                    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>...`;
+                }
+            }
+        });
+    </script>
+
     <!-- Privacy Toggle Script -->
     <script>
         (function() {
@@ -589,7 +628,8 @@
             updateState();
             
             document.addEventListener('click', function(e) {
-                if (e.target.closest('.privacy-toggle-btn')) {
+                const btn = e.target.closest('.privacy-toggle-btn');
+                if (btn) {
                     e.preventDefault();
                     privacyOn = !privacyOn;
                     updateState();
