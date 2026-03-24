@@ -24,7 +24,7 @@ if (!lowStockProducts || lowStockProducts.length === 0) {
         lowStockHtml += `
         <div class="list-group-item d-flex justify-content-between align-items-center">
             <div><strong>${product.name}</strong><br><small class="text-muted">Minimal: ${product.minStock}</small></div>
-            <span class="badge bg-warning rounded-pill sensitive-data">${product.stock} qoldi</span>
+            <span class="badge bg-warning rounded-pill">${product.stock} qoldi</span>
         </div>`;
     }
     lowStockHtml += '</div>';
@@ -51,9 +51,9 @@ if (!recentOrders || recentOrders.length === 0) {
         <tr>
             <td><strong>${order.orderNumber || ''}</strong></td>
             <td>${clientName}</td>
-            <td class="sensitive-data">${fmt(order.totalSum)} soʻm</td>
-            <td class="text-success sensitive-data">${fmt(order.totalPaid)} soʻm</td>
-            <td class="${debtColor} sensitive-data"><strong>${fmt(debt)} soʻm</strong></td>
+            <td>${fmt(order.totalSum)} soʻm</td>
+            <td class="text-success">${fmt(order.totalPaid)} soʻm</td>
+            <td class="${debtColor}"><strong>${fmt(debt)} soʻm</strong></td>
             <td><span class="badge bg-${statusClass}">${statusText}</span></td>
             <td>${orderDate}</td>
             <td><a href="/admin/orders/${order._id}" class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i></a></td>
@@ -85,7 +85,7 @@ var body = `
     <div class="col-xl-3 col-md-6 mb-4">
         <div class="card stat-card shadow-sm h-100">
             <div class="card-body text-center">
-                <div class="h5 font-weight-bold mb-1 sensitive-data">${stats.totalProducts}</div>
+                <div class="h5 font-weight-bold mb-1">${stats.totalProducts}</div>
                 <div class="small">Mahsulotlar</div>
                 <i class="fas fa-box fa-2x text-white-50 mt-2"></i>
             </div>
@@ -94,7 +94,7 @@ var body = `
     <div class="col-xl-3 col-md-6 mb-4">
         <div class="card stat-card shadow-sm h-100">
             <div class="card-body text-center">
-                <div class="h5 font-weight-bold mb-1 sensitive-data">${stats.totalOrders}</div>
+                <div class="h5 font-weight-bold mb-1">${stats.totalOrders}</div>
                 <div class="small">Buyurtmalar</div>
                 <i class="fas fa-shopping-cart fa-2x text-white-50 mt-2"></i>
             </div>
@@ -103,7 +103,7 @@ var body = `
     <div class="col-xl-3 col-md-6 mb-4">
         <div class="card stat-card shadow-sm h-100">
             <div class="card-body text-center">
-                <div class="h5 font-weight-bold mb-1 sensitive-data">${fmt(stats.totalDebt)} soʻm</div>
+                <div class="h5 font-weight-bold mb-1">${fmt(stats.totalDebt)} soʻm</div>
                 <div class="small">Umumiy qarzdorlik</div>
                 <i class="fas fa-money-bill-wave fa-2x text-white-50 mt-2"></i>
             </div>
@@ -112,7 +112,7 @@ var body = `
     <div class="col-xl-3 col-md-6 mb-4">
         <div class="card stat-card shadow-sm h-100">
             <div class="card-body text-center">
-                <div class="h5 font-weight-bold mb-1 sensitive-data">${stats.todayOrders}</div>
+                <div class="h5 font-weight-bold mb-1">${stats.todayOrders}</div>
                 <div class="small">Bugungi buyurtmalar</div>
                 <i class="fas fa-calendar-day fa-2x text-white-50 mt-2"></i>
             </div>
@@ -124,16 +124,22 @@ var body = `
     <div class="col-xl-4 col-md-6 mb-4">
         <div class="card border-left-primary shadow-sm h-100 py-2">
             <div class="card-body">
-                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Bugungi savdo</div>
-                <div class="h5 mb-0 font-weight-bold text-gray-800 sensitive-data">${fmt(stats.todaySales)} soʻm</div>
+                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1 d-flex justify-content-between align-items-center">
+                    Bugungi savdo
+                    <span class="eye-toggle-btn" data-target="val-today-sales"><i class="fas fa-eye-slash"></i></span>
+                </div>
+                <div class="h5 mb-0 font-weight-bold text-gray-800 hideable-value hidden" id="val-today-sales">${fmt(stats.todaySales)} soʻm</div>
             </div>
         </div>
     </div>
     <div class="col-xl-4 col-md-6 mb-4">
         <div class="card border-left-success shadow-sm h-100 py-2">
             <div class="card-body">
-                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Bugungi toʻlovlar</div>
-                <div class="h5 mb-0 font-weight-bold text-gray-800 sensitive-data">${fmt(stats.todayRevenue)} soʻm</div>
+                <div class="text-xs font-weight-bold text-success text-uppercase mb-1 d-flex justify-content-between align-items-center">
+                    Bugungi toʻlovlar
+                    <span class="eye-toggle-btn" data-target="val-today-revenue"><i class="fas fa-eye-slash"></i></span>
+                </div>
+                <div class="h5 mb-0 font-weight-bold text-gray-800 hideable-value hidden" id="val-today-revenue">${fmt(stats.todayRevenue)} soʻm</div>
             </div>
         </div>
     </div>
@@ -141,8 +147,11 @@ var body = `
     <div class="col-xl-4 col-md-6 mb-4">
         <div class="card border-left-info shadow-sm h-100 py-2">
             <div class="card-body">
-                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Bugungi foyda</div>
-                <div class="h5 mb-0 font-weight-bold text-gray-800 sensitive-data">${fmt(stats.todayProfit)} soʻm</div>
+                <div class="text-xs font-weight-bold text-info text-uppercase mb-1 d-flex justify-content-between align-items-center">
+                    Bugungi foyda
+                    <span class="eye-toggle-btn" data-target="val-today-profit"><i class="fas fa-eye-slash"></i></span>
+                </div>
+                <div class="h5 mb-0 font-weight-bold text-gray-800 hideable-value hidden" id="val-today-profit">${fmt(stats.todayProfit)} soʻm</div>
             </div>
         </div>
     </div>` : ''}
@@ -176,5 +185,5 @@ var body = `
     <div class="card-body p-0">${ordersHtml}</div>
 </div>
 `;
--%>
+%>
 <%- include(layout, { body: body, title: title }) %>

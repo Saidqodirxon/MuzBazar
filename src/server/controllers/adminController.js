@@ -261,10 +261,16 @@ const adminController = {
         .populate("category", "name")
         .sort({ createdAt: -1 });
 
+      const totalValue = products.reduce((sum, p) => sum + ((p.sellPrice || 0) * (p.stock || 0)), 0);
+      const totalStock = products.reduce((sum, p) => sum + (p.stock || 0), 0);
+
       res.render("admin/products", {
         title: "Mahsulotlar",
         products,
         search,
+        totalValue,
+        totalStock,
+        fmt: (n) => (n || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " "),
       });
     } catch (error) {
       console.error("❌ Products error:", error);

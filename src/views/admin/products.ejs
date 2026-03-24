@@ -43,7 +43,7 @@ if (products.length === 0) {
                             <td>${categoryName}</td>
                             <td>${formattedPrice} so'm</td>
                             <td>
-                                <span class="badge ${product.stock <= product.minStock ? 'bg-warning' : 'bg-success'} sensitive-data">
+                                <span class="badge ${product.stock <= product.minStock ? 'bg-warning' : 'bg-success'} ">
                                     ${product.stock}
                                 </span>
                             </td>
@@ -76,9 +76,7 @@ if (products.length === 0) {
 
 const body = `
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
-    <h1 class="h2">
-        <i class="fas fa-box me-2"></i>Mahsulotlar
-    </h1>
+    <h1 class="h2"><i class="fas fa-box me-2"></i>Mahsulotlar</h1>
     <div class="btn-toolbar mb-2 mb-md-0">
         <a href="/admin/products/export" class="btn btn-success me-2" ${products.length === 0 ? 'disabled' : ''}>
             <i class="fas fa-file-excel me-2"></i>Excel
@@ -86,6 +84,35 @@ const body = `
         <a href="/admin/products/new" class="btn btn-primary">
             <i class="fas fa-plus me-2"></i>Yangi mahsulot
         </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-7 mb-3 mb-md-0">
+        <div class="card bg-light border-0 shadow-sm border-start border-primary border-4 h-100">
+            <div class="card-body py-3 d-flex align-items-center justify-content-between">
+                <div>
+                    <h6 class="text-muted text-uppercase small mb-1">Mahsulotlarning jami sotish summasi</h6>
+                    <h3 class="mb-0 fw-bold text-primary">${fmt(totalValue)} so'm</h3>
+                </div>
+                <div class="h2 text-primary opacity-25">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-5">
+        <div class="card bg-light border-0 shadow-sm border-start border-success border-4 h-100">
+            <div class="card-body py-3 d-flex align-items-center justify-content-between">
+                <div>
+                    <h6 class="text-muted text-uppercase small mb-1">Mahsulotlarning jami soni</h6>
+                    <h3 class="mb-0 fw-bold text-success">${fmt(totalStock)} ta</h3>
+                </div>
+                <div class="h2 text-success opacity-25">
+                    <i class="fas fa-cubes"></i>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 

@@ -39,10 +39,10 @@
                             <td>${order.client?.firstName} ${order.client?.lastName}</td>
                             <td>${order.client?.phone ? '<a href="tel:' + order.client.phone + '">' + order.client.phone
                                     + '</a>' : '<span class="text-muted">Kiritilmagan</span>'}</td>
-                            <td class="sensitive-data">${(order.totalSum || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</td>
-                            <td class="sensitive-data">${(order.paidSum || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</td>
+                            <td class="">${(order.totalSum || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</td>
+                            <td class="">${(order.paidSum || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</td>
                             <td><span
-                                    class="${(order.debt || 0) > 0 ? 'text-danger fw-bold' : 'text-success'} sensitive-data">${(order.debt
+                                    class="${(order.debt || 0) > 0 ? 'text-danger fw-bold' : 'text-success'} ">${(order.debt
                                     || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</span></td>
                             <td><span class="badge bg-${statusClass}">${statusText}</span></td>
                             <td>${moment(order.createdAt).utcOffset(5).format('DD/MM/YYYY HH:mm')}</td>

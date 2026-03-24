@@ -8,16 +8,16 @@ const isAdmin = locals.admin && admin.role === 'admin';
 let sRows = ''; 
 
 if (typeof stats !== 'undefined' && stats.sellerStats && stats.sellerStats.length > 0) {
-    stats.sellerStats.forEach(s => {
+    stats.sellerStats.forEach((s, idx) => {
         const bClass = (s.balance || 0) > 0 ? 'text-danger' : 'text-success';
         sRows += `
         <tr>
             <td><strong>${s.name || ''}</strong></td>
-            <td class="sensitive-data">${fmt(s.todayOrders)} ta</td>
-            <td class="sensitive-data">${fmt(s.todaySales)} soʻm</td>
-            <td class="sensitive-data">${fmt(s.todayRevenue)} soʻm</td>
-            ${isAdmin ? `<td class="text-info sensitive-data">${fmt(s.todayProfit)} soʻm</td>` : ''}
-            <td class="fw-bold ${bClass} sensitive-data">${fmt(s.balance)} soʻm</td>
+            <td>${fmt(s.todayOrders)} ta</td>
+            <td>${fmt(s.todaySales)} soʻm</td>
+            <td>${fmt(s.todayRevenue)} soʻm</td>
+            ${isAdmin ? `<td><span class="text-info">${fmt(s.todayProfit)} soʻm</span></td>` : ''}
+            <td><span class="fw-bold ${bClass}">${fmt(s.balance)} soʻm</span></td>
         </tr>`;
     });
 } else {
@@ -36,17 +36,23 @@ const body = `
     <div class="col-md-3 mb-3">
         <div class="card bg-primary text-white h-100 shadow-sm border-0">
             <div class="card-body">
-                <div class="small text-uppercase opacity-75">Bugungi Savdo</div>
-                <div class="h3 mb-0 fw-bold sensitive-data">${fmt(stats.todaySales)} <small class="fw-normal" style="font-size: 0.6em">soʻm</small></div>
-                <div class="small mt-2 opacity-75"><span class="sensitive-data">${stats.todayOrders || 0}</span> ta buyurtma</div>
+                <div class="small text-uppercase opacity-75 d-flex justify-content-between align-items-center">
+                    Bugungi Savdo
+                    <span class="eye-toggle-btn text-white" data-target="val-rep-today-sales"><i class="fas fa-eye-slash"></i></span>
+                </div>
+                <div class="h3 mb-0 fw-bold hideable-value hidden" id="val-rep-today-sales">${fmt(stats.todaySales)} <small class="fw-normal" style="font-size: 0.6em">soʻm</small></div>
+                <div class="small mt-2 opacity-75"><span>${stats.todayOrders || 0}</span> ta buyurtma</div>
             </div>
         </div>
     </div>
     <div class="col-md-3 mb-3">
         <div class="card bg-success text-white h-100 shadow-sm border-0">
             <div class="card-body">
-                <div class="small text-uppercase opacity-75">Bugungi Kirim</div>
-                <div class="h3 mb-0 fw-bold sensitive-data">${fmt(stats.todayRevenue)} <small class="fw-normal" style="font-size: 0.6em">soʻm</small></div>
+                <div class="small text-uppercase opacity-75 d-flex justify-content-between align-items-center">
+                    Bugungi Kirim
+                    <span class="eye-toggle-btn text-white" data-target="val-rep-today-rev"><i class="fas fa-eye-slash"></i></span>
+                </div>
+                <div class="h3 mb-0 fw-bold hideable-value hidden" id="val-rep-today-rev">${fmt(stats.todayRevenue)} <small class="fw-normal" style="font-size: 0.6em">soʻm</small></div>
                 <div class="small mt-2 opacity-75">Kassaga tushgan pul</div>
             </div>
         </div>
@@ -55,15 +61,18 @@ const body = `
         ${isAdmin ? `
         <div class="card bg-info text-white h-100 shadow-sm border-0">
             <div class="card-body">
-                <div class="small text-uppercase opacity-75">Bugungi Foyda</div>
-                <div class="h3 mb-0 fw-bold sensitive-data">${fmt(stats.todayProfit)} <small class="fw-normal" style="font-size: 0.6em">soʻm</small></div>
+                <div class="small text-uppercase opacity-75 d-flex justify-content-between align-items-center">
+                    Bugungi Foyda
+                    <span class="eye-toggle-btn text-white" data-target="val-rep-today-profit"><i class="fas fa-eye-slash"></i></span>
+                </div>
+                <div class="h3 mb-0 fw-bold hideable-value hidden" id="val-rep-today-profit">${fmt(stats.todayProfit)} <small class="fw-normal" style="font-size: 0.6em">soʻm</small></div>
                 <div class="small mt-2 opacity-75">Sof tushum</div>
             </div>
         </div>` : `
         <div class="card bg-secondary text-white h-100 shadow-sm border-0">
             <div class="card-body">
                 <div class="small text-uppercase opacity-75">Mijozlar</div>
-                <div class="h3 mb-0 fw-bold sensitive-data">${fmt(stats.totalCustomers)}</div>
+                <div class="h3 mb-0 fw-bold">${fmt(stats.totalCustomers)}</div>
                 <div class="small mt-2 opacity-75">Jami xaridorlar</div>
             </div>
         </div>`}
@@ -71,8 +80,11 @@ const body = `
     <div class="col-md-3 mb-3">
         <div class="card bg-danger text-white h-100 shadow-sm border-0">
             <div class="card-body">
-                <div class="small text-uppercase opacity-75">Umumiy Qarz</div>
-                <div class="h3 mb-0 fw-bold sensitive-data">${fmt(stats.totalDebt)} <small class="fw-normal" style="font-size: 0.6em">soʻm</small></div>
+                <div class="small text-uppercase opacity-75 d-flex justify-content-between align-items-center">
+                    Umumiy Qarz
+                    <span class="eye-toggle-btn text-white" data-target="val-rep-total-debt"><i class="fas fa-eye-slash"></i></span>
+                </div>
+                <div class="h3 mb-0 fw-bold hideable-value hidden" id="val-rep-total-debt">${fmt(stats.totalDebt)} <small class="fw-normal" style="font-size: 0.6em">soʻm</small></div>
                 <div class="small mt-2 opacity-75">Mijozlardan qarzdorlik</div>
             </div>
         </div>
@@ -84,17 +96,23 @@ ${isAdmin ? `
     <div class="col-md-6 mb-3">
         <div class="card h-100 border-0 shadow-sm border-start border-primary border-4">
             <div class="card-body">
-                <h6 class="text-muted text-uppercase small fw-bold">Shu oygi tushum</h6>
-                <div class="h4 mb-0 fw-bold text-primary sensitive-data">${fmt(stats.monthlyRevenue)} soʻm</div>
-                <div class="small text-muted mt-1"><span class="sensitive-data">${stats.monthlyOrders || 0}</span> ta buyurtma</div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="text-muted text-uppercase small fw-bold mb-0">Shu oygi tushum</h6>
+                    <span class="eye-toggle-btn" data-target="val-rep-mo-rev"><i class="fas fa-eye-slash"></i></span>
+                </div>
+                <div class="h4 mb-0 fw-bold text-primary hideable-value hidden" id="val-rep-mo-rev">${fmt(stats.monthlyRevenue)} soʻm</div>
+                <div class="small text-muted mt-1"><span>${stats.monthlyOrders || 0}</span> ta buyurtma</div>
             </div>
         </div>
     </div>
     <div class="col-md-6 mb-3">
         <div class="card h-100 border-0 shadow-sm border-start border-success border-4">
             <div class="card-body">
-                <h6 class="text-muted text-uppercase small fw-bold">Jami Foyda</h6>
-                <div class="h4 mb-0 fw-bold text-success sensitive-data">${fmt(stats.totalProfit)} soʻm</div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="text-muted text-uppercase small fw-bold mb-0">Jami Foyda</h6>
+                    <span class="eye-toggle-btn" data-target="val-rep-total-profit"><i class="fas fa-eye-slash"></i></span>
+                </div>
+                <div class="h4 mb-0 fw-bold text-success hideable-value hidden" id="val-rep-total-profit">${fmt(stats.totalProfit)} soʻm</div>
                 <div class="small text-muted mt-1">Barcha vaqtlar uchun</div>
             </div>
         </div>
@@ -129,7 +147,7 @@ ${isAdmin ? `
         <div class="card border-0 shadow-sm py-3 h-100">
             <div class="card-body">
                 <div class="text-primary h2 mb-2"><i class="fas fa-shopping-bag"></i></div>
-                <div class="h4 mb-0 fw-bold sensitive-data">${fmt(stats.totalOrders)}</div>
+                <div class="h4 mb-0 fw-bold">${fmt(stats.totalOrders)}</div>
                 <div class="text-muted small text-uppercase mt-1">Jami buyurtmalar</div>
             </div>
         </div>
@@ -138,7 +156,8 @@ ${isAdmin ? `
         <div class="card border-0 shadow-sm py-3 h-100">
             <div class="card-body">
                 <div class="text-success h2 mb-2"><i class="fas fa-hand-holding-usd"></i></div>
-                <div class="h4 mb-0 fw-bold sensitive-data">${fmt(stats.totalRevenue)}</div>
+                <div class="h4 mb-0 fw-bold d-inline-block hideable-value hidden" id="val-rep-tot-rev">${fmt(stats.totalRevenue)}</div>
+                <span class="eye-toggle-btn" data-target="val-rep-tot-rev"><i class="fas fa-eye-slash"></i></span>
                 <div class="text-muted small text-uppercase mt-1">Jami tushum (Kirim)</div>
             </div>
         </div>
@@ -147,7 +166,7 @@ ${isAdmin ? `
         <div class="card border-0 shadow-sm py-3 h-100">
             <div class="card-body">
                 <div class="text-warning h2 mb-2"><i class="fas fa-users"></i></div>
-                <div class="h4 mb-0 fw-bold sensitive-data">${fmt(stats.totalCustomers)}</div>
+                <div class="h4 mb-0 fw-bold">${fmt(stats.totalCustomers)}</div>
                 <div class="text-muted small text-uppercase mt-1">Jami mijozlar</div>
             </div>
         </div>

@@ -345,15 +345,29 @@
                 font-size: 13px;
             }
         }
-        /* Privacy Toggle */
-        .sensitive-data {
-            transition: all 0.2s;
-        }
-        
-        body.privacy-on .sensitive-data {
-            filter: blur(8px);
+        /* Local Hideable Value */
+        .hideable-value.hidden {
+            filter: blur(6px);
             user-select: none;
             pointer-events: none;
+            opacity: 0.6;
+        }
+        
+        .eye-toggle-btn {
+            cursor: pointer;
+            font-size: 12px;
+            width: 12px;
+            height: 12px;
+            color: #6c757d;
+            transition: color 0.2s;
+            margin-left: 5px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .eye-toggle-btn:hover {
+            color: #0d6efd;
         }
     </style>
 </head>
@@ -586,172 +600,6 @@
         });
     </script>
 
-    <!-- Privacy & Export Security Modal -->
-    <div class="modal fade" id="privacyAuthModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-        <div class="modal-dialog modal-sm modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg">
-                <div class="modal-header bg-dark text-white border-0">
-                    <h5 class="modal-title"><i class="fas fa-lock me-2"></i>Xavfsizlik</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body text-center p-4">
-                    <p class="mb-3 text-muted">Davom etish uchun maxsus kodni kiriting:</p>
-                    <input type="password" id="privacySecretCode" class="form-control form-control-lg text-center fw-bold" 
-                           placeholder="****" maxlength="4" autofocus autocomplete="off"
-                           style="letter-spacing: 0.5rem; font-size: 1.5rem;">
-                    <div id="privacyAuthError" class="text-danger small mt-2 d-none">
-                        <i class="fas fa-exclamation-circle me-1"></i>Kod notoʻgʻri!
-                    </div>
-                </div>
-                <div class="modal-footer border-0 p-3">
-                    <button type="button" class="btn btn-primary w-100 py-2 fw-bold" id="confirmPrivacyAuth">
-                        TASDIQLASH
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Privacy Toggle Script with PIN Protection -->
-    <script>
-        (function() {
-            const SECRET_CODE = "0000";
-            const AUTH_DURATION = 24 * 60 * 60 * 1000; // 24 hours instead of 2 minutes
-            const authModal = new bootstrap.Modal(document.getElementById('privacyAuthModal'));
-            const codeInput = document.getElementById('privacySecretCode');
-            const errorDiv = document.getElementById('privacyAuthError');
-            const confirmBtn = document.getElementById('confirmPrivacyAuth');
-            
-            let currentAction = null; // 'toggle' or 'export'
-            let currentExportUrl = null;
-
-            // Check if still authorized
-            function isAuthorized() {
-                const expiry = localStorage.getItem('privacyExpiry');
-                if (!expiry) return false;
-                if (Date.now() > parseInt(expiry)) {
-                    localStorage.removeItem('privacyExpiry');
-                    return false;
-                }
-                return true;
-            }
-
-            function setAuthorized() {
-                localStorage.setItem('privacyExpiry', (Date.now() + AUTH_DURATION).toString());
-                localStorage.setItem('privacyMode', 'off'); // Auto-reveal when authorized
-                updateUIState(false);
-            }
-
-            function updateUIState(on) {
-                if (on) {
-                    document.body.classList.add('privacy-on');
-                } else {
-                    document.body.classList.remove('privacy-on');
-                }
-                
-                const toggles = document.querySelectorAll('.privacy-toggle-btn');
-                toggles.forEach(btn => {
-                    const icon = btn.querySelector('i');
-                    if (icon) {
-                        if (on) {
-                            icon.className = 'fas fa-eye-slash';
-                            if (btn.classList.contains('floating-privacy-btn')) {
-                                btn.classList.add('btn-danger');
-                                btn.classList.remove('btn-success');
-                            }
-                        } else {
-                            icon.className = 'fas fa-eye';
-                            if (btn.classList.contains('floating-privacy-btn')) {
-                                btn.classList.remove('btn-danger');
-                                btn.classList.add('btn-success');
-                            }
-                        }
-                    }
-                });
-            }
-
-            // Global click listener for PIN-protected actions
-            document.addEventListener('click', function(e) {
-                // 1. Check Privacy Toggle
-                const toggleBtn = e.target.closest('.privacy-toggle-btn');
-                if (toggleBtn) {
-                    e.preventDefault();
-                    if (isAuthorized()) {
-                        // Toggle logic if already authorized
-                        const currentOn = document.body.classList.contains('privacy-on');
-                        localStorage.setItem('privacyMode', !currentOn ? 'off' : 'on');
-                        updateUIState(!currentOn);
-                    } else {
-                        currentAction = 'toggle';
-                        errorDiv.classList.add('d-none');
-                        codeInput.value = '';
-                        authModal.show();
-                    }
-                    return;
-                }
-
-                // 2. Check Export Links
-                const exportLink = e.target.closest('a[href*="/export"]');
-                if (exportLink) {
-                    if (isAuthorized()) {
-                        return; // Proceed to download
-                    } else {
-                        e.preventDefault();
-                        currentAction = 'export';
-                        currentExportUrl = exportLink.href;
-                        errorDiv.classList.add('d-none');
-                        codeInput.value = '';
-                        authModal.show();
-                    }
-                }
-            });
-
-            // Handle Pin Submission
-            function submitPin() {
-                if (codeInput.value === SECRET_CODE) {
-                    setAuthorized();
-                    authModal.hide();
-                    
-                    if (currentAction === 'export' && currentExportUrl) {
-                        window.location.href = currentExportUrl;
-                    }
-                } else {
-                    errorDiv.classList.remove('d-none');
-                    codeInput.classList.add('is-invalid');
-                    setTimeout(() => codeInput.classList.remove('is-invalid'), 1000);
-                }
-            }
-
-            confirmBtn.addEventListener('click', submitPin);
-            codeInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') submitPin(); });
-
-            // Initialize Page State
-            // Default to ON if pulse expires, otherwise respect stored setting
-            if (!isAuthorized()) {
-                updateUIState(true);
-            } else {
-                const saved = localStorage.getItem('privacyMode');
-                updateUIState(saved === 'on' || !saved);
-            }
-
-            // Auto-lock timer removed by user request
-
-
-        })();
-    </script>
-
-    <% 
-    const privacyPages = ['Admin Dashboard', 'Hisobotlar', 'Mahsulotlar', 'Foydalanuvchilar', 'Sotuvchilar', 'Qarzdorlik boshqaruvi', 'Buyurtmalar'];
-    if (privacyPages.includes(title)) { 
-    %>
-    <!-- Floating Privacy Toggle -->
-    <button class="privacy-toggle-btn floating-privacy-btn btn btn-lg shadow-lg position-fixed bottom-0 end-0 m-4 rounded-circle d-flex align-items-center justify-content-center" 
-            style="width: 60px; height: 60px; z-index: 9999; border: 2px solid white;">
-        <i class="fas fa-eye-slash"></i>
-    </button>
-    <% } %>
-
-    
     <!-- Toast Container -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 9999;">
         <div id="mainToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
@@ -859,6 +707,24 @@
                 bsAlert.close();
             });
         }, 5000);
+    </script>
+    <script>
+        // Local Data Visibility Toggle
+        document.addEventListener('click', function(e) {
+            const toggle = e.target.closest('.eye-toggle-btn');
+            if (toggle) {
+                const targetId = toggle.getAttribute('data-target');
+                const target = document.getElementById(targetId);
+                if (target) {
+                    target.classList.toggle('hidden');
+                    const icon = toggle.querySelector('i');
+                    if (icon) {
+                        icon.classList.toggle('fa-eye');
+                        icon.classList.toggle('fa-eye-slash');
+                    }
+                }
+            }
+        });
     </script>
 </body>
 </html>
