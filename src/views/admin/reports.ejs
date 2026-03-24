@@ -33,91 +33,147 @@ const body = `
 </div>
 
 <div class="row mb-4">
-    <div class="col-md-3 mb-3">
-        <div class="card bg-primary text-white h-100 shadow-sm border-0">
-            <div class="card-body">
-                <div class="small text-uppercase opacity-75 d-flex justify-content-between align-items-center">
-                    Bugungi Savdo
-                    <span class="eye-toggle-btn text-white" data-target="val-rep-today-sales"><i class="fas fa-eye-slash"></i></span>
-                </div>
-                <div class="h3 mb-0 fw-bold hideable-value hidden" id="val-rep-today-sales">${fmt(stats.todaySales)} <small class="fw-normal" style="font-size: 0.6em">soʻm</small></div>
-                <div class="small mt-2 opacity-75"><span>${stats.todayOrders || 0}</span> ta buyurtma</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3 mb-3">
-        <div class="card bg-success text-white h-100 shadow-sm border-0">
-            <div class="card-body">
-                <div class="small text-uppercase opacity-75 d-flex justify-content-between align-items-center">
-                    Bugungi Kirim
-                    <span class="eye-toggle-btn text-white" data-target="val-rep-today-rev"><i class="fas fa-eye-slash"></i></span>
-                </div>
-                <div class="h3 mb-0 fw-bold hideable-value hidden" id="val-rep-today-rev">${fmt(stats.todayRevenue)} <small class="fw-normal" style="font-size: 0.6em">soʻm</small></div>
-                <div class="small mt-2 opacity-75">Kassaga tushgan pul</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3 mb-3">
+    <!-- Bugungi Foyda (Always Visible) -->
+    <div class="col-md-6 mb-3">
         ${isAdmin ? `
-        <div class="card bg-info text-white h-100 shadow-sm border-0">
+        <div class="card bg-info text-white h-100 shadow-sm border-0 border-start border-white border-5">
             <div class="card-body">
                 <div class="small text-uppercase opacity-75 d-flex justify-content-between align-items-center">
                     Bugungi Foyda
                     <span class="eye-toggle-btn text-white" data-target="val-rep-today-profit"><i class="fas fa-eye-slash"></i></span>
                 </div>
-                <div class="h3 mb-0 fw-bold hideable-value hidden" id="val-rep-today-profit">${fmt(stats.todayProfit)} <small class="fw-normal" style="font-size: 0.6em">soʻm</small></div>
+                <div class="h2 mb-0 fw-bold hideable-value hidden" id="val-rep-today-profit">${fmt(stats.todayProfit)} <small class="fw-normal" style="font-size: 0.6em">soʻm</small></div>
                 <div class="small mt-2 opacity-75">Sof tushum</div>
             </div>
         </div>` : `
-        <div class="card bg-secondary text-white h-100 shadow-sm border-0">
+        <div class="card bg-info text-white h-100 shadow-sm border-0 border-start border-white border-5">
             <div class="card-body">
-                <div class="small text-uppercase opacity-75">Mijozlar</div>
-                <div class="h3 mb-0 fw-bold">${fmt(stats.totalCustomers)}</div>
-                <div class="small mt-2 opacity-75">Jami xaridorlar</div>
+                <div class="small text-uppercase opacity-75">Tizim faolligi</div>
+                <div class="h2 mb-0 fw-bold">HISOBOT</div>
+                <div class="small mt-2 opacity-75">Bugungi koʻrsatkichlar</div>
             </div>
         </div>`}
     </div>
-    <div class="col-md-3 mb-3">
-        <div class="card bg-danger text-white h-100 shadow-sm border-0">
+
+    <!-- Umumiy Qarz (Always Visible) -->
+    <div class="col-md-6 mb-3">
+        <div class="card bg-danger text-white h-100 shadow-sm border-0 border-start border-white border-5">
             <div class="card-body">
                 <div class="small text-uppercase opacity-75 d-flex justify-content-between align-items-center">
                     Umumiy Qarz
                     <span class="eye-toggle-btn text-white" data-target="val-rep-total-debt"><i class="fas fa-eye-slash"></i></span>
                 </div>
-                <div class="h3 mb-0 fw-bold hideable-value hidden" id="val-rep-total-debt">${fmt(stats.totalDebt)} <small class="fw-normal" style="font-size: 0.6em">soʻm</small></div>
+                <div class="h2 mb-0 fw-bold hideable-value hidden" id="val-rep-total-debt">${fmt(stats.totalDebt)} <small class="fw-normal" style="font-size: 0.6em">soʻm</small></div>
                 <div class="small mt-2 opacity-75">Mijozlardan qarzdorlik</div>
             </div>
         </div>
     </div>
 </div>
 
-${isAdmin ? `
-<div class="row mb-4">
-    <div class="col-md-6 mb-3">
-        <div class="card h-100 border-0 shadow-sm border-start border-primary border-4">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h6 class="text-muted text-uppercase small fw-bold mb-0">Shu oygi tushum</h6>
-                    <span class="eye-toggle-btn" data-target="val-rep-mo-rev"><i class="fas fa-eye-slash"></i></span>
+<!-- Extra Reports Stats Toggle -->
+<div class="d-flex justify-content-center mb-4">
+    <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" type="button" data-bs-toggle="collapse" data-bs-target="#extraRepStats" aria-expanded="false">
+        <i class="fas fa-plus me-1"></i> Qoʻshimcha statistika
+    </button>
+</div>
+
+<div class="collapse" id="extraRepStats">
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card bg-primary text-white h-100 shadow-sm border-0">
+                <div class="card-body">
+                    <div class="small text-uppercase opacity-75 d-flex justify-content-between align-items-center">
+                        Bugungi Savdo
+                        <span class="eye-toggle-btn text-white" data-target="val-rep-today-sales"><i class="fas fa-eye-slash"></i></span>
+                    </div>
+                    <div class="h3 mb-0 fw-bold hideable-value hidden" id="val-rep-today-sales">${fmt(stats.todaySales)} <small class="fw-normal" style="font-size: 0.6em">soʻm</small></div>
+                    <div class="small mt-2 opacity-75"><span>${stats.todayOrders || 0}</span> ta buyurtma</div>
                 </div>
-                <div class="h4 mb-0 fw-bold text-primary hideable-value hidden" id="val-rep-mo-rev">${fmt(stats.monthlyRevenue)} soʻm</div>
-                <div class="small text-muted mt-1"><span>${stats.monthlyOrders || 0}</span> ta buyurtma</div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card bg-success text-white h-100 shadow-sm border-0">
+                <div class="card-body">
+                    <div class="small text-uppercase opacity-75 d-flex justify-content-between align-items-center">
+                        Bugungi Kirim
+                        <span class="eye-toggle-btn text-white" data-target="val-rep-today-rev"><i class="fas fa-eye-slash"></i></span>
+                    </div>
+                    <div class="h3 mb-0 fw-bold hideable-value hidden" id="val-rep-today-rev">${fmt(stats.todayRevenue)} <small class="fw-normal" style="font-size: 0.6em">soʻm</small></div>
+                    <div class="small mt-2 opacity-75">Kassaga tushgan pul</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card bg-secondary text-white h-100 shadow-sm border-0">
+                <div class="card-body">
+                    <div class="small text-uppercase opacity-75">Mijozlar</div>
+                    <div class="h3 mb-0 fw-bold">${fmt(stats.totalCustomers)}</div>
+                    <div class="small mt-2 opacity-75">Jami xaridorlar</div>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-6 mb-3">
-        <div class="card h-100 border-0 shadow-sm border-start border-success border-4">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h6 class="text-muted text-uppercase small fw-bold mb-0">Jami Foyda</h6>
-                    <span class="eye-toggle-btn" data-target="val-rep-total-profit"><i class="fas fa-eye-slash"></i></span>
+
+    ${isAdmin ? `
+    <div class="row mb-4">
+        <div class="col-md-6 mb-3">
+            <div class="card h-100 border-0 shadow-sm border-start border-primary border-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="text-muted text-uppercase small fw-bold mb-0">Shu oygi tushum</h6>
+                        <span class="eye-toggle-btn" data-target="val-rep-mo-rev"><i class="fas fa-eye-slash"></i></span>
+                    </div>
+                    <div class="h4 mb-0 fw-bold text-primary hideable-value hidden" id="val-rep-mo-rev">${fmt(stats.monthlyRevenue)} soʻm</div>
+                    <div class="small text-muted mt-1"><span>${stats.monthlyOrders || 0}</span> ta buyurtma</div>
                 </div>
-                <div class="h4 mb-0 fw-bold text-success hideable-value hidden" id="val-rep-total-profit">${fmt(stats.totalProfit)} soʻm</div>
-                <div class="small text-muted mt-1">Barcha vaqtlar uchun</div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-3">
+            <div class="card h-100 border-0 shadow-sm border-start border-success border-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="text-muted text-uppercase small fw-bold mb-0">Jami Foyda</h6>
+                        <span class="eye-toggle-btn" data-target="val-rep-total-profit"><i class="fas fa-eye-slash"></i></span>
+                    </div>
+                    <div class="h4 mb-0 fw-bold text-success hideable-value hidden" id="val-rep-total-profit">${fmt(stats.totalProfit)} soʻm</div>
+                    <div class="small text-muted mt-1">Barcha vaqtlar uchun</div>
+                </div>
+            </div>
+        </div>
+    </div>` : ''}
+
+    <div class="row text-center mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card border-0 shadow-sm py-3 h-100">
+                <div class="card-body">
+                    <div class="text-primary h2 mb-2"><i class="fas fa-shopping-bag"></i></div>
+                    <div class="h4 mb-0 fw-bold">${fmt(stats.totalOrders)}</div>
+                    <div class="text-muted small text-uppercase mt-1">Jami buyurtmalar</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card border-0 shadow-sm py-3 h-100">
+                <div class="card-body">
+                    <div class="text-success h2 mb-2"><i class="fas fa-hand-holding-usd"></i></div>
+                    <div class="h4 mb-0 fw-bold d-inline-block hideable-value hidden" id="val-rep-tot-rev">${fmt(stats.totalRevenue)}</div>
+                    <span class="eye-toggle-btn" data-target="val-rep-tot-rev"><i class="fas fa-eye-slash"></i></span>
+                    <div class="text-muted small text-uppercase mt-1">Jami tushum (Kirim)</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card border-0 shadow-sm py-3 h-100">
+                <div class="card-body">
+                    <div class="text-warning h2 mb-2"><i class="fas fa-users"></i></div>
+                    <div class="h4 mb-0 fw-bold">${fmt(stats.totalCustomers)}</div>
+                    <div class="text-muted small text-uppercase mt-1">Jami mijozlar</div>
+                </div>
             </div>
         </div>
     </div>
-</div>` : ''}
+    </div>
+</div>
 
 <div class="card border-0 shadow-sm mb-4">
     <div class="card-header bg-white py-3 border-0">
@@ -138,37 +194,6 @@ ${isAdmin ? `
                 </thead>
                 <tbody>${sRows}</tbody>
             </table>
-        </div>
-    </div>
-</div>
-
-<div class="row text-center">
-    <div class="col-md-4 mb-3">
-        <div class="card border-0 shadow-sm py-3 h-100">
-            <div class="card-body">
-                <div class="text-primary h2 mb-2"><i class="fas fa-shopping-bag"></i></div>
-                <div class="h4 mb-0 fw-bold">${fmt(stats.totalOrders)}</div>
-                <div class="text-muted small text-uppercase mt-1">Jami buyurtmalar</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4 mb-3">
-        <div class="card border-0 shadow-sm py-3 h-100">
-            <div class="card-body">
-                <div class="text-success h2 mb-2"><i class="fas fa-hand-holding-usd"></i></div>
-                <div class="h4 mb-0 fw-bold d-inline-block hideable-value hidden" id="val-rep-tot-rev">${fmt(stats.totalRevenue)}</div>
-                <span class="eye-toggle-btn" data-target="val-rep-tot-rev"><i class="fas fa-eye-slash"></i></span>
-                <div class="text-muted small text-uppercase mt-1">Jami tushum (Kirim)</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4 mb-3">
-        <div class="card border-0 shadow-sm py-3 h-100">
-            <div class="card-body">
-                <div class="text-warning h2 mb-2"><i class="fas fa-users"></i></div>
-                <div class="h4 mb-0 fw-bold">${fmt(stats.totalCustomers)}</div>
-                <div class="text-muted small text-uppercase mt-1">Jami mijozlar</div>
-            </div>
         </div>
     </div>
 </div>

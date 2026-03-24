@@ -82,79 +82,90 @@ var body = `
 </div>
 
 <div class="row mb-4">
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card stat-card shadow-sm h-100">
-            <div class="card-body text-center">
-                <div class="h5 font-weight-bold mb-1">${stats.totalProducts}</div>
-                <div class="small">Mahsulotlar</div>
-                <i class="fas fa-box fa-2x text-white-50 mt-2"></i>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card stat-card shadow-sm h-100">
-            <div class="card-body text-center">
-                <div class="h5 font-weight-bold mb-1">${stats.totalOrders}</div>
-                <div class="small">Buyurtmalar</div>
-                <i class="fas fa-shopping-cart fa-2x text-white-50 mt-2"></i>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card stat-card shadow-sm h-100">
-            <div class="card-body text-center">
-                <div class="h5 font-weight-bold mb-1">${fmt(stats.totalDebt)} soʻm</div>
-                <div class="small">Umumiy qarzdorlik</div>
-                <i class="fas fa-money-bill-wave fa-2x text-white-50 mt-2"></i>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card stat-card shadow-sm h-100">
-            <div class="card-body text-center">
-                <div class="h5 font-weight-bold mb-1">${stats.todayOrders}</div>
-                <div class="small">Bugungi buyurtmalar</div>
-                <i class="fas fa-calendar-day fa-2x text-white-50 mt-2"></i>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row mb-4">
-    <div class="col-xl-4 col-md-6 mb-4">
-        <div class="card border-left-primary shadow-sm h-100 py-2">
-            <div class="card-body">
-                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1 d-flex justify-content-between align-items-center">
-                    Bugungi savdo
-                    <span class="eye-toggle-btn" data-target="val-today-sales"><i class="fas fa-eye-slash"></i></span>
-                </div>
-                <div class="h5 mb-0 font-weight-bold text-gray-800 hideable-value hidden" id="val-today-sales">${fmt(stats.todaySales)} soʻm</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-4 col-md-6 mb-4">
-        <div class="card border-left-success shadow-sm h-100 py-2">
-            <div class="card-body">
-                <div class="text-xs font-weight-bold text-success text-uppercase mb-1 d-flex justify-content-between align-items-center">
-                    Bugungi toʻlovlar
-                    <span class="eye-toggle-btn" data-target="val-today-revenue"><i class="fas fa-eye-slash"></i></span>
-                </div>
-                <div class="h5 mb-0 font-weight-bold text-gray-800 hideable-value hidden" id="val-today-revenue">${fmt(stats.todayRevenue)} soʻm</div>
-            </div>
-        </div>
-    </div>
+    <!-- Bugungi Foyda (Always Visible) -->
     ${isAdmin ? `
-    <div class="col-xl-4 col-md-6 mb-4">
-        <div class="card border-left-info shadow-sm h-100 py-2">
+    <div class="col-xl-6 col-md-6 mb-4">
+        <div class="card border-0 border-start border-info border-5 shadow-sm h-100 py-2">
             <div class="card-body">
                 <div class="text-xs font-weight-bold text-info text-uppercase mb-1 d-flex justify-content-between align-items-center">
                     Bugungi foyda
                     <span class="eye-toggle-btn" data-target="val-today-profit"><i class="fas fa-eye-slash"></i></span>
                 </div>
-                <div class="h5 mb-0 font-weight-bold text-gray-800 hideable-value hidden" id="val-today-profit">${fmt(stats.todayProfit)} soʻm</div>
+                <div class="h3 mb-0 font-weight-bold text-gray-800 hideable-value hidden" id="val-today-profit">${fmt(stats.todayProfit)} soʻm</div>
             </div>
         </div>
     </div>` : ''}
+
+    <!-- Umumiy Qarzdorlik (Always Visible) -->
+    <div class="${isAdmin ? 'col-xl-6 col-md-6' : 'col-xl-12 col-md-12'} mb-4">
+        <div class="card border-0 border-start border-danger border-5 shadow-sm h-100 py-2">
+            <div class="card-body">
+                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Umumiy qarzdorlik</div>
+                <div class="h3 mb-0 font-weight-bold text-gray-800">${fmt(stats.totalDebt)} soʻm</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Extra Stats Toggle -->
+<div class="d-flex justify-content-center mb-4">
+    <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" type="button" data-bs-toggle="collapse" data-bs-target="#extraStats" aria-expanded="false">
+        <i class="fas fa-plus me-1"></i> Boshqa statistikalar
+    </button>
+</div>
+
+<div class="collapse" id="extraStats">
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="h5 font-weight-bold mb-1">${stats.totalProducts}</div>
+                    <div class="small">Mahsulotlar</div>
+                    <i class="fas fa-box fa-2x text-white-50 mt-2"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="h5 font-weight-bold mb-1">${stats.totalOrders}</div>
+                    <div class="small">Buyurtmalar</div>
+                    <i class="fas fa-shopping-cart fa-2x text-white-50 mt-2"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="h5 font-weight-bold mb-1">${stats.todayOrders}</div>
+                    <div class="small">Bugungi buyurtmalar</div>
+                    <i class="fas fa-calendar-day fa-2x text-white-50 mt-2"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow-sm h-100 py-2">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1 d-flex justify-content-between align-items-center">
+                        Bugungi savdo
+                        <span class="eye-toggle-btn" data-target="val-today-sales"><i class="fas fa-eye-slash"></i></span>
+                    </div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-800 hideable-value hidden" id="val-today-sales">${fmt(stats.todaySales)} soʻm</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow-sm h-100 py-2">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1 d-flex justify-content-between align-items-center">
+                        Bugungi toʻlovlar
+                        <span class="eye-toggle-btn" data-target="val-today-revenue"><i class="fas fa-eye-slash"></i></span>
+                    </div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-800 hideable-value hidden" id="val-today-revenue">${fmt(stats.todayRevenue)} soʻm</div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="row mb-4">

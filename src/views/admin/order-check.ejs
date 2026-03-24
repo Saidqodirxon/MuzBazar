@@ -267,21 +267,26 @@
 
         <!-- Items -->
         <div class="items-section">
-            <div class="section-title">Mahsulotlar:</div>
+            <div class="section-title">Mahsulotlar ro'yxati:</div>
             <% const formatNumber=(num)=> (num || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
                 if (order.items && order.items.length > 0) {
                 order.items.forEach((item, index) => {
+                    // Determine unit label
+                    let unit = 'ta';
+                    if (item.product?.type === 'kg') unit = 'kg';
+                    else if (item.product?.type === 'liter') unit = 'litr';
+                    else if (item.product?.type === 'box') unit = 'quti';
                 %>
                 <div class="item">
                     <div class="item-name">
-                        <%= index + 1 %>. <%= item.product?.name || '-' %>
+                        • <%= item.product?.name || 'Mahsulot' %>
                     </div>
                     <div class="item-details">
-                        <span>
-                            <%= item.quantity %> x <%= formatNumber(item.pricePerUnit) %>
+                        <span style="font-size: 15px; font-weight: 800;">
+                            <%= item.quantity %> <%= unit %> <span style="font-weight: 600; font-size: 13px;">x <%= formatNumber(item.pricePerUnit) %></span>
                         </span>
-                        <span class="price">
-                            <%= formatNumber(item.totalPrice) %> so'm
+                        <span class="price" style="font-size: 16px; font-weight: 900;">
+                            <%= formatNumber(item.totalPrice) %>
                         </span>
                     </div>
                 </div>
