@@ -12,7 +12,7 @@ function fmt(n) {
     return parts.join(' ');
 }
 
-var isAdmin = locals.admin && admin.role === 'admin';
+var isAdmin = locals.admin && locals.admin.role === 'admin';
 
 var lowStockHtml = '';
 if (!lowStockProducts || lowStockProducts.length === 0) {
@@ -71,7 +71,51 @@ if (!recentOrders || recentOrders.length === 0) {
     </div>`;
 }
 
-var body = `
+let todayStats = `
+<div class="row mb-4">
+    <!-- Today's Profit -->
+    ${isAdmin ? `
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-0 border-start border-info border-5 shadow-sm h-100 py-2">
+            <div class="card-body">
+                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Bugungi foyda</div>
+                <div class="h5 mb-0 font-weight-bold text-gray-800">${fmt(stats.todayProfit)} soʻm</div>
+            </div>
+        </div>
+    </div>` : ''}
+
+    <!-- Today's Sales -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-0 border-start border-primary border-5 shadow-sm h-100 py-2">
+            <div class="card-body">
+                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Bugungi savdo</div>
+                <div class="h5 mb-0 font-weight-bold text-gray-800">${fmt(stats.todaySales)} soʻm</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Today's Revenue -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-0 border-start border-success border-5 shadow-sm h-100 py-2">
+            <div class="card-body">
+                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Bugungi toʻlovlar</div>
+                <div class="h5 mb-0 font-weight-bold text-gray-800">${fmt(stats.todayRevenue)} soʻm</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Today's Orders -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-0 border-start border-warning border-5 shadow-sm h-100 py-2">
+            <div class="card-body">
+                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Bugungi buyurtmalar</div>
+                <div class="h5 mb-0 font-weight-bold text-gray-800">${stats.todayOrders || 0} ta</div>
+            </div>
+        </div>
+    </div>
+</div>`;
+
+let bodyPrefix = `
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
     <h1 class="h2"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</h1>
     <div class="btn-toolbar mb-2 mb-md-0">
@@ -81,93 +125,60 @@ var body = `
     </div>
 </div>
 
-<div class="row mb-4">
-    <!-- Bugungi Foyda (Always Visible) -->
-    ${isAdmin ? `
-    <div class="col-xl-6 col-md-6 mb-4">
-        <div class="card border-0 border-start border-info border-5 shadow-sm h-100 py-2">
-            <div class="card-body">
-                <div class="text-xs font-weight-bold text-info text-uppercase mb-1 d-flex justify-content-between align-items-center">
-                    Bugungi foyda
-                    <span class="eye-toggle-btn" data-target="val-today-profit"><i class="fas fa-eye-slash"></i></span>
-                </div>
-                <div class="h3 mb-0 font-weight-bold text-gray-800 hideable-value hidden" id="val-today-profit">${fmt(stats.todayProfit)} soʻm</div>
-            </div>
-        </div>
-    </div>` : ''}
-
-    <!-- Umumiy Qarzdorlik (Always Visible) -->
-    <div class="${isAdmin ? 'col-xl-6 col-md-6' : 'col-xl-12 col-md-12'} mb-4">
-        <div class="card border-0 border-start border-danger border-5 shadow-sm h-100 py-2">
-            <div class="card-body">
-                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Umumiy qarzdorlik</div>
-                <div class="h3 mb-0 font-weight-bold text-gray-800">${fmt(stats.totalDebt)} soʻm</div>
-            </div>
-        </div>
+<div class="position-relative">
+    ${todayStats}
+    <!-- Small subtle toggle -->
+    <div style="position: absolute; bottom: -10px; right: 10px; opacity: 0.3;">
+        <a href="javascript:void(0)" class="text-muted" data-bs-toggle="collapse" data-bs-target="#extraStats" style="font-size: 10px; text-decoration: none;">
+            <i class="fas fa-plus"></i>
+        </a>
     </div>
 </div>
+`;
 
-<!-- Extra Stats Toggle -->
-<div class="d-flex justify-content-center mb-4">
-    <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" type="button" data-bs-toggle="collapse" data-bs-target="#extraStats" aria-expanded="false">
-        <i class="fas fa-plus me-1"></i> Boshqa statistikalar
-    </button>
-</div>
-
+let bodyMiddle = `
 <div class="collapse" id="extraStats">
     <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card stat-card shadow-sm h-100">
-                <div class="card-body text-center">
-                    <div class="h5 font-weight-bold mb-1">${stats.totalProducts}</div>
-                    <div class="small">Mahsulotlar</div>
-                    <i class="fas fa-box fa-2x text-white-50 mt-2"></i>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card stat-card shadow-sm h-100">
-                <div class="card-body text-center">
-                    <div class="h5 font-weight-bold mb-1">${stats.totalOrders}</div>
-                    <div class="small">Buyurtmalar</div>
-                    <i class="fas fa-shopping-cart fa-2x text-white-50 mt-2"></i>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card stat-card shadow-sm h-100">
-                <div class="card-body text-center">
-                    <div class="h5 font-weight-bold mb-1">${stats.todayOrders}</div>
-                    <div class="small">Bugungi buyurtmalar</div>
-                    <i class="fas fa-calendar-day fa-2x text-white-50 mt-2"></i>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary shadow-sm h-100 py-2">
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-0 border-start border-secondary border-5 shadow-sm h-100 py-2">
                 <div class="card-body">
-                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1 d-flex justify-content-between align-items-center">
-                        Bugungi savdo
-                        <span class="eye-toggle-btn" data-target="val-today-sales"><i class="fas fa-eye-slash"></i></span>
-                    </div>
-                    <div class="h5 mb-0 font-weight-bold text-gray-800 hideable-value hidden" id="val-today-sales">${fmt(stats.todaySales)} soʻm</div>
+                    <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">Mahsulotlar</div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-800">${stats.totalProducts} ta</div>
                 </div>
             </div>
         </div>
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-success shadow-sm h-100 py-2">
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-0 border-start border-secondary border-5 shadow-sm h-100 py-2">
                 <div class="card-body">
-                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1 d-flex justify-content-between align-items-center">
-                        Bugungi toʻlovlar
-                        <span class="eye-toggle-btn" data-target="val-today-revenue"><i class="fas fa-eye-slash"></i></span>
-                    </div>
-                    <div class="h5 mb-0 font-weight-bold text-gray-800 hideable-value hidden" id="val-today-revenue">${fmt(stats.todayRevenue)} soʻm</div>
+                    <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">Barcha buyurtmalar</div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-800">${stats.totalOrders} ta</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-0 border-start border-danger border-5 shadow-sm h-100 py-2">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Umumiy qarzdorlik</div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-800">${fmt(stats.totalDebt)} soʻm</div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+`;
 
+let lowStockCard = '';
+if (isAdmin) {
+    lowStockCard = `
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white"><h5><i class="fas fa-exclamation-triangle me-2 text-warning"></i>Kam qolgan mahsulotlar</h5></div>
+            <div class="card-body">${lowStockHtml}</div>
+        </div>
+    </div>`;
+}
+
+let bodyFooter = `
 <div class="row mb-4">
     <div class="col-md-6">
         <div class="card shadow-sm">
@@ -179,13 +190,7 @@ var body = `
             </div></div>
         </div>
     </div>
-    ${isAdmin ? `
-    <div class="col-md-6">
-        <div class="card shadow-sm">
-            <div class="card-header bg-white"><h5><i class="fas fa-exclamation-triangle me-2 text-warning"></i>Kam qolgan mahsulotlar</h5></div>
-            <div class="card-body">${lowStockHtml}</div>
-        </div>
-    </div>` : ''}
+    ${lowStockCard}
 </div>
 
 <div class="card shadow-sm mb-4">
@@ -196,5 +201,7 @@ var body = `
     <div class="card-body p-0">${ordersHtml}</div>
 </div>
 `;
+
+const body = bodyPrefix + bodyMiddle + bodyFooter;
 %>
 <%- include(layout, { body: body, title: title }) %>

@@ -4,7 +4,7 @@ function fmt(n) {
     return (n || 0).toLocaleString('ru-RU').replace(/,/g, ' '); 
 } 
 
-const isAdmin = locals.admin && admin.role === 'admin';
+const isAdmin = locals.admin && locals.admin.role === 'admin';
 let sRows = ''; 
 
 if (typeof stats !== 'undefined' && stats.sellerStats && stats.sellerStats.length > 0) {
@@ -24,7 +24,47 @@ if (typeof stats !== 'undefined' && stats.sellerStats && stats.sellerStats.lengt
     sRows = `<tr><td colspan="${isAdmin ? 6 : 5}" class="text-center py-4 text-muted">Maʻlumot yoʻq</td></tr>`;
 }
 
-const body = `
+let todayStats = `
+<div class="row mb-4">
+    <!-- Today's Profit -->
+    <div class="col-md-3 mb-3">
+        <div class="card bg-info text-white h-100 shadow-sm border-0 border-start border-white border-5">
+            <div class="card-body py-3">
+                <div class="small text-uppercase opacity-75">Bugungi Foyda</div>
+                <div class="h4 mb-0 fw-bold">${fmt(stats.todayProfit)} <small class="fw-normal" style="font-size: 0.6em">soʻm</small></div>
+            </div>
+        </div>
+    </div>
+    <!-- Today's Sales -->
+    <div class="col-md-3 mb-3">
+        <div class="card bg-primary text-white h-100 shadow-sm border-0 border-start border-white border-5">
+            <div class="card-body py-3">
+                <div class="small text-uppercase opacity-75">Bugungi Savdo</div>
+                <div class="h4 mb-0 fw-bold">${fmt(stats.todaySales)} <small class="fw-normal" style="font-size: 0.6em">soʻm</small></div>
+            </div>
+        </div>
+    </div>
+    <!-- Today's Revenue -->
+    <div class="col-md-3 mb-3">
+        <div class="card bg-success text-white h-100 shadow-sm border-0 border-start border-white border-5">
+            <div class="card-body py-3">
+                <div class="small text-uppercase opacity-75">Bugungi Kirim</div>
+                <div class="h4 mb-0 fw-bold">${fmt(stats.todayRevenue)} <small class="fw-normal" style="font-size: 0.6em">soʻm</small></div>
+            </div>
+        </div>
+    </div>
+    <!-- Today's Orders -->
+    <div class="col-md-3 mb-3">
+        <div class="card bg-warning text-dark h-100 shadow-sm border-0 border-start border-dark border-5">
+            <div class="card-body py-3">
+                <div class="small text-uppercase opacity-75">Bugungi Buyurtmalar</div>
+                <div class="h4 mb-0 fw-bold">${fmt(stats.todayOrders)} <small class="fw-normal" style="font-size: 0.6em">ta</small></div>
+            </div>
+        </div>
+    </div>
+</div>`;
+
+let bodyPrefix = `
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
     <h1 class="h2"><i class="fas fa-chart-line me-2"></i>Hisobotlar</h1>
     <div class="btn-toolbar mb-2 mb-md-0">
@@ -32,165 +72,80 @@ const body = `
     </div>
 </div>
 
-<div class="row mb-4">
-    <!-- Bugungi Foyda (Always Visible) -->
-    <div class="col-md-6 mb-3">
-        ${isAdmin ? `
-        <div class="card bg-info text-white h-100 shadow-sm border-0 border-start border-white border-5">
-            <div class="card-body">
-                <div class="small text-uppercase opacity-75 d-flex justify-content-between align-items-center">
-                    Bugungi Foyda
-                    <span class="eye-toggle-btn text-white" data-target="val-rep-today-profit"><i class="fas fa-eye-slash"></i></span>
-                </div>
-                <div class="h2 mb-0 fw-bold hideable-value hidden" id="val-rep-today-profit">${fmt(stats.todayProfit)} <small class="fw-normal" style="font-size: 0.6em">soʻm</small></div>
-                <div class="small mt-2 opacity-75">Sof tushum</div>
-            </div>
-        </div>` : `
-        <div class="card bg-info text-white h-100 shadow-sm border-0 border-start border-white border-5">
-            <div class="card-body">
-                <div class="small text-uppercase opacity-75">Tizim faolligi</div>
-                <div class="h2 mb-0 fw-bold">HISOBOT</div>
-                <div class="small mt-2 opacity-75">Bugungi koʻrsatkichlar</div>
-            </div>
-        </div>`}
-    </div>
-
-    <!-- Umumiy Qarz (Always Visible) -->
-    <div class="col-md-6 mb-3">
-        <div class="card bg-danger text-white h-100 shadow-sm border-0 border-start border-white border-5">
-            <div class="card-body">
-                <div class="small text-uppercase opacity-75 d-flex justify-content-between align-items-center">
-                    Umumiy Qarz
-                    <span class="eye-toggle-btn text-white" data-target="val-rep-total-debt"><i class="fas fa-eye-slash"></i></span>
-                </div>
-                <div class="h2 mb-0 fw-bold hideable-value hidden" id="val-rep-total-debt">${fmt(stats.totalDebt)} <small class="fw-normal" style="font-size: 0.6em">soʻm</small></div>
-                <div class="small mt-2 opacity-75">Mijozlardan qarzdorlik</div>
-            </div>
-        </div>
+<div class="position-relative">
+    ${todayStats}
+    <!-- Small subtle toggle -->
+    <div style="position: absolute; bottom: -10px; right: 10px; opacity: 0.3;">
+        <a href="javascript:void(0)" class="text-muted" data-bs-toggle="collapse" data-bs-target="#extraRepStats" style="font-size: 10px; text-decoration: none;">
+            <i class="fas fa-plus"></i>
+        </a>
     </div>
 </div>
+`;
 
-<!-- Extra Reports Stats Toggle -->
-<div class="d-flex justify-content-center mb-4">
-    <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" type="button" data-bs-toggle="collapse" data-bs-target="#extraRepStats" aria-expanded="false">
-        <i class="fas fa-plus me-1"></i> Qoʻshimcha statistika
-    </button>
-</div>
-
+let bodyMiddle = `
 <div class="collapse" id="extraRepStats">
     <div class="row mb-4">
+        <!-- Total Debt -->
         <div class="col-md-4 mb-3">
-            <div class="card bg-primary text-white h-100 shadow-sm border-0">
+            <div class="card bg-danger text-white h-100 shadow-sm border-0">
                 <div class="card-body">
-                    <div class="small text-uppercase opacity-75 d-flex justify-content-between align-items-center">
-                        Bugungi Savdo
-                        <span class="eye-toggle-btn text-white" data-target="val-rep-today-sales"><i class="fas fa-eye-slash"></i></span>
-                    </div>
-                    <div class="h3 mb-0 fw-bold hideable-value hidden" id="val-rep-today-sales">${fmt(stats.todaySales)} <small class="fw-normal" style="font-size: 0.6em">soʻm</small></div>
-                    <div class="small mt-2 opacity-75"><span>${stats.todayOrders || 0}</span> ta buyurtma</div>
+                    <div class="small text-uppercase opacity-75">Umumiy Qarz</div>
+                    <div class="h3 mb-0 fw-bold">${fmt(stats.totalDebt)} <small class="fw-normal" style="font-size: 0.6em">soʻm</small></div>
                 </div>
             </div>
         </div>
-        <div class="col-md-4 mb-3">
-            <div class="card bg-success text-white h-100 shadow-sm border-0">
-                <div class="card-body">
-                    <div class="small text-uppercase opacity-75 d-flex justify-content-between align-items-center">
-                        Bugungi Kirim
-                        <span class="eye-toggle-btn text-white" data-target="val-rep-today-rev"><i class="fas fa-eye-slash"></i></span>
-                    </div>
-                    <div class="h3 mb-0 fw-bold hideable-value hidden" id="val-rep-today-rev">${fmt(stats.todayRevenue)} <small class="fw-normal" style="font-size: 0.6em">soʻm</small></div>
-                    <div class="small mt-2 opacity-75">Kassaga tushgan pul</div>
-                </div>
-            </div>
-        </div>
+        <!-- Total Customers -->
         <div class="col-md-4 mb-3">
             <div class="card bg-secondary text-white h-100 shadow-sm border-0">
                 <div class="card-body">
-                    <div class="small text-uppercase opacity-75">Mijozlar</div>
+                    <div class="small text-uppercase opacity-75">Barcha Mijozlar</div>
                     <div class="h3 mb-0 fw-bold">${fmt(stats.totalCustomers)}</div>
-                    <div class="small mt-2 opacity-75">Jami xaridorlar</div>
+                </div>
+            </div>
+        </div>
+        <!-- Monthly Revenue -->
+        <div class="col-md-4 mb-3">
+            <div class="card bg-light border h-100 shadow-sm">
+                <div class="card-body">
+                    <div class="small text-uppercase text-muted">Shu oygi savdo</div>
+                    <div class="h3 mb-0 fw-bold text-dark">${fmt(stats.monthlyRevenue)} soʻm</div>
                 </div>
             </div>
         </div>
     </div>
-
+    
     ${isAdmin ? `
     <div class="row mb-4">
         <div class="col-md-6 mb-3">
-            <div class="card h-100 border-0 shadow-sm border-start border-primary border-4">
+            <div class="card h-100 border-0 shadow-sm border-start border-success border-4">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h6 class="text-muted text-uppercase small fw-bold mb-0">Shu oygi tushum</h6>
-                        <span class="eye-toggle-btn" data-target="val-rep-mo-rev"><i class="fas fa-eye-slash"></i></span>
-                    </div>
-                    <div class="h4 mb-0 fw-bold text-primary hideable-value hidden" id="val-rep-mo-rev">${fmt(stats.monthlyRevenue)} soʻm</div>
-                    <div class="small text-muted mt-1"><span>${stats.monthlyOrders || 0}</span> ta buyurtma</div>
+                    <h6 class="text-muted text-uppercase small fw-bold mb-0">Jami Foyda (Barcha)</h6>
+                    <div class="h4 mb-0 fw-bold text-success">${fmt(stats.totalProfit)} soʻm</div>
                 </div>
             </div>
         </div>
         <div class="col-md-6 mb-3">
-            <div class="card h-100 border-0 shadow-sm border-start border-success border-4">
+            <div class="card h-100 border-0 shadow-sm border-start border-primary border-4">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h6 class="text-muted text-uppercase small fw-bold mb-0">Jami Foyda</h6>
-                        <span class="eye-toggle-btn" data-target="val-rep-total-profit"><i class="fas fa-eye-slash"></i></span>
-                    </div>
-                    <div class="h4 mb-0 fw-bold text-success hideable-value hidden" id="val-rep-total-profit">${fmt(stats.totalProfit)} soʻm</div>
-                    <div class="small text-muted mt-1">Barcha vaqtlar uchun</div>
+                    <h6 class="text-muted text-uppercase small fw-bold mb-0">Jami Buyurtmalar</h6>
+                    <div class="h4 mb-0 fw-bold text-primary">${fmt(stats.totalOrders)} ta</div>
                 </div>
             </div>
         </div>
     </div>` : ''}
+</div>`;
 
-    <div class="row text-center mb-4">
-        <div class="col-md-4 mb-3">
-            <div class="card border-0 shadow-sm py-3 h-100">
-                <div class="card-body">
-                    <div class="text-primary h2 mb-2"><i class="fas fa-shopping-bag"></i></div>
-                    <div class="h4 mb-0 fw-bold">${fmt(stats.totalOrders)}</div>
-                    <div class="text-muted small text-uppercase mt-1">Jami buyurtmalar</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4 mb-3">
-            <div class="card border-0 shadow-sm py-3 h-100">
-                <div class="card-body">
-                    <div class="text-success h2 mb-2"><i class="fas fa-hand-holding-usd"></i></div>
-                    <div class="h4 mb-0 fw-bold d-inline-block hideable-value hidden" id="val-rep-tot-rev">${fmt(stats.totalRevenue)}</div>
-                    <span class="eye-toggle-btn" data-target="val-rep-tot-rev"><i class="fas fa-eye-slash"></i></span>
-                    <div class="text-muted small text-uppercase mt-1">Jami tushum (Kirim)</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4 mb-3">
-            <div class="card border-0 shadow-sm py-3 h-100">
-                <div class="card-body">
-                    <div class="text-warning h2 mb-2"><i class="fas fa-users"></i></div>
-                    <div class="h4 mb-0 fw-bold">${fmt(stats.totalCustomers)}</div>
-                    <div class="text-muted small text-uppercase mt-1">Jami mijozlar</div>
-                </div>
-            </div>
-        </div>
-    </div>
-    </div>
-</div>
-
-<div class="card border-0 shadow-sm mb-4">
-    <div class="card-header bg-white py-3 border-0">
-        <h5 class="card-title mb-0 fw-bold"><i class="fas fa-users-cog me-2 text-primary"></i>Sotuvchilar boʻyicha hisobot (Bugun)</h5>
+let bodyFooter = `
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3">
+        <h5 class="mb-0"><i class="fas fa-users-cog me-2 text-primary"></i>Sotuvchilar boʻyicha hisobot (Bugun)</h5>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light text-muted small text-uppercase">
-                    <tr>
-                        <th class="ps-3 border-0">Sotuvchi</th>
-                        <th class="border-0">Buyurtmalar</th>
-                        <th class="border-0">Savdo</th>
-                        <th class="border-0">Kirim</th>
-                        ${isAdmin ? '<th class="border-0 text-info">Foyda</th>' : ''}
-                        <th class="pe-3 border-0">Balans</th>
-                    </tr>
+            <table class="table table-hover table-striped mb-0">
+                <thead class="table-dark">
+                    <tr><th>Sotuvchi</th><th>Buyurtmalar</th><th>Savdo</th><th>Kirim</th>${isAdmin ? '<th>Foyda</th>' : ''}<th>Balans</th></tr>
                 </thead>
                 <tbody>${sRows}</tbody>
             </table>
@@ -198,5 +153,7 @@ const body = `
     </div>
 </div>
 `;
+
+const body = bodyPrefix + bodyMiddle + bodyFooter;
 %>
-<%- include(layout, { body: body, title: 'Hisobotlar' }) %>
+<%- include(layout, { body: body, title: title }) %>

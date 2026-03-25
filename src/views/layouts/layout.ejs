@@ -709,22 +709,6 @@
         }, 5000);
     </script>
     <script>
-        // Local Data Visibility Toggle
-        document.addEventListener('click', function(e) {
-            const toggle = e.target.closest('.eye-toggle-btn');
-            if (toggle) {
-                const targetId = toggle.getAttribute('data-target');
-                const target = document.getElementById(targetId);
-                if (target) {
-                    target.classList.toggle('hidden');
-                    const icon = toggle.querySelector('i');
-                    if (icon) {
-                        icon.classList.toggle('fa-eye');
-                        icon.classList.toggle('fa-eye-slash');
-                    }
-                }
-            }
-        });
     </script>
 </body>
 </html>
