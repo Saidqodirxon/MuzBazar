@@ -269,8 +269,10 @@
         <div class="items-section">
             <div class="section-title">Mahsulotlar ro'yxati:</div>
             <% const formatNumber=(num)=> (num || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+                let totalItemsCount = 0;
                 if (order.items && order.items.length > 0) {
                 order.items.forEach((item, index) => {
+                    totalItemsCount += (item.quantity || 0);
                     // Determine unit label
                     let unit = 'ta';
                     if (item.product?.type === 'kg') unit = 'kg';
@@ -294,11 +296,17 @@
         </div>
 
         <!-- Totals -->
-        <div class="totals section">
+        <div class="totals-section">
             <div class="total-row main">
                 <span>Buyurtma narxi:</span>
                 <span class="amount">
                     <%= formatNumber(order.totalSum) %> so'm
+                </span>
+            </div>
+            <div class="total-row">
+                <span>Jami mahsulot:</span>
+                <span class="amount">
+                    <%= totalItemsCount %> ta
                 </span>
             </div>
             <div class="total-row">
