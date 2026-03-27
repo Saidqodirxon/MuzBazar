@@ -92,6 +92,26 @@ settingsSchema.statics.initDefaults = async function () {
       type: "text",
     },
     {
+      key: "shop_is_open",
+      label: "Do'kon holati (ish vaqti)",
+      value: true,
+      defaultValue: true,
+      description:
+        "Yoqilsa — buyurtmalar qabul qilinadi. O'chirilsa — bot va web orqali buyurtma berib bo'lmaydi.",
+      type: "boolean",
+    },
+    {
+      key: "shop_closed_message",
+      label: "Do'kon yopiq xabari",
+      value:
+        "⛔️ Do'kon hozir buyurtma qabul qilmayapti.\n\n⏰ Ish vaqti: {ish_vaqti}\n\nKeyinroq qayta urinib ko'ring!",
+      defaultValue:
+        "⛔️ Do'kon hozir buyurtma qabul qilmayapti.\n\n⏰ Ish vaqti: {ish_vaqti}\n\nKeyinroq qayta urinib ko'ring!",
+      description:
+        "Do'kon yopiqligida foydalanuvchilarga ko'rsatiladigan xabar. {ish_vaqti} — avtomatik almashtiriladi.",
+      type: "textarea",
+    },
+    {
       key: "working_hours",
       label: "Ish vaqti",
       value: "08:00 - 20:00",

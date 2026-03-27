@@ -274,6 +274,11 @@ if (USER_ID) {
         tg.showAlert("Buyurtmangiz qabul qilindi!", () => {
           window.location.href = "/shop/my-orders";
         });
+      } else if (result.shopClosed) {
+        tg.showAlert(result.message || "⛔️ Do'kon hozir yopiq.");
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        window.isSubmitting = false;
       } else {
         tg.showAlert(
           "Xatolik: " + (result.message || result.error || "Noma'lum xatolik")
