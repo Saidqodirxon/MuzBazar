@@ -307,7 +307,6 @@ const orderHandler = {
       }
 
       // Check minimum order amount
-      const { Settings } = require("../../server/models");
       const minOrderAmount = await Settings.get("min_order_amount", 0);
       const cartTotal = cart.reduce((sum, item) => sum + item.totalPrice, 0);
 
