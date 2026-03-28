@@ -53,6 +53,30 @@ const catalogHandler = {
   // Show all categories
   async showCategories(ctx) {
     try {
+      const { Settings } = require("../../server/models");
+      const shopIsOpen = await Settings.get("shop_is_open", true);
+
+      if (!shopIsOpen) {
+        const workingHours = await Settings.get("working_hours", "08:00 - 20:00");
+        let closedMsg = await Settings.get(
+          "shop_closed_message",
+          "⛔️ Do'kon hozir buyurtma qabul qilmayapti.\n\n⏰ Ish vaqti: {ish_vaqti}\n\nKeyinroq qayta urinib ko'ring!"
+        );
+        closedMsg = closedMsg.replace("{ish_vaqti}", workingHours);
+
+        if (ctx.callbackQuery) {
+          try {
+            await ctx.answerCbQuery("⛔️ Do'kon hozir yopiq.", { show_alert: true });
+          } catch (e) {}
+          await ctx.editMessageText(closedMsg, { parse_mode: "HTML" }).catch(() => {
+            ctx.reply(closedMsg, { parse_mode: "HTML" });
+          });
+        } else {
+          await ctx.reply(closedMsg, { parse_mode: "HTML" });
+        }
+        return;
+      }
+
       const categories = await Category.find({ isActive: true }).sort({
         sortOrder: 1,
       });
@@ -98,6 +122,27 @@ const catalogHandler = {
   // Show products by category
   async showProducts(ctx) {
     try {
+      const { Settings } = require("../../server/models");
+      const shopIsOpen = await Settings.get("shop_is_open", true);
+
+      if (!shopIsOpen) {
+        const workingHours = await Settings.get("working_hours", "08:00 - 20:00");
+        let closedMsg = await Settings.get(
+          "shop_closed_message",
+          "⛔️ Do'kon hozir buyurtma qabul qilmayapti.\n\n⏰ Ish vaqti: {ish_vaqti}\n\nKeyinroq qayta urinib ko'ring!"
+        );
+        closedMsg = closedMsg.replace("{ish_vaqti}", workingHours);
+
+        try {
+          await ctx.answerCbQuery("⛔️ Do'kon yopiq.", { show_alert: true });
+        } catch (e) {}
+        
+        await ctx.editMessageText(closedMsg, { parse_mode: "HTML" }).catch(() => {
+          ctx.reply(closedMsg, { parse_mode: "HTML" });
+        });
+        return;
+      }
+
       const categoryId = ctx.match[1];
 
       const category = await Category.findById(categoryId);
@@ -177,6 +222,27 @@ const catalogHandler = {
   // Show product details
   async showProductDetails(ctx) {
     try {
+      const { Settings } = require("../../server/models");
+      const shopIsOpen = await Settings.get("shop_is_open", true);
+
+      if (!shopIsOpen) {
+        const workingHours = await Settings.get("working_hours", "08:00 - 20:00");
+        let closedMsg = await Settings.get(
+          "shop_closed_message",
+          "⛔️ Do'kon hozir buyurtma qabul qilmayapti.\n\n⏰ Ish vaqti: {ish_vaqti}\n\nKeyinroq qayta urinib ko'ring!"
+        );
+        closedMsg = closedMsg.replace("{ish_vaqti}", workingHours);
+
+        try {
+          await ctx.answerCbQuery("⛔️ Do'kon yopiq.", { show_alert: true });
+        } catch (e) {}
+        
+        await ctx.editMessageText(closedMsg, { parse_mode: "HTML" }).catch(() => {
+          ctx.reply(closedMsg, { parse_mode: "HTML" });
+        });
+        return;
+      }
+
       const productId = ctx.match[1];
 
       const product = await Product.findById(productId).populate("category");

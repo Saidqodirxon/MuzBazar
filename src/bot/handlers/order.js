@@ -339,6 +339,29 @@ const orderHandler = {
   // Confirm and create order
   async confirmOrderCreation(ctx) {
     try {
+      const { Settings } = require("../../server/models");
+      const shopIsOpen = await Settings.get("shop_is_open", true);
+
+      if (!shopIsOpen) {
+        const workingHours = await Settings.get("working_hours", "08:00 - 20:00");
+        let closedMsg = await Settings.get(
+          "shop_closed_message",
+          "⛔️ Do'kon hozir buyurtma qabul qilmayapti.\n\n⏰ Ish vaqti: {ish_vaqti}\n\nKeyinroq qayta urinib ko'ring!"
+        );
+        closedMsg = closedMsg.replace("{ish_vaqti}", workingHours);
+
+        try {
+          if (ctx.callbackQuery) {
+            await ctx.answerCbQuery("⛔️ Do'kon hozir yopiq.", { show_alert: true });
+          }
+        } catch (e) {
+          // Ignore
+        }
+        
+        await ctx.reply(closedMsg, { parse_mode: "HTML" });
+        return;
+      }
+
       const cart = orderHandler.getCart(ctx);
 
       if (cart.length === 0) {

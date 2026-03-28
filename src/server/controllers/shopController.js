@@ -92,6 +92,25 @@ const shopController = {
     try {
       const { category: categoryId, search } = req.query;
 
+      // Check if shop is open
+      const { Settings } = require("../models");
+      const shopIsOpen = await Settings.get("shop_is_open", true);
+
+      if (!shopIsOpen) {
+        const workingHours = await Settings.get("working_hours", "08:00 - 20:00");
+        let closedMsg = await Settings.get(
+          "shop_closed_message",
+          "⛔️ Do'kon hozir buyurtma qabul qilmayapti.\\n\\n⏰ Ish vaqti: {ish_vaqti}\\n\\nKeyinroq qayta urinib ko'ring!"
+        );
+        closedMsg = closedMsg.replace("{ish_vaqti}", workingHours);
+
+        return res.render("shop/closed", {
+          title: "Do'kon yopiq",
+          message: closedMsg,
+          user: req.user,
+        });
+      }
+
       // Fetch categories
       const categories = await Category.find({ isActive: true }).sort({
         sortOrder: 1,

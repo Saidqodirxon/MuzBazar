@@ -153,8 +153,24 @@ const apiController = {
         totalSum += itemTotal;
       }
 
-      // Check minimum order amount
       const { Settings } = require("../models");
+      const shopIsOpen = await Settings.get("shop_is_open", true);
+
+      if (!shopIsOpen) {
+        const workingHours = await Settings.get("working_hours", "08:00 - 20:00");
+        let closedMsg = await Settings.get(
+          "shop_closed_message",
+          "⛔️ Do'kon hozir buyurtma qabul qilmayapti.\n\n⏰ Ish vaqti: {ish_vaqti}\n\nKeyinroq qayta urinib ko'ring!"
+        );
+        closedMsg = closedMsg.replace("{ish_vaqti}", workingHours);
+        
+        return res.status(400).json({
+          success: false,
+          message: closedMsg,
+        });
+      }
+
+      // Check minimum order amount
       const minOrderAmount = await Settings.get("min_order_amount", 0);
 
       if (minOrderAmount > 0 && totalSum < minOrderAmount) {
