@@ -16,9 +16,6 @@ router.get("/orders/:id/check", adminController.printOrderCheck);
 // Protected routes
 router.use(authMiddleware);
 
-// Dashboard
-router.get("/dashboard", adminController.dashboard);
-
 // Orders (Available to Seller & Admin)
 router.get("/orders", adminController.orders);
 router.get("/orders/export", adminController.exportOrders);
@@ -30,6 +27,9 @@ router.post("/payments/:paymentId/delete", adminController.deletePayment);
 
 // Admin Only Routes
 router.use(adminOnly);
+
+// Dashboard
+router.get("/dashboard", adminController.dashboard);
 
 // Categories
 router.get("/categories", adminController.categories);

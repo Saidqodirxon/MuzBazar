@@ -384,7 +384,7 @@
             </button>
             <% } %>
             
-            <a class="navbar-brand" href="/admin/dashboard">
+            <a class="navbar-brand" href="<%= (locals.admin && locals.admin.role === 'admin') ? '/admin/dashboard' : '/admin/orders' %>">
                 <i class="fas fa-snowflake me-2"></i>MUZ BAZAR <span class="d-none d-md-inline">Admin</span>
             </a>
             

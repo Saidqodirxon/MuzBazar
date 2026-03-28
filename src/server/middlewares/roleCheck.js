@@ -3,6 +3,11 @@ const adminOnly = (req, res, next) => {
     return next();
   }
 
+  // Redirect sellers to orders instead of showing error
+  if (req.session.role === "seller") {
+    return res.redirect("/admin/orders");
+  }
+
   res.status(403).render("error", {
     title: "Huquq yo'q",
     message:
