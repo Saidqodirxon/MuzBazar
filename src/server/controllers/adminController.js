@@ -88,7 +88,8 @@ const adminController = {
           seller.lastLogin = new Date();
           await seller.save();
 
-          return res.redirect("/admin/orders"); // Sellers go directly to orders
+          console.log(`✅ Seller login success: ${username} -> Redirecting to /admin/orders`);
+          return res.redirect("/admin/orders");
         }
       }
 
@@ -108,8 +109,14 @@ const adminController = {
   // Dashboard
   async dashboard(req, res) {
     try {
+      // Security: Redirect sellers to orders if they somehow hit dashboard
+      if (req.session.role === "seller") {
+        console.warn(`⚠️ Seller ${req.session.adminUser?.username} tried to access dashboard`);
+        return res.redirect("/admin/orders");
+      }
+
       // Get statistics
-      const stats = await adminController.getStatistics();
+      const stats = await adminController.getStatistics(req);
 
       // Recent orders with payment calculations
       const recentOrders = await Order.find()
@@ -149,6 +156,9 @@ const adminController = {
   // Categories
   async categories(req, res) {
     try {
+      if (req.session.role === "seller") {
+        return res.redirect("/admin/orders");
+      }
       const categories = await Category.find().sort({
         sortOrder: 1,
         createdAt: -1,
@@ -247,6 +257,9 @@ const adminController = {
   // Products
   async products(req, res) {
     try {
+      if (req.session.role === "seller") {
+        return res.redirect("/admin/orders");
+      }
       const { search } = req.query;
       let filter = {};
 
@@ -1250,6 +1263,9 @@ const adminController = {
   // Users
   async users(req, res) {
     try {
+      if (req.session.role === "seller") {
+        return res.redirect("/admin/orders");
+      }
       const { search } = req.query;
       let filter = {};
 
@@ -1307,6 +1323,9 @@ const adminController = {
   // User details
   async userDetails(req, res) {
     try {
+      if (req.session.role === "seller") {
+        return res.redirect("/admin/orders");
+      }
       const user = await User.findById(req.params.id);
 
       if (!user) {
@@ -2251,6 +2270,9 @@ const adminController = {
   // Sellers management
   async sellers(req, res) {
     try {
+      if (req.session.role === "seller") {
+        return res.redirect("/admin/orders");
+      }
       const sellers = await Seller.find().sort({
         createdAt: -1,
       });
@@ -2364,6 +2386,9 @@ const adminController = {
   // Debts management
   async debts(req, res) {
     try {
+      if (req.session.role === "seller") {
+        return res.redirect("/admin/orders");
+      }
       const debts = await Order.aggregate([
         { $match: { status: { $ne: "cancelled" }, debt: { $gt: 0 } } },
         {
@@ -2642,6 +2667,9 @@ const adminController = {
   // Reports
   async reports(req, res) {
     try {
+      if (req.session.role === "seller") {
+        return res.redirect("/admin/orders");
+      }
       const stats = await adminController.getDetailedStatistics();
 
       res.render("admin/reports", {
@@ -2807,6 +2835,9 @@ const adminController = {
   // Settings
   async settings(req, res) {
     try {
+      if (req.session.role === "seller") {
+        return res.redirect("/admin/orders");
+      }
       const { Settings } = require("../models");
 
       // Get all editable settings
@@ -3022,7 +3053,22 @@ const adminController = {
   },
 
   // Helper: Get basic statistics
-  async getStatistics() {
+  async getStatistics(req) {
+    // If seller somehow triggers this, return empty stats or limited ones
+    if (req && req.session && req.session.role === "seller") {
+        return {
+            totalProducts: 0,
+            totalCategories: 0,
+            totalOrders: 0,
+            totalUsers: 0,
+            totalDebt: 0,
+            todayOrders: 0,
+            todayRevenue: 0,
+            todayProfit: 0,
+            todaySales: 0
+        };
+    }
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
