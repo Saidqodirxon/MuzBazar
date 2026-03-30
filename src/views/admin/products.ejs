@@ -31,7 +31,9 @@ if (products.length === 0) {
                     <tbody>
                         ${products.map(product => {
                             const price = product.sellPrice || product.price || 0;
+                            const costPrice = product.costPrice || 0;
                             const formattedPrice = price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+                            const formattedCostPrice = costPrice.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
                             const categoryName = product.category?.name || '-';
                             const safeName = product.name.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
                             const confirmMsg = `Haqiqatan ham "${product.name}" mahsulotini o'chirmoqchimisiz?`;
@@ -41,7 +43,10 @@ if (products.length === 0) {
                         <tr>
                             <td><strong>${product.name}</strong></td>
                             <td>${categoryName}</td>
-                            <td>${formattedPrice} so'm</td>
+                            <td>
+                                <div>${formattedPrice} so'm</div>
+                                <small class="text-muted">Tan narxi: ${formattedCostPrice} so'm</small>
+                            </td>
                             <td>
                                 <span class="badge ${product.stock <= product.minStock ? 'bg-warning' : 'bg-success'} ">
                                     ${product.stock}
