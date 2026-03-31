@@ -275,6 +275,7 @@ const adminController = {
         .sort({ createdAt: -1 });
 
       const totalValue = products.reduce((sum, p) => sum + ((p.sellPrice || 0) * (p.stock || 0)), 0);
+      const totalCost = products.reduce((sum, p) => sum + ((p.costPrice || 0) * (p.stock || 0)), 0);
       const totalStock = products.reduce((sum, p) => sum + (p.stock || 0), 0);
 
       res.render("admin/products", {
@@ -282,6 +283,7 @@ const adminController = {
         products,
         search,
         totalValue,
+        totalCost,
         totalStock,
         fmt: (n) => (n || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " "),
       });
