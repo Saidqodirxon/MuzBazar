@@ -36,7 +36,10 @@
                         return `
                         <tr>
                             <td><strong>${order.orderNumber}</strong></td>
-                            <td>${order.client?.firstName} ${order.client?.lastName}</td>
+                            <td>
+                                <strong>${order.client?.firstName || '-'} ${order.client?.lastName || ''}</strong>
+                                ${order.client?.notes ? `<div class="x-small text-danger mt-1" style="font-size: 0.75rem;"><i class="fas fa-sticky-note me-1"></i>${order.client.notes.length > 50 ? order.client.notes.substring(0, 50) + '...' : order.client.notes}</div>` : ''}
+                            </td>
                             <td>${order.client?.phone ? '<a href="tel:' + order.client.phone + '">' + order.client.phone
                                     + '</a>' : '<span class="text-muted">Kiritilmagan</span>'}</td>
                             <td class="">${(order.totalSum || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm</td>

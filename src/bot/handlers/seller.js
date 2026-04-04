@@ -12,7 +12,7 @@ const sellerHandler = {
     try {
       const orders = await Order.find({ status: "pending" })
         .sort({ createdAt: -1 })
-        .populate("client", "firstName lastName telegramId phone")
+        .populate("client", "firstName lastName telegramId phone notes")
         .populate("items.product", "name");
 
       if (orders.length === 0) {
@@ -28,6 +28,9 @@ const sellerHandler = {
 `;
         message += `👤 ${order.client.firstName} ${order.client.lastName}
 `;
+        if (order.client.notes) {
+          message += `📝 <b>Izoh: ${order.client.notes}</b>\n`;
+        }
         message += `📱 @${order.client.telegramId}
 `;
         message += `📅 ${order.createdAt.toLocaleDateString("uz")} ${order.createdAt.toLocaleTimeString("uz")}
@@ -67,7 +70,7 @@ const sellerHandler = {
       })
         .sort({ createdAt: -1 })
         .limit(10)
-        .populate("client", "firstName lastName")
+        .populate("client", "firstName lastName notes")
         .populate("items.product", "name");
 
       if (orders.length === 0) {
@@ -81,8 +84,10 @@ const sellerHandler = {
       for (const order of orders) {
         message += `🆔 <b>${order.orderNumber}</b>
 `;
-        message += `👤 ${order.client.firstName} ${order.client.lastName}
-`;
+        message += `👤 ${order.client.firstName} ${order.client.lastName}\n`;
+        if (order.client.notes) {
+          message += `📝 <b>Izoh: ${order.client.notes}</b>\n`;
+        }
         message += `💰 ${order.totalSum} so'm`;
         if (order.debt > 0) {
           message += ` (qarz: ${order.debt} so'm)`;
@@ -178,7 +183,7 @@ const sellerHandler = {
     try {
       const order = await Order.findOne({ orderNumber }).populate(
         "client",
-        "firstName lastName"
+        "firstName lastName notes"
       );
 
       if (!order) {
@@ -198,7 +203,7 @@ const sellerHandler = {
       ctx.session.awaitingPaymentAmount = true;
 
       await ctx.reply(
-        `💰 <b>To'lov miqdorini kiriting</b>\n\n🆔 Buyurtma: <b>${order.orderNumber}</b>\n👤 Klient: ${order.client.firstName} ${order.client.lastName}\n💰 Umumiy summa: ${sellerHandler.formatSum(order.totalSum)} so'm\n📉 To'langan: ${sellerHandler.formatSum(order.paidSum)} so'm\n🔴 Qarz: ${sellerHandler.formatSum(order.debt)} so'm\n\n<b>To'lov miqdorini kiriting:</b>`,
+        `💰 <b>To'lov miqdorini kiriting</b>\n\n🆔 Buyurtma: <b>${order.orderNumber}</b>\n👤 Klient: ${order.client.firstName} ${order.client.lastName}\n${order.client.notes ? `📝 <b>Izoh: ${order.client.notes}</b>\n` : ''}💰 Umumiy summa: ${sellerHandler.formatSum(order.totalSum)} so'm\n📉 To'langan: ${sellerHandler.formatSum(order.paidSum)} so'm\n🔴 Qarz: ${sellerHandler.formatSum(order.debt)} so'm\n\n<b>To'lov miqdorini kiriting:</b>`,
         { parse_mode: "HTML" }
       );
     } catch (error) {

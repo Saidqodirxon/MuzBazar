@@ -80,6 +80,11 @@ const notifyMessage = 'Hurmatli mijoz!\n\nSizning buyurtmangiz: ' + order.orderN
                         <p><strong>Klient:</strong> ${clientName}</p>
                         <p><strong>Telefon:</strong> ${clientPhone}</p>
                         ${clientUsername}
+                        ${order.client?.notes ? `
+                        <div class="mt-3 p-3 border-start border-4 border-danger rounded bg-light shadow-sm">
+                            <h6 class="text-danger fw-bold mb-1"><i class="fas fa-sticky-note me-2"></i>Admin izohi (Sotuvchi uchun):</h6>
+                            <p class="mb-0 text-dark" style="font-size: 1.1rem;">${order.client.notes}</p>
+                        </div>` : ''}
                     </div>
                     <div class="col-md-6">
                         <p><strong>Status:</strong> <span class="badge bg-${statusClass}">${statusText}</span></p>
