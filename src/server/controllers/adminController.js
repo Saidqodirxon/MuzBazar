@@ -12,6 +12,83 @@ const bcrypt = require("bcrypt");
 // In-memory locks to prevent duplicate submissions
 const paymentLocks = new Map();
 
+function queueOrderStatusNotifications({ order, oldStatus, newStatus, adminName }) {
+  setImmediate(async () => {
+    try {
+      const NotificationService = require("../../utils/notificationService");
+      const notificationService = new NotificationService();
+      const { Settings } = require("../models");
+
+      if (oldStatus !== newStatus && order.client?.telegramId) {
+        try {
+          let statusText = "";
+          if (newStatus === "confirmed") {
+            statusText = await Settings.get(
+              "order_confirmed_message",
+              "Buyurtmangiz tasdiqlandi! Tez orada yetkazib beriladi."
+            );
+          } else {
+            const statusMessages = {
+              pending: "Sizning buyurtmangiz qabul qilindi va kutilmoqda.",
+              delivered: "Buyurtmangiz yetkazildi! Xaridingiz uchun rahmat!",
+              cancelled: "Buyurtmangiz bekor qilindi. Qarz hisobdan chiqarildi.",
+            };
+            statusText = statusMessages[newStatus] || newStatus;
+          }
+
+          const totalSum = (order.totalSum || 0)
+            .toString()
+            .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+
+          const message = `<b>Buyurtma yangilanishi</b>
+
+Buyurtma: <b>${order.orderNumber}</b>
+Yangi holat: ${statusText}
+Summa: <b>${totalSum} so'm</b>
+
+Savollar uchun: @muzbazar_admin`;
+
+          await notificationService.sendToUser(order.client.telegramId, message, {
+            parse_mode: "HTML",
+          });
+        } catch (notifError) {
+          console.error("❌ Failed to send user notification:", notifError);
+        }
+      }
+
+      try {
+        const statusLabels = {
+          pending: "Kutilmoqda",
+          confirmed: "Tasdiqlangan",
+          delivered: "Yetkazilgan",
+          cancelled: "Bekor qilingan",
+        };
+
+        const clientName = order.client
+          ? `${order.client.firstName || ""} ${order.client.lastName || ""}`.trim()
+          : "Noma'lum mijoz";
+
+        const groupMessage =
+          `*Buyurtma holati o'zgartirildi*\n\n` +
+          `Sotuvchi: *${adminName}*\n` +
+          `Mijoz: *${clientName}*\n` +
+          `Buyurtma: *${order.orderNumber}*\n` +
+          `Holat: ${oldStatus} -> *${statusLabels[newStatus] || newStatus}*\n` +
+          `Summa: *${(order.totalSum || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*\n` +
+          `Qarz: *${(order.debt || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*`;
+
+        await notificationService.sendToGroup(groupMessage, {
+          parse_mode: "Markdown",
+        });
+      } catch (groupError) {
+        console.error("❌ Failed to send group notification:", groupError);
+      }
+    } catch (error) {
+      console.error("❌ Background order status notification error:", error);
+    }
+  });
+}
+
 const adminController = {
   // Show login page
   async showLogin(req, res) {
@@ -886,88 +963,13 @@ const adminController = {
         order.status = status;
         await order.save();
       }
-
-      // Send notification to client if status changed
-      if (oldStatus !== status && order.client?.telegramId) {
-        try {
-          const NotificationService = require("../../utils/notificationService");
-          const notificationService = new NotificationService();
-          const { Settings } = require("../models");
-
-          // Get custom message for confirmed status
-          let statusText = "";
-          if (status === "confirmed") {
-            statusText = await Settings.get(
-              "order_confirmed_message",
-              "✅ Buyurtmangiz tasdiqlandi! Tez orada yetkazib beriladi."
-            );
-          } else {
-            const statusMessages = {
-              pending: "⏳ Sizning buyurtmangiz qabul qilindi va kutilmoqda.",
-              delivered: "🎉 Buyurtmangiz yetkazildi! Xaridingiz uchun rahmat!",
-              cancelled:
-                "❌ Buyurtmangiz bekor qilindi. Qarz hisobdan chiqarildi.",
-            };
-            statusText = statusMessages[status] || status;
-          }
-
-          const totalSum = (order.totalSum || 0)
-            .toString()
-            .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-
-          const message = `📋 <b>Buyurtma yangilanishi</b>
-
-🆔 Buyurtma: <b>${order.orderNumber}</b>
-📊 Yangi holat: ${statusText}
-💰 Summa: <b>${totalSum} so'm</b>
-
-📞 Savollar uchun: @muzbazar_admin`;
-
-          await notificationService.sendToUser(
-            order.client.telegramId,
-            message,
-            {
-              parse_mode: "HTML",
-            }
-          );
-
-          console.log(
-            `📬 Status notification sent to user ${order.client.telegramId} for order ${order.orderNumber}`
-          );
-        } catch (notifError) {
-          console.error("❌ Failed to send user notification:", notifError);
-        }
-      }
-
-      // Send notification to admin group
-      try {
-        const NotificationService = require("../../utils/notificationService");
-        const notificationService = new NotificationService();
-        const adminName = req.session.adminUser?.name || "Admin";
-        const statusLabels = {
-          pending: "⏳ Kutilmoqda",
-          confirmed: "✅ Tasdiqlangan",
-          delivered: "🎉 Yetkazilgan",
-          cancelled: "❌ Bekor qilingan",
-        };
-
-        const groupMessage =
-          `📋 *Buyurtma holati o'zgartirildi*
-
-` +
-          `👤 Sotuvchi: *${adminName}*\n` +
-          `👥 Mijoz: *${order.client.firstName} ${order.client.lastName || ""}*\n` +
-          `🆔 Buyurtma: *${order.orderNumber}*\n` +
-          `📊 Holat: ${oldStatus} → *${statusLabels[status] || status}*\n` +
-          `💰 Summa: *${(order.totalSum || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*\n` +
-          `🔴 Qarz: *${(order.debt || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm*`;
-
-        await notificationService.sendToGroup(groupMessage, {
-          parse_mode: "Markdown",
-        });
-      } catch (groupError) {
-        console.error("❌ Failed to send group notification:", groupError);
-      }
+      const adminName = req.session.adminUser?.name || "Admin";
+      queueOrderStatusNotifications({
+        order,
+        oldStatus,
+        newStatus: status,
+        adminName,
+      });
 
       res.redirect(`/admin/orders/${req.params.id}?success=status_updated`);
     } catch (error) {

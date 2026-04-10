@@ -7,6 +7,30 @@ const { User, Order, Settings } = require("../server/models");
 class NotificationService {
   constructor() {
     this.bot = new Telegraf(process.env.BOT_TOKEN);
+    this.requestTimeoutMs =
+      Number(process.env.TELEGRAM_REQUEST_TIMEOUT_MS) || 7000;
+  }
+
+  async withTimeout(task, label = "telegram request") {
+    let timeoutId;
+    try {
+      return await Promise.race([
+        task(),
+        new Promise((_, reject) => {
+          timeoutId = setTimeout(() => {
+            reject(
+              new Error(
+                `${label} timeout after ${this.requestTimeoutMs}ms`
+              )
+            );
+          }, this.requestTimeoutMs);
+        }),
+      ]);
+    } finally {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    }
   }
 
   /**
@@ -54,11 +78,15 @@ class NotificationService {
         return { success: false, error: "Group ID not configured" };
       }
 
-      await this.bot.telegram.sendMessage(groupId, message, {
-        parse_mode: "Markdown",
-        disable_web_page_preview: true,
-        ...options,
-      });
+      await this.withTimeout(
+        () =>
+          this.bot.telegram.sendMessage(groupId, message, {
+            parse_mode: "Markdown",
+            disable_web_page_preview: true,
+            ...options,
+          }),
+        "sendToGroup"
+      );
 
       console.log(`✅ Group notification sent`);
       return { success: true };
@@ -81,11 +109,15 @@ class NotificationService {
         return this.sendToGroup(message, options);
       }
 
-      await this.bot.telegram.sendMessage(sellerGroupId, message, {
-        parse_mode: "Markdown",
-        disable_web_page_preview: true,
-        ...options,
-      });
+      await this.withTimeout(
+        () =>
+          this.bot.telegram.sendMessage(sellerGroupId, message, {
+            parse_mode: "Markdown",
+            disable_web_page_preview: true,
+            ...options,
+          }),
+        "sendToSellerGroup"
+      );
 
       console.log(`✅ Seller Group notification sent`);
       return { success: true };
@@ -103,11 +135,15 @@ class NotificationService {
    */
   async sendToUser(telegramId, message, options = {}) {
     try {
-      await this.bot.telegram.sendMessage(telegramId, message, {
-        parse_mode: "HTML",
-        disable_web_page_preview: true,
-        ...options,
-      });
+      await this.withTimeout(
+        () =>
+          this.bot.telegram.sendMessage(telegramId, message, {
+            parse_mode: "HTML",
+            disable_web_page_preview: true,
+            ...options,
+          }),
+        "sendToUser"
+      );
 
       console.log(`✅ Notification sent to ${telegramId}`);
       return { success: true };
