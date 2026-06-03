@@ -119,101 +119,85 @@ const catalogHandler = {
     }
   },
 
-  // Show products by category
+  // Internal: render products page (pagination)
+  async _renderProductsPage(ctx, categoryId, page) {
+    const PAGE_SIZE = 8;
+
+    const { Settings } = require("../../server/models");
+    const shopIsOpen = await Settings.get("shop_is_open", true);
+
+    if (!shopIsOpen) {
+      const workingHours = await Settings.get("working_hours", "08:00 - 20:00");
+      let closedMsg = await Settings.get(
+        "shop_closed_message",
+        "⛔️ Do'kon hozir buyurtma qabul qilmayapti.\n\n⏰ Ish vaqti: {ish_vaqti}\n\nKeyinroq qayta urinib ko'ring!"
+      );
+      closedMsg = closedMsg.replace("{ish_vaqti}", workingHours);
+      try { await ctx.answerCbQuery("⛔️ Do'kon yopiq.", { show_alert: true }); } catch (e) {}
+      await ctx.editMessageText(closedMsg, { parse_mode: "HTML" }).catch(() => {
+        ctx.reply(closedMsg, { parse_mode: "HTML" });
+      });
+      return;
+    }
+
+    const category = await Category.findById(categoryId);
+    if (!category) {
+      try { return await ctx.answerCbQuery("❌ Kategoriya topilmadi."); } catch (e) { return; }
+    }
+
+    const allProducts = await Product.find({
+      category: categoryId,
+      isActive: true,
+      stock: { $gt: 0 },
+    }).sort({ sortOrder: 1 });
+
+    if (allProducts.length === 0) {
+      const backKeyboard = await Keyboards.categoriesInline([category]);
+      await ctx.editMessageText(
+        `📦 <b>${category.name}</b> kategoriyasida mahsulotlar mavjud emas yoki sotilgan.`,
+        { parse_mode: "HTML", ...backKeyboard }
+      );
+      try { await ctx.answerCbQuery(); } catch (e) {}
+      return;
+    }
+
+    const totalPages = Math.ceil(allProducts.length / PAGE_SIZE);
+    const safePage = Math.min(Math.max(page, 0), totalPages - 1);
+    const pageProducts = allProducts.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE);
+
+    const productList = pageProducts
+      .map((p) => `• <b>${p.name}</b> - ${catalogHandler.formatSum(p.sellPrice)} so'm`)
+      .join("\n");
+
+    const pageInfo = totalPages > 1 ? ` (${safePage + 1}/${totalPages})` : "";
+    const message = `🛍️ <b>${category.name}</b>${pageInfo}\n\n${productList}\n\nMahsulotni tanlang:`;
+
+    const productsKeyboard = await Keyboards.productsInline(
+      pageProducts,
+      categoryId,
+      safePage,
+      totalPages
+    );
+
+    try {
+      await ctx.editMessageText(message, { parse_mode: "HTML", ...productsKeyboard });
+    } catch (editError) {
+      if (editError.description?.includes("message is not modified")) {
+        // content unchanged, ignore
+      } else {
+        await ctx.deleteMessage().catch(() => {});
+        await ctx.reply(message, { parse_mode: "HTML", ...productsKeyboard });
+      }
+    }
+
+    try { await ctx.answerCbQuery(); } catch (e) {}
+  },
+
+  // Show products by category (page 0)
   async showProducts(ctx) {
     try {
-      const { Settings } = require("../../server/models");
-      const shopIsOpen = await Settings.get("shop_is_open", true);
-
-      if (!shopIsOpen) {
-        const workingHours = await Settings.get("working_hours", "08:00 - 20:00");
-        let closedMsg = await Settings.get(
-          "shop_closed_message",
-          "⛔️ Do'kon hozir buyurtma qabul qilmayapti.\n\n⏰ Ish vaqti: {ish_vaqti}\n\nKeyinroq qayta urinib ko'ring!"
-        );
-        closedMsg = closedMsg.replace("{ish_vaqti}", workingHours);
-
-        try {
-          await ctx.answerCbQuery("⛔️ Do'kon yopiq.", { show_alert: true });
-        } catch (e) {}
-        
-        await ctx.editMessageText(closedMsg, { parse_mode: "HTML" }).catch(() => {
-          ctx.reply(closedMsg, { parse_mode: "HTML" });
-        });
-        return;
-      }
-
       const categoryId = ctx.match[1];
-
-      const category = await Category.findById(categoryId);
-      if (!category) {
-        try {
-          return await ctx.answerCbQuery("❌ Kategoriya topilmadi.");
-        } catch (e) {
-          return;
-        }
-      }
-
-      const products = await Product.find({
-        category: categoryId,
-        isActive: true,
-        stock: { $gt: 0 },
-      }).sort({ sortOrder: 1 });
-
-      if (products.length === 0) {
-        const backKeyboard = await Keyboards.categoriesInline([category]);
-        await ctx.editMessageText(
-          `📦 <b>${category.name}</b> kategoriyasida mahsulotlar mavjud emas yoki sotilgan.`,
-          { parse_mode: "HTML", ...backKeyboard }
-        );
-        try {
-          await ctx.answerCbQuery();
-        } catch (e) {}
-        return;
-      }
-
-      const productList = products
-        .map(
-          (p) =>
-            `• <b>${p.name}</b> - ${catalogHandler.formatSum(p.sellPrice)} so'm`
-        )
-        .join("\n");
-
-      const productsKeyboard = await Keyboards.productsInline(
-        products,
-        categoryId
-      );
-
-      const message = `🛍️ <b>${category.name}</b>\n\n${productList}\n\nMahsulotni tanlang:`;
-
-      try {
-        await ctx.editMessageText(message, {
-          parse_mode: "HTML",
-          ...productsKeyboard,
-        });
-      } catch (editError) {
-        if (editError.description?.includes("message is not modified")) {
-          // Already showing correct content, do nothing
-        } else if (editError.description?.includes("no text in the message")) {
-          await ctx.deleteMessage().catch(() => {});
-          await ctx.reply(message, {
-            parse_mode: "HTML",
-            ...productsKeyboard,
-          });
-        } else {
-          await ctx.deleteMessage().catch(() => {});
-          await ctx.reply(message, {
-            parse_mode: "HTML",
-            ...productsKeyboard,
-          });
-        }
-      }
-
-      try {
-        await ctx.answerCbQuery();
-      } catch (e) {
-        // Ignore callback query errors
-      }
+      await catalogHandler._renderProductsPage(ctx, categoryId, 0);
     } catch (error) {
       console.error("❌ Products error:", error);
       try {
@@ -221,6 +205,20 @@ const catalogHandler = {
       } catch (e) {
         // Ignore callback query errors
       }
+    }
+  },
+
+  // Show products by category (specific page - for pagination)
+  async showProductsPage(ctx) {
+    try {
+      const categoryId = ctx.match[1];
+      const page = parseInt(ctx.match[2]) || 0;
+      await catalogHandler._renderProductsPage(ctx, categoryId, page);
+    } catch (error) {
+      console.error("❌ Products page error:", error);
+      try {
+        await ctx.answerCbQuery("❌ Mahsulotlarni yuklashda xatolik.");
+      } catch (e) {}
     }
   },
 

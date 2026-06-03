@@ -45,8 +45,8 @@ class Keyboards {
     ]);
   }
 
-  // Products inline keyboard
-  static async productsInline(products, categoryId) {
+  // Products inline keyboard (with optional pagination)
+  static async productsInline(products, categoryId, page = 0, totalPages = 1) {
     const buttons = products.map((product) => [
       Markup.button.callback(
         `${product.name} - ${product.sellPrice} so'm`,
@@ -54,10 +54,19 @@ class Keyboards {
       ),
     ]);
 
-    return Markup.inlineKeyboard([
-      ...buttons,
-      [Markup.button.callback("🔙 Kategoriyalar", "back_to_categories")],
-    ]);
+    const navRow = [];
+    if (page > 0) {
+      navRow.push(Markup.button.callback("◀️ Oldingi", `cat_page_${categoryId}_${page - 1}`));
+    }
+    if (page < totalPages - 1) {
+      navRow.push(Markup.button.callback("Keyingi ▶️", `cat_page_${categoryId}_${page + 1}`));
+    }
+
+    const rows = [...buttons];
+    if (navRow.length > 0) rows.push(navRow);
+    rows.push([Markup.button.callback("🔙 Kategoriyalar", "back_to_categories")]);
+
+    return Markup.inlineKeyboard(rows);
   }
 
   // Quantity selection

@@ -137,8 +137,9 @@ const adminController = {
         console.log(`✅ Admin login success: ${username}`);
         req.session.adminAuth = true;
         req.session.role = "admin";
+        const admin2Name = (process.env.ADMIN2_NAME || "").trim() || "Admin2";
         req.session.adminUser = {
-          name: username === envAdminUser ? "Admin" : "MuzAdmin",
+          name: username === envAdminUser ? "Admin" : admin2Name,
           username: username,
           role: "admin",
         };

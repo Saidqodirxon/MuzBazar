@@ -274,8 +274,11 @@ bot.hears("💰 To'lov qabul qilish", sellerOnly, sellerHandler.showPaymentForm)
  * Inline button handlers
  */
 
-// Category selection
+// Category selection (page 0)
 bot.action(/^category_(.+)$/, catalogHandler.showProducts);
+
+// Category pagination
+bot.action(/^cat_page_(.+)_(\d+)$/, catalogHandler.showProductsPage);
 
 // Product selection
 bot.action(/^product_(.+)$/, catalogHandler.showProductDetails);
