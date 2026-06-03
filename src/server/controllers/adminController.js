@@ -3243,6 +3243,7 @@ const adminController = {
         totalDebt,
         totalProfit,
         totalSales,
+        monthlyProfit,
       ] = await Promise.all([
         // Total revenue (paid amount) - excluding cancelled
         Order.aggregate([
@@ -3454,6 +3455,49 @@ const adminController = {
           { $match: { status: { $ne: "cancelled" } } },
           { $group: { _id: null, total: { $sum: "$totalSum" } } },
         ]),
+        // Monthly profit (sellPrice - costPrice) - excluding cancelled
+        Order.aggregate([
+          { $match: { createdAt: { $gte: firstDayOfMonth }, status: { $ne: "cancelled" } } },
+          { $unwind: "$items" },
+          {
+            $lookup: {
+              from: "products",
+              localField: "items.product",
+              foreignField: "_id",
+              as: "productInfo",
+            },
+          },
+          { $unwind: { path: "$productInfo", preserveNullAndEmptyArrays: true } },
+          {
+            $group: {
+              _id: null,
+              total: {
+                $sum: {
+                  $subtract: [
+                    {
+                      $ifNull: [
+                        "$items.totalPrice",
+                        { $multiply: [{ $ifNull: ["$items.pricePerUnit", { $ifNull: ["$productInfo.sellPrice", 0] }] }, "$items.quantity"] },
+                      ],
+                    },
+                    {
+                      $multiply: [
+                        {
+                          $cond: [
+                            { $gt: [{ $ifNull: ["$productInfo.costPrice", 0] }, { $ifNull: ["$items.pricePerUnit", { $ifNull: ["$productInfo.sellPrice", 0] }] }] },
+                            { $ifNull: ["$items.pricePerUnit", { $ifNull: ["$productInfo.sellPrice", 0] }] },
+                            { $ifNull: ["$productInfo.costPrice", 0] },
+                          ],
+                        },
+                        "$items.quantity",
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        ]),
       ]);
 
       const averageOrder =
@@ -3598,6 +3642,7 @@ const adminController = {
         monthlyRevenue: monthlyRevenue[0]?.total || 0,
         totalDebt: totalDebt[0]?.total || 0,
         totalProfit: totalProfit[0]?.total || 0,
+        monthlyProfit: monthlyProfit[0]?.total || 0,
         sellerStats,
       };
     } catch (error) {
@@ -3616,6 +3661,7 @@ const adminController = {
         monthlyRevenue: 0,
         totalDebt: 0,
         totalProfit: 0,
+        monthlyProfit: 0,
         sellerStats: [],
       };
     }

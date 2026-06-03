@@ -192,15 +192,20 @@ const catalogHandler = {
           ...productsKeyboard,
         });
       } catch (editError) {
-        // Agar message rasm bo'lsa yoki edit qilib bo'lmasa
-        if (editError.description?.includes("no text in the message")) {
+        if (editError.description?.includes("message is not modified")) {
+          // Already showing correct content, do nothing
+        } else if (editError.description?.includes("no text in the message")) {
           await ctx.deleteMessage().catch(() => {});
           await ctx.reply(message, {
             parse_mode: "HTML",
             ...productsKeyboard,
           });
         } else {
-          throw editError;
+          await ctx.deleteMessage().catch(() => {});
+          await ctx.reply(message, {
+            parse_mode: "HTML",
+            ...productsKeyboard,
+          });
         }
       }
 
