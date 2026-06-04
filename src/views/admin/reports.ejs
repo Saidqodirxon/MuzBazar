@@ -1,11 +1,28 @@
-<% 
-const layout='../layouts/layout.ejs'; 
-function fmt(n) { 
-    return (n || 0).toLocaleString('ru-RU').replace(/,/g, ' '); 
-} 
+<%
+const layout='../layouts/layout.ejs';
+function fmt(n) {
+    return (n || 0).toLocaleString('ru-RU').replace(/,/g, ' ');
+}
 
 const isAdmin = locals.admin && locals.admin.role === 'admin';
-let sRows = ''; 
+const curSelectedMonth = locals.selectedMonth || '';
+
+// Generate month options (last 36 months) using UTC+5
+const UZ_MONTHS_ARR = ['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'];
+const nowUtc5 = new Date(Date.now() + 5 * 60 * 60 * 1000);
+let monthOptions = '';
+monthOptions += `<option value="" ${curSelectedMonth === '' ? 'selected' : ''}>Joriy oy</option>`;
+monthOptions += `<option value="all" ${curSelectedMonth === 'all' ? 'selected' : ''}>Barchasi</option>`;
+for (let i = 0; i < 36; i++) {
+    const d = new Date(Date.UTC(nowUtc5.getUTCFullYear(), nowUtc5.getUTCMonth() - i, 1));
+    const val = `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`;
+    const label = `${UZ_MONTHS_ARR[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+    const sel = curSelectedMonth === val ? 'selected' : '';
+    monthOptions += `<option value="${val}" ${sel}>${label}</option>`;
+}
+
+let sRows = '';
+const periodLabel = (stats && stats.periodLabel) || '';
 
 if (typeof stats !== 'undefined' && stats.sellerStats && stats.sellerStats.length > 0) {
     stats.sellerStats.forEach((s, idx) => {
@@ -24,122 +41,153 @@ if (typeof stats !== 'undefined' && stats.sellerStats && stats.sellerStats.lengt
     sRows = `<tr><td colspan="${isAdmin ? 6 : 5}" class="text-center py-4 text-muted">Maʻlumot yoʻq</td></tr>`;
 }
 
-let todayStats = `
-<div class="row mb-4">
-    <!-- Today's Profit -->
-    <div class="col-md-3 mb-3">
-        <div class="card bg-info text-white h-100 shadow-sm border-0 border-start border-white border-5">
-            <div class="card-body py-3">
-                <div class="small text-uppercase opacity-75">Bugungi Foyda</div>
-                <div class="h4 mb-0 fw-bold">${fmt(stats.todayProfit)} <small class="fw-normal" style="font-size: 0.6em">soʻm</small></div>
-            </div>
-        </div>
-    </div>
-    <!-- Today's Sales -->
-    <div class="col-md-3 mb-3">
-        <div class="card bg-primary text-white h-100 shadow-sm border-0 border-start border-white border-5">
-            <div class="card-body py-3">
-                <div class="small text-uppercase opacity-75">Bugungi Savdo</div>
-                <div class="h4 mb-0 fw-bold">${fmt(stats.todaySales)} <small class="fw-normal" style="font-size: 0.6em">soʻm</small></div>
-            </div>
-        </div>
-    </div>
-    <!-- Today's Revenue -->
-    <div class="col-md-3 mb-3">
-        <div class="card bg-success text-white h-100 shadow-sm border-0 border-start border-white border-5">
-            <div class="card-body py-3">
-                <div class="small text-uppercase opacity-75">Bugungi Kirim</div>
-                <div class="h4 mb-0 fw-bold">${fmt(stats.todayRevenue)} <small class="fw-normal" style="font-size: 0.6em">soʻm</small></div>
-            </div>
-        </div>
-    </div>
-    <!-- Today's Orders -->
-    <div class="col-md-3 mb-3">
-        <div class="card bg-warning text-dark h-100 shadow-sm border-0 border-start border-dark border-5">
-            <div class="card-body py-3">
-                <div class="small text-uppercase opacity-75">Bugungi Buyurtmalar</div>
-                <div class="h4 mb-0 fw-bold">${fmt(stats.todayOrders)} <small class="fw-normal" style="font-size: 0.6em">ta</small></div>
-            </div>
-        </div>
-    </div>
-</div>`;
-
-let bodyPrefix = `
+const body = `
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
     <h1 class="h2"><i class="fas fa-chart-line me-2"></i>Hisobotlar</h1>
-    <div class="btn-toolbar mb-2 mb-md-0">
+    <div class="btn-toolbar mb-2 mb-md-0 gap-2">
+        <form method="GET" action="/admin/reports" class="d-flex align-items-center gap-2 mb-0">
+            <select name="month" class="form-select form-select-sm" style="width:auto;min-width:160px" onchange="this.form.submit()">
+                ${monthOptions}
+            </select>
+        </form>
         <a href="/admin/reports/export" class="btn btn-sm btn-outline-secondary"><i class="fas fa-download me-1"></i>Export</a>
     </div>
 </div>
 
-<div class="position-relative">
-    ${todayStats}
-    <!-- Small subtle toggle -->
-    <div style="position: absolute; bottom: -10px; right: 10px; opacity: 0.3;">
-        <a href="javascript:void(0)" class="text-muted" data-bs-toggle="collapse" data-bs-target="#extraRepStats" style="font-size: 10px; text-decoration: none;">
-            <i class="fas fa-plus"></i>
-        </a>
+<!-- BUGUNGI STATISTIKA -->
+<div class="mb-2">
+    <h6 class="text-uppercase text-muted fw-bold small mb-2">
+        <i class="fas fa-calendar-day me-1"></i>Bugungi statistika
+    </h6>
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card bg-info text-white h-100 shadow-sm border-0">
+                <div class="card-body py-3">
+                    <div class="small text-uppercase opacity-75">Bugungi Foyda</div>
+                    <div class="h4 mb-0 fw-bold">${fmt(stats.todayProfit)} <small class="fw-normal" style="font-size:0.6em">soʻm</small></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card bg-primary text-white h-100 shadow-sm border-0">
+                <div class="card-body py-3">
+                    <div class="small text-uppercase opacity-75">Bugungi Savdo</div>
+                    <div class="h4 mb-0 fw-bold">${fmt(stats.todaySales)} <small class="fw-normal" style="font-size:0.6em">soʻm</small></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card bg-success text-white h-100 shadow-sm border-0">
+                <div class="card-body py-3">
+                    <div class="small text-uppercase opacity-75">Bugungi Kirim</div>
+                    <div class="h4 mb-0 fw-bold">${fmt(stats.todayRevenue)} <small class="fw-normal" style="font-size:0.6em">soʻm</small></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card bg-warning text-dark h-100 shadow-sm border-0">
+                <div class="card-body py-3">
+                    <div class="small text-uppercase opacity-75">Bugungi Buyurtmalar</div>
+                    <div class="h4 mb-0 fw-bold">${fmt(stats.todayOrders)} <small class="fw-normal" style="font-size:0.6em">ta</small></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- DAVR STATISTIKASI -->
+<div class="mb-4">
+    <h6 class="text-uppercase text-muted fw-bold small mb-2">
+        <i class="fas fa-calendar-alt me-1"></i>Statistika: <span class="text-primary">${periodLabel}</span>
+    </h6>
+    <div class="row g-3">
+        ${isAdmin ? `
+        <div class="col-6 col-md-3">
+            <div class="card h-100 shadow-sm border-0 border-start border-info border-4">
+                <div class="card-body py-3">
+                    <div class="small text-uppercase text-muted">Foyda</div>
+                    <div class="h4 mb-0 fw-bold text-info">${fmt(stats.monthlyProfit)} <small class="fw-normal text-muted" style="font-size:0.6em">soʻm</small></div>
+                </div>
+            </div>
+        </div>` : ''}
+        <div class="col-6 col-md-3">
+            <div class="card h-100 shadow-sm border-0 border-start border-primary border-4">
+                <div class="card-body py-3">
+                    <div class="small text-uppercase text-muted">Savdo</div>
+                    <div class="h4 mb-0 fw-bold text-primary">${fmt(stats.monthlySales)} <small class="fw-normal text-muted" style="font-size:0.6em">soʻm</small></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card h-100 shadow-sm border-0 border-start border-success border-4">
+                <div class="card-body py-3">
+                    <div class="small text-uppercase text-muted">Kirim</div>
+                    <div class="h4 mb-0 fw-bold text-success">${fmt(stats.monthlyRevenue)} <small class="fw-normal text-muted" style="font-size:0.6em">soʻm</small></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card h-100 shadow-sm border-0 border-start border-warning border-4">
+                <div class="card-body py-3">
+                    <div class="small text-uppercase text-muted">Buyurtmalar</div>
+                    <div class="h4 mb-0 fw-bold text-warning">${fmt(stats.monthlyOrders)} <small class="fw-normal text-muted" style="font-size:0.6em">ta</small></div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
-`;
 
-let bodyMiddle = `
-<div class="collapse" id="extraRepStats">
-    <div class="row mb-4">
-        <!-- Total Debt -->
-        <div class="col-md-4 mb-3">
+<!-- UMUMIY STATISTIKA (admin only, yashirin) -->
+${isAdmin ? `
+<div class="collapse mb-4" id="totalStats">
+    <h6 class="text-uppercase text-muted fw-bold small mb-2">
+        <i class="fas fa-infinity me-1"></i>Jami statistika (barcha vaqt)
+    </h6>
+    <div class="row g-3">
+        <div class="col-6 col-md-3">
             <div class="card bg-danger text-white h-100 shadow-sm border-0">
-                <div class="card-body">
+                <div class="card-body py-3">
                     <div class="small text-uppercase opacity-75">Umumiy Qarz</div>
-                    <div class="h3 mb-0 fw-bold">${fmt(stats.totalDebt)} <small class="fw-normal" style="font-size: 0.6em">soʻm</small></div>
+                    <div class="h5 mb-0 fw-bold">${fmt(stats.totalDebt)} <small class="fw-normal" style="font-size:0.65em">soʻm</small></div>
                 </div>
             </div>
         </div>
-        <!-- Total Customers -->
-        <div class="col-md-4 mb-3">
+        <div class="col-6 col-md-3">
             <div class="card bg-secondary text-white h-100 shadow-sm border-0">
-                <div class="card-body">
+                <div class="card-body py-3">
                     <div class="small text-uppercase opacity-75">Barcha Mijozlar</div>
-                    <div class="h3 mb-0 fw-bold">${fmt(stats.totalCustomers)}</div>
+                    <div class="h5 mb-0 fw-bold">${fmt(stats.totalCustomers)}</div>
                 </div>
             </div>
         </div>
-        <!-- Monthly Revenue -->
-        <div class="col-md-4 mb-3">
-            <div class="card bg-light border h-100 shadow-sm">
-                <div class="card-body">
-                    <div class="small text-uppercase text-muted">Shu oygi savdo</div>
-                    <div class="h3 mb-0 fw-bold text-dark">${fmt(stats.monthlyRevenue)} soʻm</div>
+        <div class="col-6 col-md-3">
+            <div class="card h-100 shadow-sm border-0 border-start border-success border-4">
+                <div class="card-body py-3">
+                    <div class="small text-uppercase text-muted">Jami Foyda</div>
+                    <div class="h5 mb-0 fw-bold text-success">${fmt(stats.totalProfit)} <small class="fw-normal text-muted" style="font-size:0.65em">soʻm</small></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card h-100 shadow-sm border-0 border-start border-primary border-4">
+                <div class="card-body py-3">
+                    <div class="small text-uppercase text-muted">Jami Buyurtmalar</div>
+                    <div class="h5 mb-0 fw-bold text-primary">${fmt(stats.totalOrders)} <small class="fw-normal text-muted" style="font-size:0.65em">ta</small></div>
                 </div>
             </div>
         </div>
     </div>
-    
-    ${isAdmin ? `
-    <div class="row mb-4">
-        <div class="col-md-6 mb-3">
-            <div class="card h-100 border-0 shadow-sm border-start border-success border-4">
-                <div class="card-body">
-                    <h6 class="text-muted text-uppercase small fw-bold mb-0">Shu oygi Foyda</h6>
-                    <div class="h4 mb-0 fw-bold text-success">${fmt(stats.monthlyProfit)} soʻm</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6 mb-3">
-            <div class="card h-100 border-0 shadow-sm border-start border-primary border-4">
-                <div class="card-body">
-                    <h6 class="text-muted text-uppercase small fw-bold mb-0">Jami Buyurtmalar</h6>
-                    <div class="h4 mb-0 fw-bold text-primary">${fmt(stats.totalOrders)} ta</div>
-                </div>
-            </div>
-        </div>
-    </div>` : ''}
-</div>`;
+</div>
+<div class="text-center mb-4">
+    <a href="javascript:void(0)" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#totalStats">
+        <i class="fas fa-chart-bar me-1"></i>Jami statistikani ko'rish
+    </a>
+</div>` : ''}
 
-let bodyFooter = `
+<!-- SOTUVCHILAR JADVALI -->
 <div class="card shadow-sm border-0">
     <div class="card-header bg-white py-3">
-        <h5 class="mb-0"><i class="fas fa-users-cog me-2 text-primary"></i>Sotuvchilar boʻyicha hisobot (Bugun)</h5>
+        <h5 class="mb-0"><i class="fas fa-users-cog me-2 text-primary"></i>Sotuvchilar boʻyicha hisobot &mdash; <span class="text-primary fs-6">${periodLabel}</span></h5>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -153,7 +201,5 @@ let bodyFooter = `
     </div>
 </div>
 `;
-
-const body = bodyPrefix + bodyMiddle + bodyFooter;
 %>
 <%- include(layout, { body: body, title: title }) %>

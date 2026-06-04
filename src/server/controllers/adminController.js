@@ -2675,12 +2675,14 @@ const adminController = {
       if (req.session.role === "seller") {
         return res.redirect("/admin/orders");
       }
-      const stats = await adminController.getDetailedStatistics();
+      const { month } = req.query;
+      const stats = await adminController.getDetailedStatistics({ month });
 
       res.render("admin/reports", {
         title: "Hisobotlar",
         stats,
         moment,
+        selectedMonth: month || '',
       });
     } catch (error) {
       console.error("❌ Reports error:", error);
@@ -3218,18 +3220,34 @@ const adminController = {
   },
 
   // Helper: Get detailed statistics
-  async getDetailedStatistics() {
+  async getDetailedStatistics({ month } = {}) {
     try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
+      const TZ_OFFSET = 5 * 60 * 60 * 1000; // UTC+5 (Tashkent)
+      const nowLocal = new Date(Date.now() + TZ_OFFSET);
 
-      const firstDayOfMonth = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        1
-      );
+      // Start of today in UTC+5
+      const today = new Date(Date.UTC(nowLocal.getUTCFullYear(), nowLocal.getUTCMonth(), nowLocal.getUTCDate()) - TZ_OFFSET);
+      const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+
+      // Monthly filter based on selected period
+      const UZ_MONTHS_LABELS = ['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'];
+      let monthCreatedAtFilter;
+      let periodLabel;
+
+      if (month === 'all') {
+        monthCreatedAtFilter = {};
+        periodLabel = 'Barcha vaqt';
+      } else if (month && /^\d{4}-\d{2}$/.test(month)) {
+        const [yr, mo] = month.split('-').map(Number);
+        const monthStart = new Date(Date.UTC(yr, mo - 1, 1) - TZ_OFFSET);
+        const monthEnd = new Date(Date.UTC(yr, mo, 1) - TZ_OFFSET);
+        monthCreatedAtFilter = { createdAt: { $gte: monthStart, $lt: monthEnd } };
+        periodLabel = `${UZ_MONTHS_LABELS[mo - 1]} ${yr}`;
+      } else {
+        const firstDayOfMonth = new Date(Date.UTC(nowLocal.getUTCFullYear(), nowLocal.getUTCMonth(), 1) - TZ_OFFSET);
+        monthCreatedAtFilter = { createdAt: { $gte: firstDayOfMonth } };
+        periodLabel = `${UZ_MONTHS_LABELS[nowLocal.getUTCMonth()]} ${nowLocal.getUTCFullYear()} (Joriy oy)`;
+      }
 
       const [
         totalRevenue,
@@ -3245,6 +3263,7 @@ const adminController = {
         totalProfit,
         totalSales,
         monthlyProfit,
+        monthlySales,
       ] = await Promise.all([
         // Total revenue (paid amount) - excluding cancelled
         Order.aggregate([
@@ -3360,14 +3379,14 @@ const adminController = {
         ]),
         // Monthly orders - excluding cancelled
         Order.countDocuments({
-          createdAt: { $gte: firstDayOfMonth },
+          ...monthCreatedAtFilter,
           status: { $ne: "cancelled" },
         }),
         // Monthly revenue - excluding cancelled
         Order.aggregate([
           {
             $match: {
-              createdAt: { $gte: firstDayOfMonth },
+              ...monthCreatedAtFilter,
               status: { $ne: "cancelled" },
             },
           },
@@ -3458,7 +3477,7 @@ const adminController = {
         ]),
         // Monthly profit (sellPrice - costPrice) - excluding cancelled
         Order.aggregate([
-          { $match: { createdAt: { $gte: firstDayOfMonth }, status: { $ne: "cancelled" } } },
+          { $match: { ...monthCreatedAtFilter, status: { $ne: "cancelled" } } },
           { $unwind: "$items" },
           {
             $lookup: {
@@ -3499,6 +3518,11 @@ const adminController = {
             },
           },
         ]),
+        // Monthly sales (totalSum) - excluding cancelled
+        Order.aggregate([
+          { $match: { ...monthCreatedAtFilter, status: { $ne: "cancelled" } } },
+          { $group: { _id: null, total: { $sum: "$totalSum" } } },
+        ]),
       ]);
 
       const averageOrder =
@@ -3510,12 +3534,12 @@ const adminController = {
       let sellerStats = [];
 
       for (const seller of sellers) {
-        // Today's total sales by seller
+        // Period sales by seller
         const sellerTodaySalesAgg = await Order.aggregate([
           {
             $match: {
               seller: seller._id,
-              createdAt: { $gte: today, $lt: tomorrow },
+              ...monthCreatedAtFilter,
               status: { $ne: "cancelled" },
             },
           },
@@ -3528,23 +3552,23 @@ const adminController = {
           },
         ]);
 
-        // Today's revenue by seller
+        // Period revenue by seller
         const sellerTodayRevenueAgg = await Payment.aggregate([
           {
             $match: {
               seller: seller._id,
-              createdAt: { $gte: today, $lt: tomorrow },
+              ...monthCreatedAtFilter,
             },
           },
           { $group: { _id: null, total: { $sum: "$amount" } } },
         ]);
 
-        // Today's profit by seller
+        // Period profit by seller
         const sellerTodayProfitAgg = await Order.aggregate([
           {
             $match: {
               seller: seller._id,
-              createdAt: { $gte: today, $lt: tomorrow },
+              ...monthCreatedAtFilter,
               status: { $ne: "cancelled" },
             },
           },
@@ -3641,10 +3665,12 @@ const adminController = {
         todayProfit: todayProfit[0]?.total || 0,
         monthlyOrders,
         monthlyRevenue: monthlyRevenue[0]?.total || 0,
+        monthlySales: monthlySales[0]?.total || 0,
         totalDebt: totalDebt[0]?.total || 0,
         totalProfit: totalProfit[0]?.total || 0,
         monthlyProfit: monthlyProfit[0]?.total || 0,
         sellerStats,
+        periodLabel,
       };
     } catch (error) {
       console.error("❌ Get detailed statistics error:", error);
@@ -3660,10 +3686,12 @@ const adminController = {
         todayProfit: 0,
         monthlyOrders: 0,
         monthlyRevenue: 0,
+        monthlySales: 0,
         totalDebt: 0,
         totalProfit: 0,
         monthlyProfit: 0,
         sellerStats: [],
+        periodLabel: '',
       };
     }
   },
