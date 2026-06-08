@@ -2675,6 +2675,14 @@ const adminController = {
       if (req.session.role === "seller") {
         return res.redirect("/admin/orders");
       }
+
+      if (!req.session.reportsUnlocked) {
+        return res.render("admin/reports-lock", {
+          title: "Hisobotlar",
+          error: req.query.error,
+        });
+      }
+
       const { month } = req.query;
       const stats = await adminController.getDetailedStatistics({ month });
 
@@ -2690,6 +2698,25 @@ const adminController = {
         title: "Xatolik",
         message: "Hisobotlar ma'lumotini yuklashda xatolik",
       });
+    }
+  },
+
+  // Unlock reports section with the secret access code
+  async unlockReports(req, res) {
+    try {
+      const { Settings } = require("../models");
+      const { code } = req.body;
+      const accessCode = await Settings.get("reports_access_code", "0000");
+
+      if (code && String(code) === String(accessCode)) {
+        req.session.reportsUnlocked = true;
+        return res.redirect("/admin/reports");
+      }
+
+      res.redirect("/admin/reports?error=invalid_code");
+    } catch (error) {
+      console.error("❌ Unlock reports error:", error);
+      res.redirect("/admin/reports?error=invalid_code");
     }
   },
 

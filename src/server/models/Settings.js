@@ -223,6 +223,15 @@ settingsSchema.statics.initDefaults = async function () {
       isEditable: true,
     },
     {
+      key: "reports_access_code",
+      label: "Hisobotlar bo'limi kodi",
+      value: "0000",
+      defaultValue: "0000",
+      description:
+        "Hisobotlar sahifasini ochish uchun talab qilinadigan maxfiy kod",
+      type: "text",
+    },
+    {
       key: "notification_group_id",
       label: "Admin guruhi ID (Telegram)",
       value: process.env.NOTIFICATION_GROUP_ID || "",

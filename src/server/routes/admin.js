@@ -84,6 +84,7 @@ router.get("/debts/export", adminController.exportDebts);
 
 // Reports
 router.get("/reports", adminController.reports);
+router.post("/reports/unlock", adminController.unlockReports);
 router.get("/reports/export", adminController.exportReports);
 
 // Settings

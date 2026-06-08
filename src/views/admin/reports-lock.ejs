@@ -1,0 +1,45 @@
+<%
+const layout = '../layouts/layout.ejs';
+
+const errorMessage = error === 'invalid_code' ? "Kod noto'g'ri. Qaytadan urinib ko'ring." : '';
+
+const body = `
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-chart-line me-2"></i>Hisobotlar</h1>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-5 col-md-7">
+        <div class="card shadow-sm">
+            <div class="card-body p-4 text-center">
+                <i class="fas fa-lock fa-3x text-muted mb-3"></i>
+                <h5 class="mb-1">Hisobotlar himoyalangan</h5>
+                <p class="text-muted small mb-4">Ushbu bo'limni ochish uchun maxfiy kodni kiriting</p>
+
+                ${errorMessage ? `
+                <div class="alert alert-danger py-2">
+                    <i class="fas fa-exclamation-triangle me-2"></i>${errorMessage}
+                </div>` : ''}
+
+                <form method="POST" action="/admin/reports/unlock">
+                    <div class="mb-3">
+                        <input type="password" inputmode="numeric" class="form-control form-control-lg text-center" id="code" name="code"
+                               placeholder="Kodni kiriting" autocomplete="off" autofocus required>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-unlock me-2"></i>Ochish
+                        </button>
+                    </div>
+                </form>
+
+                <p class="text-muted small mt-3 mb-0">
+                    <i class="fas fa-info-circle me-1"></i>Kodni "Sozlamalar" bo'limidan o'zgartirish mumkin
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+`;
+-%>
+<%- include(layout, { body, title }) %>
