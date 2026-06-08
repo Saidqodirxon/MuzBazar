@@ -36,6 +36,34 @@ const body = `
                             </div>`;
                         }
 
+                        if (setting.key === 'reports_access_code') {
+                            return `
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center justify-content-between p-3 border rounded bg-light user-select-none" style="cursor:pointer" onclick="toggleSecretField('reports_access_code')">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="fas fa-key text-warning"></i>
+                                        <div>
+                                            <strong>${setting.label || setting.key}</strong>
+                                            <br><small class="text-muted">${setting.description || ''}</small>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-primary rounded-circle d-flex align-items-center justify-content-center" id="reports_access_code_toggle" style="width:32px;height:32px;flex:none" title="Ko'rsatish / Tahrirlash">
+                                        <i class="fas fa-plus" id="reports_access_code_icon"></i>
+                                    </button>
+                                </div>
+                                <div id="reports_access_code_field" class="mt-2 ps-1" style="display:none">
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                        <input type="password" class="form-control" id="reports_access_code" name="reports_access_code" value="${value || ''}" autocomplete="off" placeholder="Yangi kod">
+                                        <button type="button" class="btn btn-outline-secondary" onclick="toggleSecretVisibility(this)" title="Ko'rsatish/Yashirish">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                    <small class="form-text text-muted">Kodni o'zgartirib, pastdagi "Saqlash" tugmasini bosing</small>
+                                </div>
+                            </div>`;
+                        }
+
                         if (setting.type === 'datetime') {
                             const dateValue = value ? new Date(value).toISOString().slice(0, 16) : '';
                             const displayDate = value ? new Date(value).toLocaleString('uz-UZ', {
@@ -117,6 +145,29 @@ const body = `
 </div>
 
 <script>
+function toggleSecretField(key) {
+    const field = document.getElementById(key + '_field');
+    const icon = document.getElementById(key + '_icon');
+    const isHidden = field.style.display === 'none';
+    field.style.display = isHidden ? 'block' : 'none';
+    icon.className = isHidden ? 'fas fa-minus' : 'fas fa-plus';
+    if (isHidden) {
+        document.getElementById(key).focus();
+    }
+}
+
+function toggleSecretVisibility(btn) {
+    const input = btn.closest('.input-group').querySelector('input');
+    const icon = btn.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+    } else {
+        input.type = 'password';
+        icon.className = 'fas fa-eye';
+    }
+}
+
 function updateShopStatusStyle(checkbox) {
     const badge = document.getElementById('shop_status_badge');
     const container = checkbox.closest('.border.rounded');
