@@ -39,7 +39,7 @@ const body = `
                         if (setting.key === 'reports_access_code') {
                             return `
                             <div class="mb-3">
-                                <div class="d-flex align-items-center justify-content-between p-3 border rounded bg-light user-select-none" style="cursor:pointer" onclick="toggleSecretField('reports_access_code')">
+                                <div class="d-flex align-items-center justify-content-between p-3 border rounded bg-light user-select-none">
                                     <div class="d-flex align-items-center gap-2">
                                         <i class="fas fa-key text-warning"></i>
                                         <div>
@@ -47,16 +47,19 @@ const body = `
                                             <br><small class="text-danger fw-semibold">Bu yerga kirish mumkin emas</small>
                                         </div>
                                     </div>
-                                    <button type="button" class="btn btn-sm btn-primary rounded-circle d-flex align-items-center justify-content-center" id="reports_access_code_toggle" style="width:32px;height:32px;flex:none" title="Ko'rsatish / Tahrirlash">
-                                        <i class="fas fa-plus" id="reports_access_code_icon"></i>
+                                    <button type="button" class="btn btn-link btn-sm text-muted p-0" id="reports_access_code_toggle" style="opacity:.25;width:18px;height:18px;flex:none;line-height:1" title="" onclick="toggleSecretField('reports_access_code')">
+                                        <i class="fas fa-plus" id="reports_access_code_icon" style="font-size:.65rem"></i>
                                     </button>
                                 </div>
                                 <div id="reports_access_code_field" class="mt-2 ps-1" style="display:none">
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="fas fa-lock"></i></span>
-                                        <input type="password" class="form-control" id="reports_access_code" name="reports_access_code" value="${value || ''}" autocomplete="off" placeholder="Yangi kod">
+                                        <input type="password" class="form-control" id="reports_access_code" autocomplete="off" placeholder="Yangi kod" value="${value || ''}">
                                         <button type="button" class="btn btn-outline-secondary" onclick="toggleSecretVisibility(this)" title="Ko'rsatish/Yashirish">
                                             <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-danger" onclick="saveReportsAccessCode()" title="Saqlash">
+                                            <i class="fas fa-save"></i>
                                         </button>
                                     </div>
                                     <small class="form-text text-danger fw-semibold">Bu yerga kirish mumkin emas</small>
@@ -154,6 +157,24 @@ function toggleSecretField(key) {
     if (isHidden) {
         document.getElementById(key).focus();
     }
+}
+
+function saveReportsAccessCode() {
+    if (!confirm('Bu yerga kirish mumkin emas. Baribir saqlashni davom ettirasizmi?')) {
+        return;
+    }
+    const value = document.getElementById('reports_access_code').value;
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/admin/settings';
+    form.style.display = 'none';
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'reports_access_code';
+    input.value = value;
+    form.appendChild(input);
+    document.body.appendChild(form);
+    form.submit();
 }
 
 function toggleSecretVisibility(btn) {
