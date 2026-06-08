@@ -228,7 +228,7 @@ settingsSchema.statics.initDefaults = async function () {
       value: "0000",
       defaultValue: "0000",
       description:
-        "Hisobotlar sahifasini ochish uchun talab qilinadigan maxfiy kod",
+        "<span class=\"text-danger fw-semibold\">Diqqat:</span> ushbu kodsiz Hisobot bo'limiga kirish mumkin emas",
       type: "text",
     },
     {
