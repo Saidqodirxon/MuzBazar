@@ -3030,9 +3030,12 @@ const adminController = {
   // Profile
   async profile(req, res) {
     try {
+      const { Settings } = require("../models");
+      const reportsAccessCode = await Settings.get("reports_access_code", "0000");
       res.render("admin/profile", {
         title: "Profil",
         adminUser: req.session.adminUser,
+        reportsAccessCode,
       });
     } catch (error) {
       console.error("❌ Profile error:", error);

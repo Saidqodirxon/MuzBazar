@@ -14,6 +14,25 @@
                 <div class="card-body">
                     <p><strong>Foydalanuvchi nomi:</strong> ${adminUser.username}</p>
                     <p><strong>Ism:</strong> ${adminUser.name}</p>
+
+                    <div class="d-flex justify-content-end mt-2">
+                        <button type="button" class="btn btn-link btn-sm text-muted p-0" id="reports_access_code_toggle" style="opacity:.25;width:18px;height:18px;flex:none;line-height:1" onclick="toggleSecretField('reports_access_code')">
+                            <i class="fas fa-plus" id="reports_access_code_icon" style="font-size:.65rem"></i>
+                        </button>
+                    </div>
+                    <div id="reports_access_code_field" class="mt-2" style="display:none">
+                        <small class="form-text text-danger fw-semibold d-block mb-1">Bu yerga kirish mumkin emas</small>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                            <input type="password" class="form-control" id="reports_access_code" autocomplete="off" placeholder="Yangi kod" value="${reportsAccessCode || ''}">
+                            <button type="button" class="btn btn-outline-secondary" onclick="toggleSecretVisibility(this)" title="Ko'rsatish/Yashirish">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button type="button" class="btn btn-danger" onclick="saveReportsAccessCode()" title="Saqlash">
+                                <i class="fas fa-save"></i>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -69,6 +88,47 @@
     </div>
 
     <script>
+        function toggleSecretField(key) {
+            const field = document.getElementById(key + '_field');
+            const icon = document.getElementById(key + '_icon');
+            const isHidden = field.style.display === 'none';
+            field.style.display = isHidden ? 'block' : 'none';
+            icon.className = isHidden ? 'fas fa-minus' : 'fas fa-plus';
+            if (isHidden) {
+                document.getElementById(key).focus();
+            }
+        }
+
+        function toggleSecretVisibility(btn) {
+            const input = btn.closest('.input-group').querySelector('input');
+            const icon = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'fas fa-eye';
+            }
+        }
+
+        function saveReportsAccessCode() {
+            if (!confirm('Bu yerga kirish mumkin emas. Baribir saqlashni davom ettirasizmi?')) {
+                return;
+            }
+            const value = document.getElementById('reports_access_code').value;
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/admin/settings';
+            form.style.display = 'none';
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'reports_access_code';
+            input.value = value;
+            form.appendChild(input);
+            document.body.appendChild(form);
+            form.submit();
+        }
+
         document.querySelectorAll('.toggle-password').forEach(button => {
             button.addEventListener('click', function () {
                 const targetId = this.getAttribute('data-target');
